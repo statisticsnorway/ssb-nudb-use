@@ -1,0 +1,25 @@
+{
+  "_commit": "9e3c49f6680d4c400567c39d70b768f0a322c95e",
+  "_copy_without_render": [
+    "*.rst_t"
+  ],
+  "_jinja2_env_vars": {
+    "lstrip_blocks": true,
+    "trim_blocks": true
+  },
+  "_template": "https://github.com/statisticsnorway/ssb-pypitemplate.git",
+  "author": "Carl F. Corneil",
+  "code_quality_level": "Medium",
+  "copyright_owner": "Statistics Norway",
+  "copyright_year": "2025",
+  "department_number": "360",
+  "dependency_manager_tool": "poetry",
+  "development_status": "Development Status :: 3 - Alpha",
+  "email": "cfc@ssb.no",
+  "friendly_name": "SSB Nudb Use",
+  "github_organization": "statisticsnorway",
+  "license": "MIT",
+  "package_name": "nudb_use",
+  "project_name": "ssb-nudb-use",
+  "version": "2025.10.0"
+}
