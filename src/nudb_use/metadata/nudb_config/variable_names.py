@@ -1,0 +1,241 @@
+# this file is probably misplaced...
+import pandas as pd
+
+from .get_variable_info import get_var_metadata
+from nudb_use.config import settings as settings_use
+from nudb_use.variables.var_utils.duped_columns import find_duplicated_columns
+from nudb_use.nudb_logger import logger, LoggerStack
+
+def sort_cols_after_config_order_and_unit(data: pd.DataFrame) -> pd.DataFrame:
+    """Sort columns after order defined in the config and by unit. 
+
+    Nested function that combined the functionality of the sort_cols_by_unit
+    and sort_cols_after_config_order functions. 
+    
+    Args:
+        data: Dataframe to sort.
+
+    Returns:
+        data: Dataframe with columns reordered by the column and unit order defined in the config.  
+    """
+    return sort_cols_by_unit(sort_cols_after_config_order(data))
+
+
+def sort_cols_after_config_order(data: pd.DataFrame) -> pd.DataFrame:
+    """
+
+    Args.
+        data: Dataframe 
+
+    Returns: 
+        data: Dataframe with columns reordered by the column order defined in the config.  
+    """
+    data.columns = data.columns.str.lower()
+    sorted_cols = ([col for col in list(settings_use.variables.keys()) if col in data.columns] + 
+                   [col for col in data.columns if col not in settings_use.variables.keys()])
+    return data[sorted_cols]
+
+
+def sort_cols_by_unit(data: pd.DataFrame) -> pd.DataFrame:
+    """Sort DataFrame columns based on the unit of each variable.
+
+    Args:
+        data: Input DataFrame with columns representing variables to sort.
+
+    Returns:
+        data: DataFrame with columns reordered by their corresponding units' sort order.
+
+    Raises:
+        KeyError: If any column in `data` does not have associated metadata or sorting unit in settings_use.
+
+    """
+    sort_order = {k: v for v, k in enumerate(settings_use.variables_sort_unit)}
+
+    # Raise error if column in data is not in the settings_use?
+    order = (
+        get_var_metadata(variables=data.columns)
+        .assign(sort_unit = lambda df: df["unit"].map(sort_order))
+        .sort_values(by="unit").index
+    )
+    logger.info(order)
+    return data[order]
+
+
+def get_cols_in_config(name: str | None) -> list[str]:
+    """Retrieve column (variable) names from settings_use.
+    
+    Args:
+        name: Name of a dataset. If None, returns all variable names across datasets.
+
+    Returns:
+        list: List of column or variable names defined in settings_use.
+
+    Raises:
+        KeyError: If the provided dataset name is not defined in settings_use.
+    """
+    if name is None:
+        cols_in_config = settings_use["variables"].keys()
+    else:
+        datasets = list(settings_use["datasets"].keys()) 
+        if name not in datasets:
+            raise KeyError(f"""
+                `name` must be one of the following:
+                    {datasets}
+                got '{name}'
+            """)
+
+        cols_in_config = settings_use["datasets"][name]["variables"]
+
+    return cols_in_config
+
+
+def get_cols2keep(data: pd.DataFrame, name: str | None = None) -> pd.Index:
+    """Get column names to keep in a dataset based on settings_use. 
+
+    Args:
+        data: DataFrame to check.
+        name: Name of the dataset to compare against settings_use.
+        
+    Returns:
+        pd.Index: Columns present in the dataset that are defined in settings_use. 
+    """
+    cols_in_config = get_cols_in_config(name)
+    return data.columns[data.columns.isin(cols_in_config)]
+
+
+def get_cols2drop(data: pd.DataFrame, name: str | None = None) -> pd.Index:
+    """Return column names to drop from a dataset based on settings_use.
+
+    Args:
+        data: DataFrame to check.
+        name: Name of the dataset to compare against settings_use.
+
+    Returns:
+        pd.Index: Columns present in the DataFrame but not defined in settings_use.
+    """
+    cols_in_config = get_cols_in_config(name)
+    return data.columns[~data.columns.isin(cols_in_config)]
+
+
+def update_colnames(data: pd.DataFrame, dataset_name: str = "", lowercase: bool = True) -> pd.DataFrame:
+    """Rename columns in a DataFrame based on metadata mappings.
+
+    Args:
+        data: Input DataFrame whose column names should be updated.
+        lowercase: If you want to lowercase the column names (usually yes).
+
+    Returns:
+        pd.DataFrame: A copy of the DataFrame with columns renamed according to metadata.
+    """
+
+    with LoggerStack("Updating Colnames"):
+        data = data.copy()
+        
+        # Lowercase all colnames usually?
+        if lowercase:
+            data.columns = data.columns.str.lower()
+        
+        namepairs = (
+                get_var_metadata()
+                .query("~renamed_from.isna()")
+                ["renamed_from"]
+        )
+    
+        renames_completed = {}
+        for newname in namepairs.index:
+            oldnames = namepairs[newname]
+    
+            if isinstance(oldnames, int | str): # scalar
+                oldnames = [oldnames] # some 'newnames' have multiple oldnames
+    
+            for oldname in oldnames:
+                if oldname not in data.columns:
+                    continue
+    
+                logger.debug(f"renaming {oldname} to {newname}!")
+                renames_completed[oldname] = newname
+                data = data.rename({oldname: newname}, axis=1)
+    
+        # There might be overrides for certain variables in the datasets
+        if not dataset_name:
+            logger.warning("No dataset_name specified, so no renaming-overrides will be handled, like renaming ftype.")
+        else:
+            data = handle_dataset_specific_renames(data, dataset_name)
+        
+        
+        logger.info(f"Renamed {len(renames_completed)} columns to new names.")
+
+    duped_columns = find_duplicated_columns(data)
+    if duped_columns:
+        err_msg = f"The renaming of columns resulted in duplicated column-names: {duped_columns}"
+        logger.error(err_msg)
+        raise KeyError(err_msg)
+    
+    return data
+
+
+def handle_dataset_specific_renames(df: pd.DataFrame,
+                                    dataset_name: str,
+                                   ) -> pd.DataFrame:
+
+    # Get the overrides from the config
+    renames = dict(settings_use.datasets[dataset_name].dataset_specific_renames)
+    renames_flip_list = _flip_dict_to_list(renames)
+
+    
+    for new_name, old_names in renames_flip_list.items():
+        in_df = [c for c in [new_name] + old_names if c in df.columns]  # config sets order
+        # Warn if fillnas will happen
+        if len(in_df) > 1:
+            logger.warning(f"Found multiple columns that will map to the same, meaning we are doing a fillna, instead of a pure rename: {in_df}")
+            if new_name not in df.columns:
+                df[new_name] = pd.Series(pd.NA, index=df.index).astype("string[pyarrow]")  # <- sketchy type setting
+            for col in [c for c in in_df if c != new_name]:
+                if df[col].isna().all():
+                    logger.debug(f"{col} is all empty, no need to do dataset_specific_rename_fillna")
+                else:
+                    logger.warning(f"Found multiple columns that will map to the same, meaning we are doing a fillna into {new_name} from {col}, deleting {col} after.")
+                    df[new_name] = df[new_name].fillna(df[col])
+                del df[col]  # Either it is empty or we used it to fill
+        elif len(in_df) == 1 and old_names[0] in df.columns:
+            logger.info(f"Single value found for dataset_specific_rename, just renaming: {old_names[0]} to {new_name}")
+            return df.rename(columns={old_names[0]: new_name})
+        else:
+            logger.debug("Dont know if anything needs to be done, if the dataset only contains the correct new name?")
+
+    return df
+
+      
+    
+
+def _flip_dict_to_list(d: dict[str, str]) -> dict[str, str | list[str]]:
+    flipped: dict[str, list[str]] = {}
+    for k, v in d.items():
+        if v in flipped:
+            # already a list, just append
+            if isinstance(flipped[v], list):
+                flipped[v].append(k)
+            else:
+                # convert existing single value into a list
+                flipped[v] = [flipped[v], k]
+        else:
+            flipped[v] = k
+    return flipped
+
+
+def fjern_ftype_fyll_kontrakt_provekand(df: pd.DataFrame, 
+                                        inndata_type: str = "",
+                                        del_ftype_cols: bool = True) -> pd.DataFrame:
+    """Splits the column ftype back into its original names.
+
+    Args:
+        df: The dataframe containing the columns we want to correct.
+        inndata_type: We split the variable into different columns based on the inndata-type.
+        del_ftype_cols: If you want to delete the source ftype columns or not.
+
+    Returns:
+        pd.DataFrame: The modified dataframe, edited in place to save memory...
+    """
+
+    raise NotImplementedError("Functionality should now be handled with datasets.toml dataset_specific_renames from config instead. + handle_dataset_specific_renames.")
+
