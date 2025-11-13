@@ -1,15 +1,15 @@
 [project]
 name = "ssb-nudb-use"
-version = "2025.10.0"
-description = "SSB Nudb Use"
+version = "2025.11.0"
+description = "NUDB Use - is a usage-package for the Norwegian National Education Database cloud-data. Both for data-consumers and data-deliverers"
 authors = [{ name = "Carl F. Corneil", email = "cfc@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, Education statistics Department (360)" }]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.11,<4.0"
 dynamic = ["classifiers"]
 dependencies = [
-    "click>=8.0.1",
+    "ssb-nudb-config >=2025.11.5"   
 ]
 
 [project.urls]
@@ -17,9 +17,6 @@ homepage = "https://github.com/statisticsnorway/ssb-nudb-use"
 repository = "https://github.com/statisticsnorway/ssb-nudb-use"
 documentation = "https://statisticsnorway.github.io/ssb-nudb-use"
 Changelog = "https://github.com/statisticsnorway/ssb-nudb-use/releases"
-
-[project.scripts]
-ssb-nudb-use = "nudb_use.__main__:main"
 
 [tool.poetry]
 classifiers = ["Development Status :: 3 - Alpha"]
