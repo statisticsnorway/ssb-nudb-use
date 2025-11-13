@@ -57,7 +57,7 @@ def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None
     if args_have_None(nus2000=col):
         return None
 
-    # nus2000: første siffer skal kun være ‘1','2','3','4','5','6','7','8'
+    # nus2000: første siffer skal kun være '1','2','3','4','5','6','7','8'
     # nus2000 skal være 6 siffer lang, og kun tallsiffer
     nus_maske_ok = (col.str[0].isin([str(x) for x in range(1, 9)])) & (
         col.str.len() == 6
@@ -178,7 +178,7 @@ def subcheck_nus2000_uh_institusjon_id_against_nus(
     ):
         return None
 
-    # hskode: Når første siffer i nus er 6, 7, eller 8, så skal ikke hskode være blankt eller ‘999'.
+    # hskode: Når første siffer i nus er 6, 7, eller 8, så skal ikke hskode være blankt eller '999'.
     # hskode ble ikke inført før i 1994, så testen er ikke valid før det.
     invalid_hskode_mask = (
         nus_col.str[0].isin(["6", "7", "8"])

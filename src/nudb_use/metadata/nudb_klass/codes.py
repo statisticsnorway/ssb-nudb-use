@@ -73,7 +73,7 @@ def check_klass_codes(
         errors = []
         for col in df.columns:
             if col not in metadata.index:
-                logger.warning(f"Not checking `{col}´, not in nudb_config!")
+                logger.warning(f"Not checking `{col}`, not in nudb_config!")
             elif 0 == metadata.loc[col, "klass_codelist"]:
                 logger.debug(
                     f"Not checking `{col}`, its not supposed to have a codelist, the codelist-int is 0."

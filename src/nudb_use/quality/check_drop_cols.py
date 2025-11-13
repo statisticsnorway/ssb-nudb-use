@@ -30,7 +30,7 @@ def check_drop_cols_for_valid_cols(
     """
     with LoggerStack("Looking for columns in your drop that you might want to keep."):
         var_meta_valid = get_var_metadata().query("unit != 'utdatert'")
-        
+
         renamed_list = [
             x
             for y in (
@@ -40,8 +40,10 @@ def check_drop_cols_for_valid_cols(
         ]
         drops_old_names = [c for c in drop_cols if c in renamed_list]
         if drops_old_names:
-            logger.warning(f"You are trying to drop the old names of columns (should have been renamed?), these may not be handled correctly: {drops_old_names}")
-        
+            logger.warning(
+                f"You are trying to drop the old names of columns (should have been renamed?), these may not be handled correctly: {drops_old_names}"
+            )
+
         want_list = var_meta_valid.index.to_list()
 
         overlap = [col for col in want_list if col in [c.lower() for c in drop_cols]]

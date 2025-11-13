@@ -10,10 +10,10 @@ from .variable_names import sort_cols_by_unit
 from .variable_names import update_colnames
 
 __all__ = [
-    "get_dtypes",
-    "get_var_metadata",
     "get_cols2drop",
     "get_cols2keep",
+    "get_dtypes",
+    "get_var_metadata",
     "sort_cols_after_config_order",
     "sort_cols_after_config_order_and_unit",
     "sort_cols_by_unit",

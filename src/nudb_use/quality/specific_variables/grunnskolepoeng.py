@@ -23,7 +23,6 @@ def check_grunnskolepoeng(df: pd.DataFrame, **kwargs: object) -> list[NudbQualit
     """
     with LoggerStack("Validating specific variable: gr_grunnskolepoeng"):
         grunnskolepoeng = get_column(df, "gr_grunnskolepoeng")
-        pers_id = get_column(df, "pers_id")
 
         errors = []
 

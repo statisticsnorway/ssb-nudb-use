@@ -201,7 +201,7 @@ def handle_dataset_specific_renames(
 
     for new_name, old_names in renames_flip_list.items():
         in_df = [
-            c for c in [new_name] + old_names if c in df.columns
+            c for c in [new_name, *old_names] if c in df.columns
         ]  # config sets order
         # Warn if fillnas will happen
         if len(in_df) > 1:
