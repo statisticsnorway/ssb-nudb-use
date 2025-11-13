@@ -1,13 +1,14 @@
-import pandas as pd
-from brreg.enhetsregisteret import Client
-from brreg.enhetsregisteret import EnhetQuery, UnderenhetQuery
-from pydantic import BaseModel
-from collections.abc import Iterable
-from typing import Any
 import csv
 import gzip
-import requests
 from io import StringIO
+from typing import Any
+
+import pandas as pd
+import requests
+from brreg.enhetsregisteret import Client
+from brreg.enhetsregisteret import UnderenhetQuery
+from pydantic import BaseModel
+
 from nudb_use import logger
 from nudb_use.config import settings
 
@@ -16,65 +17,65 @@ def download_csv_content_enheter() -> pd.DataFrame:
     """Download and parse organisation data from Brønnøysundregisteret and convert it to a DataFrame.
 
     Returns:
-        pd.DataFrame: A DataFrame containing organisation data from 
+        pd.DataFrame: A DataFrame containing organisation data from
             the Brønnøysundregisteret.
     """
     logger.info("Downloading CSV from brreg...")
     url = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv"
     response = requests.get(url)
     response.raise_for_status()
-    
+
     logger.info("Decompressing the response from brreg")
     decompressed = gzip.decompress(response.content).decode("utf-8")
-    
+
     logger.info("Use csv module to parse robustly, from brreg")
     reader = csv.DictReader(
-        StringIO(decompressed),
-        delimiter=",",
-        quotechar='"',
-        doublequote=True
+        StringIO(decompressed), delimiter=",", quotechar='"', doublequote=True
     )
-    
+
     logger.info("Convert data from brreg to DataFrame")
     return pd.DataFrame(reader)
 
 
 def filter_utd_csv_enheter() -> pd.DataFrame:
-    """
-    Download organisation data from Brønnøysundregisteret using the download_csv_content_enheter function and extract UTD-nacecodes.
+    """Download organisation data from Brønnøysundregisteret using the download_csv_content_enheter function and extract UTD-nacecodes.
 
-    Returns: 
+    Returns:
         pd.DataFrame: Dataframe contaaining UTD-nacecodes from Brønnøysundregisteret.
     """
     df = download_csv_content_enheter()
     logger.info("Filtering brreg-data down to UTD-nacecodes.")
     return df[
-            df["naeringskode1.kode"].isin(settings.utd_nacekoder) |
-            df["naeringskode2.kode"].isin(settings.utd_nacekoder) |
-            df["naeringskode3.kode"].isin(settings.utd_nacekoder)
-            ].convert_dtypes()
+        df["naeringskode1.kode"].isin(settings.utd_nacekoder)
+        | df["naeringskode2.kode"].isin(settings.utd_nacekoder)
+        | df["naeringskode3.kode"].isin(settings.utd_nacekoder)
+    ].convert_dtypes()
 
 
 def orgnr_is_underenhet(orgnr: str) -> bool:
     """Check if a given organisation is a sub-unit (underenhet).
 
-        Args:
-            orgnr: Organisation number to check.
+    Args:
+        orgnr: Organisation number to check.
 
-        Returns:
-            bool: True if the organisation number is an underenhet, False otherwise.
+    Returns:
+        bool: True if the organisation number is an underenhet, False otherwise.
     """
     with Client() as client:
-        return client.get_underenhet("".join([c for c in orgnr if c.isdigit()])) is not None
+        return (
+            client.get_underenhet("".join([c for c in orgnr if c.isdigit()]))
+            is not None
+        )
+
 
 def get_enhet(orgnr: str) -> None | dict[str, str]:
     """Check if a given organisation is either a main unit (enhet, foretak) or sub-unit (underenhet, bedrift).
 
-        Args:
-            orgnr: The organisation number to look up.
-    
-        Returns:
-            dict or None: Information about the main unit or sub-unit, or None if not found.
+    Args:
+        orgnr: The organisation number to look up.
+
+    Returns:
+        dict or None: Information about the main unit or sub-unit, or None if not found.
     """
     orgnr_clean = "".join([c for c in orgnr if c.isdigit()])
     with Client() as client:
@@ -108,7 +109,9 @@ def search_nace(naces: list[str]) -> pd.DataFrame:
     """
     # Make sure codes follow standard
     if not all([x[2] == "." for x in naces]):
-        raise ValueError("One of the nace-codes is missing a point in the third position.")
+        raise ValueError(
+            "One of the nace-codes is missing a point in the third position."
+        )
     dataframe_list = []
     for nacekode in naces:
         sok = UnderenhetQuery()
@@ -130,7 +133,7 @@ def search_nace(naces: list[str]) -> pd.DataFrame:
     return pd.concat(dataframe_list)
 
 
-def flatten(obj: Any, prefix: str = '', sep: str = '_') -> dict[str, Any]:
+def flatten(obj: Any, prefix: str = "", sep: str = "_") -> dict[str, Any]:
     """Recursively flatten a nested dictionary, list, or Pydantic model into a flat dictionary.
 
     Args:
@@ -153,7 +156,7 @@ def flatten(obj: Any, prefix: str = '', sep: str = '_') -> dict[str, Any]:
 
     elif isinstance(obj, list):
         if all(isinstance(i, (str, int, float, bool, type(None))) for i in obj):
-            flat[prefix] = ' - '.join(map(str, obj))
+            flat[prefix] = " - ".join(map(str, obj))
         else:
             for i, item in enumerate(obj):
                 flat.update(flatten(item, f"{prefix}{sep}{i}", sep=sep))

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import logging
-import sys
 import copy
 import json
-
+import logging
+import sys
+from datetime import datetime
 from typing import Any
+
 from colorama import Back
 from colorama import Fore
 from colorama import Style
 from fagfunksjoner import logger as faglogger
-from datetime import datetime
-
 
 STACK_LEVEL: int = 0
 STACK_LABELS: list[str] = []
@@ -35,49 +34,56 @@ def add_LogRecord_to_json(record: logging.LogRecord) -> None:
     stack_label = last(STACK_LABELS)
 
     level = record.levelname
-    msg   = record.msg
+    msg = record.msg
 
     CURRENT_ID_COUNTER = ID_COUNTERS.pop()
     name = f"{level}-{stack_label}-{CURRENT_ID_COUNTER}"
     ID_COUNTERS.append(CURRENT_ID_COUNTER + 1)
 
     CURRENT_JSON_FIELD = last(JSON_FIELDS)
-    CURRENT_JSON_FIELD[name] = {"id": CURRENT_ID_COUNTER, "level": level, "msg": msg, "time": str(datetime.now())}
-    
+    CURRENT_JSON_FIELD[name] = {
+        "id": CURRENT_ID_COUNTER,
+        "level": level,
+        "msg": msg,
+        "time": str(datetime.now()),
+    }
+
 
 class ColoredFormatter(logging.Formatter):
     """Colored log formatter."""
 
     def __init__(
         self,
-        *args: Any,  # noqa: ANN401
+        *args: Any,
         colors: dict[str, str] | None = None,
-        **kwargs: Any,  # noqa: ANN401
+        **kwargs: Any,
     ) -> None:
         """Initialize the formatter with specified format strings."""
         super().__init__(*args, **kwargs)
 
         self.colors = colors if colors else {}
-        self.level  = 0
+        self.level = 0
 
     def format(self, record: logging.LogRecord) -> str:
         """Format the specified record as text."""
         record.color = self.colors.get(record.levelname, "")
         record.reset = Style.RESET_ALL
-        
+
         global INDENT_WIDTH, STACK_LEVEL, EXITING_STACK, WIDTH_LEVEL_NAME, ENTERING_STACK
 
         if not ENTERING_STACK and not EXITING_STACK:
             add_LogRecord_to_json(record)
 
         if INDENT_WIDTH < 1:
-            raise ValueError(f"INDENT_WIDTH must have at least length 1! ({INDENT_WIDTH})")
+            raise ValueError(
+                f"INDENT_WIDTH must have at least length 1! ({INDENT_WIDTH})"
+            )
         if STACK_LEVEL < 0:
             raise ValueError(f"STACK_LEVEL is negative! ({STACK_LEVEL})")
 
         if ENTERING_STACK:
             nlpad = 11
-            lpad  = " " * nlpad
+            lpad = " " * nlpad
             width = nlpad * 2 + len(record.msg)
             prepad = ("│" + " " * (INDENT_WIDTH - 1)) * (STACK_LEVEL)
 
@@ -85,9 +91,9 @@ class ColoredFormatter(logging.Formatter):
             line2 = prepad + "│" + lpad + record.msg + lpad + "│"
             line3 = prepad + "├" + "─" * width + "┘"
             line4 = prepad + "│"
-            
+
             return prepad + "\n" + line1 + "\n" + line2 + "\n" + line3 + "\n" + line4
-        
+
         if STACK_LEVEL:
             prepad = ("│" + " " * (INDENT_WIDTH - 1)) * (STACK_LEVEL - 1)
 
@@ -96,7 +102,13 @@ class ColoredFormatter(logging.Formatter):
                 pad_l2 = prepad + " " * INDENT_WIDTH + " " * WIDTH_LEVEL_NAME + "     "
             else:
                 pad_l1 = prepad + "├" + "─" * (INDENT_WIDTH - 1)
-                pad_l2 = prepad + "│" + " " * (INDENT_WIDTH - 1) + " " * WIDTH_LEVEL_NAME + "     "
+                pad_l2 = (
+                    prepad
+                    + "│"
+                    + " " * (INDENT_WIDTH - 1)
+                    + " " * WIDTH_LEVEL_NAME
+                    + "     "
+                )
         else:
             pad_l1 = ""
             pad_l2 = " " * WIDTH_LEVEL_NAME + "     "
@@ -140,11 +152,11 @@ class LoggerStack:
         CURRENT_ID_COUNTER = 0
         FIELD_NAME = f"{self.label}-{CURRENT_ID_COUNTER}"
         ID_COUNTERS.append(CURRENT_ID_COUNTER + 1)
-        
+
         CURRENT_JSON_FIELD = last(JSON_FIELDS)
         CURRENT_JSON_FIELD[FIELD_NAME] = {}
         JSON_FIELDS.append(CURRENT_JSON_FIELD[FIELD_NAME])
-        
+
         ENTERING_STACK = True
         logger.info(f"ENTERING STACK [{self.label}|{STACK_LEVEL}]")
         ENTERING_STACK = False
@@ -169,7 +181,7 @@ def ENTER_NEW_LOGGER_STACK(label: str = STACK_LEVEL + 1):
     loggerStack.__enter__()
 
 
-def EXIT_CURRENT_LOGGER_STACK(label = last(STACK_LABELS)):
+def EXIT_CURRENT_LOGGER_STACK(label=last(STACK_LABELS)):
     loggerStack = LoggerStack(label)
     loggerStack.__exit__(None, None, None)
 

@@ -1,5 +1,5 @@
 # from .nudb_config import (
-#     get_nudb_settings, 
+#     get_nudb_settings,
 #     sort_cols_by_unit,
 #     update_colnames,
 #     get_cols2keep,

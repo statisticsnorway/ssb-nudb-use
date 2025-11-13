@@ -27,4 +27,4 @@
     1. Remove hardcoding in functions, depend on config?
 2. Moves in build package
     1. Make "exceptions" folder, move temporality-exeption there
-    2.  
+    2.

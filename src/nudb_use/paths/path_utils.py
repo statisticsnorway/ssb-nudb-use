@@ -1,18 +1,21 @@
 from pathlib import Path
+
 from fagfunksjoner.paths.versions import next_version_path
+
 
 def next_path_mkdir(path: str | Path) -> Path:
     """Generate a bumped version path for a new file version, including creating any missing folders.
 
     Args:
-        path: Current path as a string. 
+        path: Current path as a string.
 
     Returns:
-        path: Path to newly created directory. 
+        path: Path to newly created directory.
     """
     path = Path(next_version_path(str(path)))
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
+
 
 def metadatapath_from_path(path: str | Path) -> Path:
     """Generate a path for JSON metadata file corresponding to input file.
@@ -21,7 +24,7 @@ def metadatapath_from_path(path: str | Path) -> Path:
         path: Path to input file.
 
     Returns:
-        metapath: Path to metadata JSON-file for the input file. 
+        metapath: Path to metadata JSON-file for the input file.
     """
     metapath = Path(path)  # Type-narrowing
     metapath = metapath.parent / (metapath.stem + "__DOC.json")

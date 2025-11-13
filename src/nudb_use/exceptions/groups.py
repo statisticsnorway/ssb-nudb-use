@@ -1,23 +1,24 @@
 import sys
+
 from nudb_use.nudb_logger import logger
 
+
 def raise_exception_group(errors: list[Exception]) -> None:
-    """Raise multiple exceptions using ExceptionGroup if Python is 3.11+, 
+    """Raise multiple exceptions using ExceptionGroup if Python is 3.11+,
     otherwise wrap them into a single ValueError.
-    
+
     Args:
         errors: List of exception errors to raise together.
 
     Returns:
         None
-        
+
     Raises:
         ExceptionGroup: If running on Python 3.11 or newer, an `ExceptionGroup` containing
         all exceptions from the list is raised.
-        ValueError: If running on Python versions earlier than 3.11, a `ValueError` is 
+        ValueError: If running on Python versions earlier than 3.11, a `ValueError` is
         raised containing a combined message of all exception strings.
     """
-    
     if not errors:
         return  # No errors to raise
 
@@ -35,14 +36,12 @@ def warn_exception_group(errors: list[Exception]) -> None:
 
     Args:
         errors: List of exception instances to log as warnings.
-        
+
     Returns:
         None
     """
-    
     if not errors:
         return  # No errors to raise
 
     for error in errors:
         logger.warning(str(error))
-

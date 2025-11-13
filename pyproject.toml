@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dynamic = ["classifiers"]
 dependencies = [
-    "ssb-nudb-config >=2025.11.5"   
+    "ssb-nudb-config >=2025.11.5"
 ]
 
 [project.urls]

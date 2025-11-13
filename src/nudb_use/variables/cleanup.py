@@ -1,10 +1,13 @@
-import pandas as pd
-from nudb_use.paths.path_utils import metadatapath_from_path
 from pathlib import Path
 
-def move_col_after_col(df: pd.DataFrame,
-               col_anchor: str,
-               col_move_after: str) -> pd.DataFrame:
+import pandas as pd
+
+from nudb_use.paths.path_utils import metadatapath_from_path
+
+
+def move_col_after_col(
+    df: pd.DataFrame, col_anchor: str, col_move_after: str
+) -> pd.DataFrame:
     """Move a specified column in a DataFrame to immediately follow another specified column.
 
     Args:
@@ -18,20 +21,22 @@ def move_col_after_col(df: pd.DataFrame,
     col_move_content = df[col_move_after]
     df = df.drop(columns=col_move_after)
     ind = list(df.columns).index(col_anchor)  # Important to do this after the drop...
-    df.insert(ind+1, col_move_after, col_move_content)
+    df.insert(ind + 1, col_move_after, col_move_content)
     return df
 
 
-def move_content_from_col_to(df: pd.DataFrame, from_col: str, to_col: str) -> pd.DataFrame:
+def move_content_from_col_to(
+    df: pd.DataFrame, from_col: str, to_col: str
+) -> pd.DataFrame:
     """Fill empty values (NA) in one column with values from another column.
-     
+
     Args:
         df: DataFrame
         from_col: Column where information is taken.
-        to_col: Column where information is moved to. 
+        to_col: Column where information is moved to.
 
     Returns:
-        pd.Dataframe: DataFrame with values filled out. 
+        pd.Dataframe: DataFrame with values filled out.
     """
     if from_col in df.columns:
         df[to_col] = df[to_col].fillna(df[from_col])
@@ -39,26 +44,28 @@ def move_content_from_col_to(df: pd.DataFrame, from_col: str, to_col: str) -> pd
     return df
 
 
-def remove_cols_store(in_path: Path,
-                      out_path: Path,
-                      cols_keep: list[str] | None = None,
-                      cols_drop: list[str] | None = None,
-                      exist_ok: bool = False,
-                      testing: bool = False) -> None:  
+def remove_cols_store(
+    in_path: Path,
+    out_path: Path,
+    cols_keep: list[str] | None = None,
+    cols_drop: list[str] | None = None,
+    exist_ok: bool = False,
+    testing: bool = False,
+) -> None:
     """Load a dataset and its associated metadata, remove specified columns, and store the minimized version together with updated metadata.
 
-    This function ensures metadata exists before processing, removes columns 
-    based on the provided keep/drop rules, and writes both the reduced dataset 
+    This function ensures metadata exists before processing, removes columns
+    based on the provided keep/drop rules, and writes both the reduced dataset
     (in Parquet format) and updated metadata to the specified output path.
 
     Args:
         in_path: Path to the input dataset file.
         out_path: Path where the minimized dataset will be saved.
-        cols_keep: List of column names to keep. 
-        cols_drop: List of column names to drop. 
-        exist_ok: If False, raises an error when `out_path` already exists. 
+        cols_keep: List of column names to keep.
+        cols_drop: List of column names to drop.
+        exist_ok: If False, raises an error when `out_path` already exists.
                   If True, overwrites the existing file.
-        testing: If True, skips actual file writing to facilitate testing. 
+        testing: If True, skips actual file writing to facilitate testing.
 
     Returns:
         None: The function saves minimized data and updated metadata to disk.
@@ -74,11 +81,13 @@ def remove_cols_store(in_path: Path,
             raise OSError(exists_msg)
         elif out_path.is_file() and exist_ok:
             print(exists_msg)
-    
+
     # We want the user to fill metadata before sharing the data further
     in_meta_path = metadatapath_from_path(in_path)
     if not in_meta_path.is_file():
-        raise OSError(f"Missing metadata at path {in_meta_path}, create and check metadata before minimizing and sharing.")
+        raise OSError(
+            f"Missing metadata at path {in_meta_path}, create and check metadata before minimizing and sharing."
+        )
 
     # Remove cols
     df = read_data_and_remove_cols(in_path, cols_keep, cols_drop)
