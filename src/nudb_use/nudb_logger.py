@@ -1,11 +1,15 @@
+"""Custom logging utilities that add hierarchical context to log output."""
+
 from __future__ import annotations
 
 import copy
 import json
 import logging
 import sys
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any
+from types import TracebackType
+from typing import TypeVar
 
 from colorama import Back
 from colorama import Fore
@@ -20,16 +24,20 @@ EXITING_STACK: bool = False
 WIDTH_LEVEL_NAME: int = 8
 
 
+T = TypeVar("T")
+
 ID_COUNTERS = [0]
 JSON = {}
 JSON_FIELDS = [JSON]
 
 
-def last(x: list):
-    return None if len(x) <= 0 else x[len(x) - 1]
+def last(items: Sequence[T]) -> T | None:
+    """Return the last item of a list or None if empty."""
+    return None if not items else items[-1]
 
 
 def add_LogRecord_to_json(record: logging.LogRecord) -> None:
+    """Persist the current log record into the in-memory JSON structure."""
     global STACK_LABELS, ID_COUNTERS, JSON_FIELDS
     stack_label = last(STACK_LABELS)
 
@@ -54,9 +62,9 @@ class ColoredFormatter(logging.Formatter):
 
     def __init__(
         self,
-        *args: Any,
+        *args: object,
         colors: dict[str, str] | None = None,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> None:
         """Initialize the formatter with specified format strings."""
         super().__init__(*args, **kwargs)
@@ -143,10 +151,14 @@ faglogger.setLevel(logging.INFO)
 
 
 class LoggerStack:
-    def __init__(self, label: str = STACK_LEVEL + 1):
+    """Context manager that adds structured stack labels to log output."""
+
+    def __init__(self, label: str = STACK_LEVEL + 1) -> None:
+        """Create a logger stack scope with the provided label."""
         self.label = label
 
-    def __enter__(self):
+    def __enter__(self) -> LoggerStack:
+        """Enter the stack scope and adjust global logging state."""
         global STACK_LEVEL, STACK_LABELS, ENTERING_STACK, JSON_FIELDS, ID_COUNTERS
 
         CURRENT_ID_COUNTER = 0
@@ -164,7 +176,13 @@ class LoggerStack:
         STACK_LABELS.append(self.label)
         STACK_LEVEL += 1
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit the stack scope and clean up state."""
         global STACK_LEVEL, STACK_LABELS, EXITING_STACK, JSON_FIELDS, CURRENT_ID_COUNTERS
 
         JSON_FIELDS.pop()
@@ -176,20 +194,24 @@ class LoggerStack:
         STACK_LEVEL -= 1
 
 
-def ENTER_NEW_LOGGER_STACK(label: str = STACK_LEVEL + 1):
+def ENTER_NEW_LOGGER_STACK(label: str = STACK_LEVEL + 1) -> None:
+    """Enter a new logger stack context with the given label."""
     loggerStack = LoggerStack(label)
     loggerStack.__enter__()
 
 
-def EXIT_CURRENT_LOGGER_STACK(label=last(STACK_LABELS)):
+def EXIT_CURRENT_LOGGER_STACK(label: str | None = last(STACK_LABELS)) -> None:
+    """Exit the current logger stack context in a safe way."""
     loggerStack = LoggerStack(label)
     loggerStack.__exit__(None, None, None)
 
 
-def GET_CURRENT_JSON():
+def GET_CURRENT_JSON() -> dict:
+    """Return a shallow copy of the accumulated logging JSON structure."""
     return copy.deepcopy(JSON)
 
 
-def SAVE_CURRENT_JSON(path: str, indent: int = 4):
+def SAVE_CURRENT_JSON(path: str, indent: int = 4) -> None:
+    """Persist the accumulated logging JSON structure to disk."""
     with open(path, "w") as file:
         json.dump(JSON, file, indent=indent)

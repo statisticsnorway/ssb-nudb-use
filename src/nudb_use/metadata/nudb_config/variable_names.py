@@ -1,7 +1,8 @@
-# this file is probably misplaced...
+"""Tools for sorting and renaming NUDB variables based on config metadata."""
+
 import pandas as pd
 
-from nudb_use.config import settings as settings_use
+from nudb_use import settings as settings_use
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.var_utils.duped_columns import find_duplicated_columns
@@ -25,11 +26,13 @@ def sort_cols_after_config_order_and_unit(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def sort_cols_after_config_order(data: pd.DataFrame) -> pd.DataFrame:
-    """Args.
-        data: Dataframe
+    """Sort DataFrame columns according to the config-defined order.
+
+    Args:
+        data: DataFrame whose columns should be reordered.
 
     Returns:
-        data: Dataframe with columns reordered by the column order defined in the config.
+        pd.DataFrame: DataFrame with columns reordered per config definition.
     """
     data.columns = data.columns.str.lower()
     sorted_cols = [
@@ -45,11 +48,8 @@ def sort_cols_by_unit(data: pd.DataFrame) -> pd.DataFrame:
         data: Input DataFrame with columns representing variables to sort.
 
     Returns:
-        data: DataFrame with columns reordered by their corresponding units' sort order.
-
-    Raises:
-        KeyError: If any column in `data` does not have associated metadata or sorting unit in settings_use.
-
+        pd.DataFrame: DataFrame with columns reordered by their units' sort
+        order.
     """
     sort_order = {k: v for v, k in enumerate(settings_use.variables_sort_unit)}
 
@@ -129,10 +129,15 @@ def update_colnames(
 
     Args:
         data: Input DataFrame whose column names should be updated.
-        lowercase: If you want to lowercase the column names (usually yes).
+        dataset_name: Dataset identifier for applying dataset-specific overrides.
+        lowercase: Whether to lowercase column names before renaming.
 
     Returns:
-        pd.DataFrame: A copy of the DataFrame with columns renamed according to metadata.
+        pd.DataFrame: Copy of the DataFrame with columns renamed according to
+        metadata.
+
+    Raises:
+        KeyError: If the renaming results in duplicate column names.
     """
     with LoggerStack("Updating Colnames"):
         data = data.copy()
@@ -181,7 +186,15 @@ def handle_dataset_specific_renames(
     df: pd.DataFrame,
     dataset_name: str,
 ) -> pd.DataFrame:
+    """Apply dataset-specific rename overrides defined in configuration.
 
+    Args:
+        df: DataFrame whose columns should be updated in place.
+        dataset_name: Dataset key used to look up override rules.
+
+    Returns:
+        pd.DataFrame: DataFrame with overrides applied.
+    """
     # Get the overrides from the config
     renames = dict(settings_use.datasets[dataset_name].dataset_specific_renames)
     renames_flip_list = _flip_dict_to_list(renames)
@@ -248,8 +261,9 @@ def fjern_ftype_fyll_kontrakt_provekand(
         inndata_type: We split the variable into different columns based on the inndata-type.
         del_ftype_cols: If you want to delete the source ftype columns or not.
 
-    Returns:
-        pd.DataFrame: The modified dataframe, edited in place to save memory...
+    Raises:
+        NotImplementedError: Always raised because the logic moved to config-based
+            dataset-specific renames.
     """
     raise NotImplementedError(
         "Functionality should now be handled with datasets.toml dataset_specific_renames from config instead. + handle_dataset_specific_renames."

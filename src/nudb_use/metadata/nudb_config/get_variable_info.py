@@ -1,11 +1,22 @@
-# maybe not the correct place for this script
+"""Helpers for reading NUDB variable metadata from configuration."""
 
+from collections.abc import Mapping
+from typing import Any
 
 import pandas as pd
 from nudb_config import settings as settings_use
 
 
-def get_toml_field(toml, field):
+def get_toml_field(toml: Mapping[str, Any], field: str) -> object | None:
+    """Return a field from a TOML object or None if it is missing.
+
+    Args:
+        toml: Parsed TOML object.
+        field: Field name to retrieve.
+
+    Returns:
+        Any: Field value when present, otherwise None.
+    """
     return None if field not in toml.keys() else toml[field]
 
 
@@ -24,4 +35,4 @@ def get_var_metadata(variables: list[str] | None = None) -> pd.DataFrame:
     ]
     df = pd.DataFrame(variables_list_of_dicts).set_index("variable")
 
-    return df.loc[variables, :] if variables else df
+    return df[[variables]] if variables else df

@@ -1,6 +1,4 @@
-from nudb_use.metadata.external_apis.brreg import search_nace
-
-from nudb_use.config import settings
+"""Column filter definitions for the Skolereg external API."""
 
 variabelfilter = [
     "rectype",

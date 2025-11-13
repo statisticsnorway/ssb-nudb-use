@@ -1,3 +1,5 @@
+"""Location utilities for discovering the latest shared NUDB datasets."""
+
 from pathlib import Path
 
 from fagfunksjoner.paths.versions import get_latest_fileversions
@@ -10,7 +12,10 @@ def find_delt_path() -> Path:
     """Figure out where you might have the shared NUDB-data mounted locally.
 
     Returns:
-        Path: the path of the folder that we found out of these.
+        Path: Path to the shared NUDB data folder.
+
+    Raises:
+        OSError: If neither of the expected shared data locations exists.
     """
     utdata_path = Path("/buckets/shared/utd-nudb/utdanning/nudb-data")
     if not utdata_path.is_dir():
@@ -25,10 +30,10 @@ def filter_out_periods_paths(p: Path) -> str:
     """Filter the versions and periods out of a path.
 
     Args:
-        p: The path we should find the stem name from.
+        p: Path that potentially includes period/version information.
 
     Returns:
-        str: The part of the filestem we deem to not be versions or periods.
+        str: File stem without period and version fragments.
     """
     p = Path(p)  # In case someone sends a str...
     parts_left = [
@@ -52,10 +57,12 @@ def latest_shared_paths(dataset_name: str = "") -> list[Path] | Path:
     """Find the last shared version and period of each stem in the shared folder.
 
     Args:
-        dataset_name: If you want to filter down already here, you can. But it just indexes into the resulting dict, so... yeah.
+        dataset_name: Optional dataset identifier. When provided only the path
+            for that dataset is returned.
 
     Returns:
-        list[Path] | Path: If you used dataset_name, only a single path is returned, otherwise all the keys and files.
+        list[Path] | Path: Mapping of dataset stems to their newest paths, or a
+        single `Path` when `dataset_name` is supplied.
     """
     with LoggerStack("Finding all the latest shared paths for NUDB."):
         delt_path = find_delt_path() / "klargjort-data"

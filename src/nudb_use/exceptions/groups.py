@@ -1,23 +1,19 @@
+"""Utilities for raising or logging grouped exceptions."""
+
 import sys
 
 from nudb_use.nudb_logger import logger
 
 
 def raise_exception_group(errors: list[Exception]) -> None:
-    """Raise multiple exceptions using ExceptionGroup if Python is 3.11+,
-    otherwise wrap them into a single ValueError.
+    """Raise grouped exceptions as ExceptionGroup (Py3.11+) or ValueError.
 
     Args:
-        errors: List of exception errors to raise together.
-
-    Returns:
-        None
+        errors: Exceptions that should be raised together.
 
     Raises:
-        ExceptionGroup: If running on Python 3.11 or newer, an `ExceptionGroup` containing
-        all exceptions from the list is raised.
-        ValueError: If running on Python versions earlier than 3.11, a `ValueError` is
-        raised containing a combined message of all exception strings.
+        ExceptionGroup: On Python 3.11+, raised with every collected error.
+        ValueError: On earlier versions, raised with a combined error message.
     """
     if not errors:
         return  # No errors to raise
@@ -32,13 +28,10 @@ def raise_exception_group(errors: list[Exception]) -> None:
 
 
 def warn_exception_group(errors: list[Exception]) -> None:
-    """Log each exception in the provided list using the active logger's `warning` method.
+    """Log each exception in the provided list using the active logger.
 
     Args:
-        errors: List of exception instances to log as warnings.
-
-    Returns:
-        None
+        errors: Exceptions that should be emitted as warnings in sequence.
     """
     if not errors:
         return  # No errors to raise

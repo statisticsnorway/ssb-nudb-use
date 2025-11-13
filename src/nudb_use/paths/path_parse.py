@@ -1,3 +1,5 @@
+"""Helper for parsing information out of NUDB file paths."""
+
 import datetime
 from pathlib import Path
 

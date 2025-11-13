@@ -1,3 +1,5 @@
+"""Fetch and validate KLASS classification codes."""
+
 import datetime
 
 import klass
@@ -63,10 +65,8 @@ def check_klass_codes(
                       otherwise, only logs warnings.
 
     Returns:
-        list[NudbQualityError]: List of quality errors detected during validation, empty if none.
-
-    Raises:
-        NudbQualityError: Raised in a grouped exception if invalid codes are found and `raise_errors` is True.
+        list[NudbQualityError]: List of quality errors detected during
+        validation, empty if none.
     """
     with LoggerStack("Checking if column-content matches codelists in KLASS"):
         metadata = get_var_metadata()

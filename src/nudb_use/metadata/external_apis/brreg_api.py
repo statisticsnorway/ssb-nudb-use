@@ -1,3 +1,5 @@
+"""Helpers for reading organization data from Brreg APIs."""
+
 import csv
 import gzip
 from io import StringIO
@@ -10,7 +12,7 @@ from brreg.enhetsregisteret import UnderenhetQuery
 from pydantic import BaseModel
 
 from nudb_use import logger
-from nudb_use.config import settings
+from nudb_use import settings
 
 
 def download_csv_content_enheter() -> pd.DataFrame:
@@ -86,10 +88,7 @@ def get_enhet(orgnr: str) -> None | dict[str, str]:
 
 
 def search_nace(naces: list[str]) -> pd.DataFrame:
-    """Validate that NACE codes are in the correct format (a dot in
-       the third position), then attempts to query the business entity register for
-       each code. It initiates API searches and logs the total pages found for each
-       NACE code.
+    """Validate NACE codes and query the Brreg API for matching entities.
 
     Note:
         The function is currently incomplete: it logs total pages but does not
@@ -133,7 +132,7 @@ def search_nace(naces: list[str]) -> pd.DataFrame:
     return pd.concat(dataframe_list)
 
 
-def flatten(obj: Any, prefix: str = "", sep: str = "_") -> dict[str, Any]:
+def flatten(obj: object, prefix: str = "", sep: str = "_") -> dict[str, Any]:
     """Recursively flatten a nested dictionary, list, or Pydantic model into a flat dictionary.
 
     Args:
