@@ -25,8 +25,3 @@ variabelfilter = [
     "undersektor_2014",
     "delreg_merke",
 ]
-
-
-def make_skolereg():
-    brreg_content = search_nace(settings.utd_nacekoder)
-    raise NotImplementedError("How should we make skolereg?")
