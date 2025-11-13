@@ -50,7 +50,7 @@ def identify_cols_not_in_keep_drop_in_paths(
         KeyError: If `raise_error_found` is True and unconfigured columns are
             found in the data files.
     """
-    extra_cols = set()
+    extra_cols: set[str] = set()
     for path in paths:
         columns_in_data = pyarrow_columns_from_metadata(path)
 
@@ -99,7 +99,7 @@ def check_column_presence(
         f"Checking for column presence in dataframe for dataset: {dataset_name}"
     ):
         datasets = list(settings["datasets"].keys())
-        errors = []
+        errors: list[Exception] = []
 
         if dataset_name is None and check_for is None:
             errors += [
@@ -125,14 +125,20 @@ def check_column_presence(
                 ]
             check_for = settings["datasets"][dataset_name]["variables"]
 
+        columns_to_check: list[str] = check_for if check_for is not None else []
+
         # Sjekk om nåværende flyttall trenger være flyttall?
         for col in df.select_dtypes("float").columns:
             maske_heltall = df[col].mod(1.0) == 0
             if maske_heltall.all():
                 logger.info(f"{col} ser ut til å kunne være ett heltall.")
 
-        col_in_df_but_not_defined = [c for c in df.columns if c not in check_for]
-        col_defined_but_not_in_data = [c for c in check_for if c not in df.columns]
+        col_in_df_but_not_defined = [
+            column for column in df.columns if column not in columns_to_check
+        ]
+        col_defined_but_not_in_data = [
+            column for column in columns_to_check if column not in df.columns
+        ]
 
         if col_in_df_but_not_defined:
             err_msg = f"Cant find columns among defined columns, but they're in the data: {col_in_df_but_not_defined}"

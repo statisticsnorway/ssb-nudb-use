@@ -35,4 +35,4 @@ def get_var_metadata(variables: list[str] | None = None) -> pd.DataFrame:
     ]
     df = pd.DataFrame(variables_list_of_dicts).set_index("variable")
 
-    return df[[variables]] if variables else df
+    return df.loc[variables, :] if variables else df

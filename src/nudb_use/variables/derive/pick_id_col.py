@@ -19,7 +19,10 @@ def detect_pers_id_fnr_used(
     Raises:
         ValueError: If the lengths dont match any of our expectations.
     """
-    common_width = pers_id_fnr.str.strip().str.len().mode[0]
+    mode_values = pers_id_fnr.str.strip().str.len().mode()
+    if mode_values.empty:
+        raise ValueError("Unable to determine a common identifier width.")
+    common_width = int(mode_values.iloc[0])
     if common_width == 7:
         return "pers_id"
     elif common_width == 11:

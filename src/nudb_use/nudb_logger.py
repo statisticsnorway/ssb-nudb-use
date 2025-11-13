@@ -9,12 +9,12 @@ import sys
 from collections.abc import Sequence
 from datetime import datetime
 from types import TracebackType
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from colorama import Back
 from colorama import Fore
 from colorama import Style
-from fagfunksjoner import logger as faglogger
+from fagfunksjoner import logger as faglogger  # type: ignore[attr-defined]
 
 STACK_LEVEL: int = 0
 STACK_LABELS: list[str] = []
@@ -26,9 +26,9 @@ WIDTH_LEVEL_NAME: int = 8
 
 T = TypeVar("T")
 
-ID_COUNTERS = [0]
-JSON = {}
-JSON_FIELDS = [JSON]
+ID_COUNTERS: list[int] = [0]
+JSON: dict[str, Any] = {}
+JSON_FIELDS: list[dict[str, Any]] = [JSON]
 
 
 def last(items: Sequence[T]) -> T | None:
@@ -48,8 +48,11 @@ def add_LogRecord_to_json(record: logging.LogRecord) -> None:
     name = f"{level}-{stack_label}-{CURRENT_ID_COUNTER}"
     ID_COUNTERS.append(CURRENT_ID_COUNTER + 1)
 
-    CURRENT_JSON_FIELD = last(JSON_FIELDS)
-    CURRENT_JSON_FIELD[name] = {
+    current_json_field = last(JSON_FIELDS)
+    if current_json_field is None:
+        raise RuntimeError("JSON_FIELDS is unexpectedly empty while logging.")
+
+    current_json_field[name] = {
         "id": CURRENT_ID_COUNTER,
         "level": level,
         "msg": msg,
@@ -62,9 +65,9 @@ class ColoredFormatter(logging.Formatter):
 
     def __init__(
         self,
-        *args: object,
+        *args: Any,
         colors: dict[str, str] | None = None,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         """Initialize the formatter with specified format strings."""
         super().__init__(*args, **kwargs)
@@ -153,8 +156,10 @@ faglogger.setLevel(logging.INFO)
 class LoggerStack:
     """Context manager that adds structured stack labels to log output."""
 
-    def __init__(self, label: str = STACK_LEVEL + 1) -> None:
+    def __init__(self, label: str | None = None) -> None:
         """Create a logger stack scope with the provided label."""
+        if label is None:
+            label = str(STACK_LEVEL + 1)
         self.label = label
 
     def __enter__(self) -> LoggerStack:
@@ -165,9 +170,12 @@ class LoggerStack:
         FIELD_NAME = f"{self.label}-{CURRENT_ID_COUNTER}"
         ID_COUNTERS.append(CURRENT_ID_COUNTER + 1)
 
-        CURRENT_JSON_FIELD = last(JSON_FIELDS)
-        CURRENT_JSON_FIELD[FIELD_NAME] = {}
-        JSON_FIELDS.append(CURRENT_JSON_FIELD[FIELD_NAME])
+        current_json_field = last(JSON_FIELDS)
+        if current_json_field is None:
+            raise RuntimeError("JSON_FIELDS is unexpectedly empty while entering.")
+
+        current_json_field[FIELD_NAME] = {}
+        JSON_FIELDS.append(current_json_field[FIELD_NAME])
 
         ENTERING_STACK = True
         logger.info(f"ENTERING STACK [{self.label}|{STACK_LEVEL}]")
@@ -175,6 +183,7 @@ class LoggerStack:
 
         STACK_LABELS.append(self.label)
         STACK_LEVEL += 1
+        return self
 
     def __exit__(
         self,
@@ -183,7 +192,7 @@ class LoggerStack:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit the stack scope and clean up state."""
-        global STACK_LEVEL, STACK_LABELS, EXITING_STACK, JSON_FIELDS, CURRENT_ID_COUNTERS
+        global STACK_LEVEL, STACK_LABELS, EXITING_STACK, JSON_FIELDS
 
         JSON_FIELDS.pop()
         EXITING_STACK = True
@@ -194,7 +203,7 @@ class LoggerStack:
         STACK_LEVEL -= 1
 
 
-def ENTER_NEW_LOGGER_STACK(label: str = STACK_LEVEL + 1) -> None:
+def ENTER_NEW_LOGGER_STACK(label: str | None = None) -> None:
     """Enter a new logger stack context with the given label."""
     loggerStack = LoggerStack(label)
     loggerStack.__enter__()
@@ -206,7 +215,7 @@ def EXIT_CURRENT_LOGGER_STACK(label: str | None = last(STACK_LABELS)) -> None:
     loggerStack.__exit__(None, None, None)
 
 
-def GET_CURRENT_JSON() -> dict:
+def GET_CURRENT_JSON() -> dict[str, Any]:
     """Return a shallow copy of the accumulated logging JSON structure."""
     return copy.deepcopy(JSON)
 

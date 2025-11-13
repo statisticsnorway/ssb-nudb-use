@@ -6,7 +6,7 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 
 
-def _color_cell(code: bool) -> str:
+def _color_cell(code: object) -> str:
     """Map OK/NA cells to red/green background colors.
 
     Args:
@@ -15,7 +15,8 @@ def _color_cell(code: bool) -> str:
     Returns:
         str: CSS style string.
     """
-    color = "green" if code == "OK" else "red"
+    value = str(code)
+    color = "green" if value == "OK" else "red"
     return f"color: white; background-color: {color}"
 
 
@@ -37,7 +38,9 @@ def empty_cols_in_time_colored(df: pd.DataFrame, time_col: str) -> Styler:
 
 
 def _grade_cell(
-    spercent: float, scaling_fun: Callable = lambda x: x, colorscale: float = 0.83
+    spercent: object,
+    scaling_fun: Callable[[float], float] | None = None,
+    colorscale: float = 0.83,
 ) -> str:
     """Shade a cell based on a string percentage.
 
@@ -49,9 +52,9 @@ def _grade_cell(
     Returns:
         str: CSS style string.
     """
-    ratio = float(spercent[0 : len(spercent) - 1]) / 100
-
-    percentage = 100 * scaling_fun(ratio)
+    transform = scaling_fun if scaling_fun is not None else (lambda value: value)
+    ratio = float(str(spercent).rstrip("%")) / 100
+    percentage = 100 * transform(ratio)
 
     red = (100 - percentage) * colorscale
     green = percentage * colorscale
@@ -69,9 +72,10 @@ def grade_cell_by_time_col(df: pd.DataFrame, time_col: str) -> Styler:
     Returns:
         Styler: Styled completeness summary for display.
     """
-    return (
+    styled: Styler = (
         df.groupby(time_col)
-        .agg(lambda x: str(100 - 100 * float(x.isna().sum() / len(x)))[0:5] + "%")
-        .astype("str")
-        .style.map(_grade_cell, scaling_fun=lambda x: x**4)
+        .agg(lambda x: f"{(100 - 100 * float(x.isna().sum() / len(x))):0.2f}%")
+        .astype("string[pyarrow]")
+        .style.map(_grade_cell, scaling_fun=lambda value: value**4)
     )
+    return styled

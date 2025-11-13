@@ -36,6 +36,15 @@ def get_periods_from_path(
     pathp = Path(path)
     parts = [p.split("_")[0].split(".")[0] for p in pathp.stem.split("_p")[-2:]]
     final_parts = [p for p in parts if p.replace("-", "").isdigit()]
+    if not final_parts:
+        raise ValueError(f"No valid period fragments found in path '{path}'.")
+
     if return_datetime:
-        final_parts = [date_parse(str(p)) for p in final_parts]
-    return final_parts
+        dt_parts = [date_parse(part) for part in final_parts]
+        if len(dt_parts) == 1:
+            return dt_parts[0]
+        return (dt_parts[0], dt_parts[1])
+
+    if len(final_parts) == 1:
+        return final_parts[0]
+    return (final_parts[0], final_parts[1])
