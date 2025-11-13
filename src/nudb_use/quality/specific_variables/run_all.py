@@ -1,3 +1,5 @@
+"""Entry point for executing all variable-specific validation checks."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -43,22 +45,18 @@ VARIABLE_CHECKS = [
 
 
 def run_all_specific_variable_tests(
-    df: pd.DataFrame, raise_errors: bool = False, **kwargs
+    df: pd.DataFrame, raise_errors: bool = False, **kwargs: object
 ) -> list[NudbQualityError]:
-    """Check data for any erroneous 'nuskodes' and 'nuskode'/'hskode' combinations.
-
-    Combines the check_valid_nus and check_hskode_against_nus functions.
+    """Execute every registered variable-specific validation routine.
 
     Args:
-        df: Dataframe to check.
-        raise_errors: If True, raises an exception group on validation errors;
-                      otherwise, only logs warnings.
+        df: DataFrame that should contain the required variables.
+        raise_errors: When True, raise grouped errors if any validations fail.
+        **kwargs: Extra keyword arguments forwarded to each check.
 
     Returns:
-        err[NudbQualityError]: List of erroneous 'hskode' and 'nuskode' combinations, empty if none.
-
-    Raises:
-        NudbQualityError: Raised if invalid 'nuskode' or 'hskode' on 'nuscode' is found and `raise_errors` is True.
+        list[NudbQualityError]: Errors aggregated from all specific checks, or
+        an empty list when every check passes.
     """
     with LoggerStack("Running tests for specific variables"):
         errors = []

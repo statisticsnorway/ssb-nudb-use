@@ -1,4 +1,4 @@
-from typing import Any
+"""Validations for the nus2000 classification variable."""
 
 import pandas as pd
 
@@ -12,8 +12,17 @@ from .utils import args_have_None
 from .utils import get_column
 
 
-def check_nus2000(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_nus2000(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
+    """Run all nus2000-specific validation checks on the provided dataset.
 
+    Args:
+        df: DataFrame that should contain nus2000-relevant columns.
+        **kwargs: Additional keyword arguments forwarded to range validation. Passed in from parent function.
+
+    Returns:
+        list[NudbQualityError]: Validation errors gathered from all sub-checks,
+        or an empty list when the dataset passes cleanly.
+    """
     with LoggerStack("Validating for specific variable: nus2000"):
         # Get needed variables
         nus2000 = get_column(df, col="nus2000")
@@ -36,18 +45,14 @@ def check_nus2000(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
 
 
 def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None:
-    """Check if a 'nuskode' is invalid.
-
-    Codes should only contain 6 integers, and only start with either
-    ‘1','2','3','4','5','6','7', or '8'.
+    """Validate that every nus2000 code is six digits and starts with 1-8.
 
     Args:
-        col:
-        raise_errors: If True, raises an exception group on validation errors;
-                      otherwise, only logs warnings.
+        col: Series containing nus2000 codes, or None if the column is missing.
 
     Returns:
-        err[NudbQualityError]: List of erroneous 'nuskode's, empty if none.
+        NudbQualityError | None: Validation error describing the invalid codes, or
+        None when all codes satisfy the required format.
     """
     if args_have_None(nus2000=col):
         return None
@@ -69,8 +74,21 @@ def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None
 def subcheck_nus2000_valid_range(
     nus_col: pd.Series,
     range_valid_nus: range | None = None,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> NudbQualityError | None:
+    """Check that nus2000 codes stay inside the configured numeric range.
+
+    Args:
+        nus_col: Series containing nus2000 codes to validate.
+        range_valid_nus: Optional range describing the allowed first-digit span.
+            When omitted, dataset-specific or default ranges are used.
+        **kwargs: Keyword arguments that may include `range_valid_nus` or
+            `dataset_name` to look up configuration overrides.
+
+    Returns:
+        NudbQualityError | None: Validation error listing codes outside the
+        allowed range, or None when no violations are detected.
+    """
     lowest_nus: int = int("099901")  # 6-digit lower clamp
     highest_nus: int = int("999999")  # 6-digit upper clamp
 
@@ -141,16 +159,17 @@ def subcheck_nus2000_uh_institusjon_id_against_nus(
     nus_col: pd.Series,
     utd_skoleaar_start_col: pd.Series,
 ) -> NudbQualityError | None:
-    """Check if the value of 'uh_institusjon_id' is either "NaN" or "999" if the value of 'nuskode' is either "6", "7", or "8".
+    """Ensure UH institution id is populated when nus2000 starts with 6, 7, or 8.
 
     Args:
-        uh_institusjon_id_col: Columndata containing 'uh_institusjon_id'
-        nus_col: Columndata containing 'nuskode'.
-        raise_errors: If True, raises an exception group on validation errors;
-                      otherwise, only logs warnings.
+        uh_institusjon_id_col: Series with UH institution identifiers.
+        nus_col: Series containing nus2000 codes.
+        utd_skoleaar_start_col: Series with the school-year start used to
+            determine when the validation applies.
 
     Returns:
-        err[NudbQualityError]: List of erroneous 'hskode' and 'nuskode' combinations, empty if none.
+        NudbQualityError | None: Validation error describing offending
+        combinations, or None when every row satisfies the rule.
     """
     if args_have_None(
         hskode=uh_institusjon_id_col,

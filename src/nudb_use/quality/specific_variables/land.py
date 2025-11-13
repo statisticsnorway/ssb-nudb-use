@@ -1,3 +1,5 @@
+"""Validations for country (land) variables mapping to KLASS 91."""
+
 import pandas as pd
 from nudb_config import settings
 
@@ -15,7 +17,16 @@ LAND_VARS = [
 ]
 
 
-def check_land(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_land(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
+    """Run land-specific validations for all configured columns.
+
+    Args:
+        df: DataFrame containing potential land variables.
+        **kwargs: Placeholder for future options. Passed in from parent function.
+
+    Returns:
+        list[NudbQualityError]: Errors aggregated from land checks.
+    """
     errors: list[NudbQualityError] = []
 
     land_vars_in_df = [col for col in df.columns.str.lower() if col in LAND_VARS]
@@ -34,6 +45,15 @@ def check_land(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
 def subcheck_landkode_000(
     land_col: pd.Series, col_name: str
 ) -> NudbQualityError | None:
+    """Ensure the reserved land code `000` is not incorrectly used.
+
+    Args:
+        land_col: Series with land codes.
+        col_name: Name of the land column for logging context.
+
+    Returns:
+        NudbQualityError | None: Error when invalid codes are present, else None.
+    """
     if args_have_None(land_col=land_col, col_name=col_name):
         return None
 

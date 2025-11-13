@@ -1,3 +1,5 @@
+"""Utilities for manipulating NUDB file paths and metadata locations."""
+
 from pathlib import Path
 
 from fagfunksjoner.paths.versions import next_version_path
@@ -10,7 +12,7 @@ def next_path_mkdir(path: str | Path) -> Path:
         path: Current path as a string.
 
     Returns:
-        path: Path to newly created directory.
+        Path: Path to the newly created directory.
     """
     path = Path(next_version_path(str(path)))
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -24,7 +26,7 @@ def metadatapath_from_path(path: str | Path) -> Path:
         path: Path to input file.
 
     Returns:
-        metapath: Path to metadata JSON-file for the input file.
+        Path: Path to the metadata JSON file for the input file.
     """
     metapath = Path(path)  # Type-narrowing
     metapath = metapath.parent / (metapath.stem + "__DOC.json")

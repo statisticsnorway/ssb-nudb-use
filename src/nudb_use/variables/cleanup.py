@@ -1,3 +1,5 @@
+"""Utilities for reorganizing and trimming NUDB datasets."""
+
 from pathlib import Path
 
 import pandas as pd
@@ -66,9 +68,6 @@ def remove_cols_store(
         exist_ok: If False, raises an error when `out_path` already exists.
                   If True, overwrites the existing file.
         testing: If True, skips actual file writing to facilitate testing.
-
-    Returns:
-        None: The function saves minimized data and updated metadata to disk.
 
     Raises:
         OSError: If metadata file corresponding to `in_path` is missing.

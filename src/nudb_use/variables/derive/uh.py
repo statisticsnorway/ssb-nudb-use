@@ -1,3 +1,5 @@
+"""Derivation logic for the `univ` indicator."""
+
 import pandas as pd
 
 

@@ -1,3 +1,5 @@
+"""Checks for required personal identifier columns."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -7,7 +9,18 @@ from nudb_use.exceptions.exception_classes import NudbQualityError
 VALID_PERSONAL_IDS_PRIO = ["pers_id", "fnr"]
 
 
-def check_has_personal_ids(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_has_personal_ids(
+    df: pd.DataFrame, **kwargs: object
+) -> list[NudbQualityError]:
+    """Ensure at least one personal identifier column is populated per row.
+
+    Args:
+        df: DataFrame containing personal identifier columns.
+        **kwargs: Placeholder for future options. Passed in from parent function.
+
+    Returns:
+        list[NudbQualityError]: Errors for rows missing all identifier values.
+    """
     with LoggerStack(
         f"Checking if any rows are missing all personal ids across: {VALID_PERSONAL_IDS_PRIO}"
     ):

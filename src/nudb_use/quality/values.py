@@ -1,37 +1,39 @@
+"""Utilities for inspecting column fill rates and unexpected values."""
+
 from collections.abc import Iterable
-from typing import Any
+from collections.abc import Sequence
 
 import pandas as pd
 
 
 def get_fill_amount_per_column(df: pd.DataFrame) -> dict[str, float]:
-    """Get the percentage of filled cells (non-NA) in each column, and store in a dict.
+    """Calculate the percentage of filled (non-null) values per column.
 
     Args:
-        df:
+        df: DataFrame whose columns should be summarized.
 
     Returns:
-
+        dict[str, float]: Mapping of column name to percentage of filled cells.
     """
     return {col: (df[col].notna().sum() / len(df) * 100) for col in df.columns}
 
 
 def values_not_in_column(
-    col: pd.Series, values: list[Any] | Any, raise_error: bool = False
+    col: pd.Series, values: Sequence[object] | object, raise_error: bool = False
 ) -> None | ValueError:
-    """Check for the presence of given values in a column.
+    """Check whether certain values appear inside a column.
 
     Args:
-        col: Column to check.
-        values: List of values to check for in the column.
-        raise_error: If True, raises an exception group on validation errors;
-                     otherwise, only logs warnings.
+        col: Series to inspect.
+        values: Allowed values; may be a single value or a list.
+        raise_error: When True, raise ValueError immediately when matches occur.
 
     Returns:
-        err[ValueError]: List of ValueErrors found during the check, empty if None.
+        ValueError | None: Error describing the unexpected values, or None when
+        the column is clean.
 
     Raises:
-        ValueError: If any non-declared values are found in the column and 'raise_error' is True.
+        ValueError: If forbidden values are found and `raise_error` is True.
     """
     if isinstance(values, Iterable) and not isinstance(values, (str, bytes)):
         pass
@@ -42,10 +44,11 @@ def values_not_in_column(
     values_in_col = col[values_col_mask]
 
     if len(values_in_col):
-        err = ValueError(
-            f"Values in col that shouldnt be there: {values_in_col.unique()}, amount of rows: {len(values_in_col)}"
+        err_msg = (
+            "Values in col that shouldnt be there: "
+            f"{values_in_col.unique()}, amount of rows: {len(values_in_col)}"
         )
         if raise_error:
-            raise err
-        return err
+            raise ValueError(err_msg)
+        return ValueError(err_msg)
     return None

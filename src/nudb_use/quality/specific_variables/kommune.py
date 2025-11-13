@@ -1,3 +1,5 @@
+"""Validations for kommune-coded variables referencing KLASS 131."""
+
 import pandas as pd
 from nudb_config import settings
 
@@ -16,7 +18,16 @@ KOMMUNE_VARS = [
 ]
 
 
-def check_kommune(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_kommune(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
+    """Run kommune-specific validations on all kommune columns in the DataFrame.
+
+    Args:
+        df: DataFrame that may contain kommune columns.
+        **kwargs: Placeholder for future configuration. Passed in from parent function.
+
+    Returns:
+        list[NudbQualityError]: Errors aggregated from kommune checks.
+    """
     kommune_vars_in_df = [col for col in df.columns.str.lower() if col in KOMMUNE_VARS]
     errors: list[NudbQualityError] = []
     if not kommune_vars_in_df:
@@ -40,6 +51,15 @@ def check_kommune(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
 def subcheck_single_kommune_oslo_svalbard_utland(
     kommune_col: pd.Series, col_name: str
 ) -> NudbQualityError | None:
+    """Ensure fylker with single municipality codes are mapped correctly.
+
+    Args:
+        kommune_col: Series with kommune codes.
+        col_name: Name of the kommune column for logging.
+
+    Returns:
+        NudbQualityError | None: Error when illegal mappings exist, else None.
+    """
     if args_have_None(kommune_col=kommune_col, col_name=col_name):
         return None
 
@@ -70,6 +90,15 @@ def subcheck_single_kommune_oslo_svalbard_utland(
 def subcheck_only_single_sentinel_value_9999_allowed(
     kommune_col: pd.Series, col_name: str
 ) -> NudbQualityError | None:
+    """Ensure kommune codes only use '9999' as the sentinel value.
+
+    Args:
+        kommune_col: Series with kommune codes.
+        col_name: Name of the kommune column for logging context.
+
+    Returns:
+        NudbQualityError | None: Error when other sentinel values exist, else None.
+    """
     if args_have_None(kommune_col=kommune_col, col_name=col_name):
         return None
     unique_vals = pd.Series(kommune_col.dropna().unique())

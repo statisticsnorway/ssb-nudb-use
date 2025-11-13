@@ -1,8 +1,10 @@
+"""Checks ensuring NUDB datasets respect missing-value thresholds."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
 from nudb_use import logger
-from nudb_use.config import settings
+from nudb_use import settings
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
 
@@ -10,21 +12,16 @@ from nudb_use.exceptions.groups import raise_exception_group
 def check_non_missing(
     df: pd.DataFrame, cols_not_empty: list[str], raise_errors: bool = True
 ) -> list[NudbQualityError]:
-    """Check that specified DataFrame columns do not contain any missing values.
+    """Ensure the provided columns never contain missing values.
 
     Args:
-        df: Dataframe to check columns,
-        cols_not_empty: List of column names expected to have no missing (NaN) values.
-        raise_errors: If True, raise a grouped NudbQualityError if any issues are found;
-                      if False, return a list of errors without raising.
+        df: DataFrame to inspect.
+        cols_not_empty: Column names that must be fully populated.
+        raise_errors: When True, raise grouped errors if violations are found.
 
     Returns:
-        list[NudbQualityError]: List of NudbQualityError instances for columns that
-                               are missing or contain empty values. Empty list if no errors.
-
-    Raises:
-        NudbQualityError: If any specified columns contains missing (NaN) values and `raise_errors` is True.
-
+        list[NudbQualityError]: Errors describing columns that contain missing
+        values, or an empty list if all columns are complete.
     """
     with LoggerStack("Checking that {cols_not_empty} have no missing values."):
         errors: list[NudbQualityError] = []
@@ -48,19 +45,15 @@ def check_non_missing(
 def check_columns_only_missing(
     df: pd.DataFrame, raise_errors: bool = True
 ) -> list[NudbQualityError]:
-    """Check the dataframe for the columns only containing empty values.
+    """Identify columns that consist entirely of missing values.
 
     Args:
-        df: The dataframe we will check.
-        raise_errors: If True, raise a grouped NudbQualityError if any issues are found;
-                      if False, return a list of errors without raising.
+        df: DataFrame to inspect.
+        raise_errors: When True, raise grouped errors if violations are found.
 
     Returns:
-         list[NudbQualityError]: List of NudbQualityError instances for columns that
-                               only contain missing values. Empty list if all columns have some content.
-
-    Raises:
-        NudbQualityError: If any specified columns contains missing (NaN) values and `raise_errors` is True.
+        list[NudbQualityError]: Errors describing columns that contain only
+        missing values, or an empty list when every column has data.
     """
     with LoggerStack("Looking for columns in the dataset that are only empty"):
         errors: list[NudbQualityError] = []
@@ -104,20 +97,17 @@ def last_period_within_thresholds(
     thresholds: dict[str, float] | None = None,
     raise_errors: bool = True,
 ) -> list[NudbQualityError]:
-    """Finds the last period within a dataframe that has precentage value completion above a defined threshold for a given column.
+    """Validate that the latest period satisfies missing-value thresholds.
 
     Args:
-        df: DataFrame to check for completion.
-        period_col: Name of column specifying period.
-        thresholds: Dictionary of percentage completion thresholds for a specific column.
-        raise_errors: If True, raise a grouped NudbQualityError if any issues are found;
-                      if False, return a list of errors without raising.
+        df: DataFrame containing the data to evaluate.
+        period_col: Column identifying the period dimension.
+        thresholds: Mapping of column names to allowed missing-value percentages.
+        raise_errors: When True, raise grouped errors if violations are found.
 
     Returns:
-        list[NudbQualityError]: List of quality errors indicating threshold violations in the last period found.
-
-    Raises:
-        NudbQualityError: Raised if threshold violations exist and `raise_errors` is True.
+        list[NudbQualityError]: Errors describing columns that exceed thresholds
+        in the most recent period, or an empty list if all pass.
     """
     last_period = sorted(list(df[period_col].unique()))[-1]
     return df_within_missing_thresholds(
@@ -130,20 +120,16 @@ def df_within_missing_thresholds(
     thresholds: dict[str, float] | None = None,
     raise_errors: bool = True,
 ) -> list[NudbQualityError]:
-    """Check if columns in a dataframe are within a percentage completion threshold.
+    """Check whether each column respects its configured missing-value threshold.
 
     Args:
-        df: DataFrame to check for completion.
-        thresholds: Dictionary of percentage completion thresholds for a specific column.
-        raise_errors: If True, raise a grouped NudbQualityError if any issues are found;
-                      if False, return a list of errors without raising.
+        df: DataFrame providing the values to inspect.
+        thresholds: Mapping of column names to allowed missing-value percentages.
+        raise_errors: When True, raise grouped errors if violations are found.
 
     Returns:
-        list[NudbQualityError]:
-
-    Raises:
-        NudbQualityError: If a column has a higher amount of empty values than the threshold and `raise_errors` is True.
-
+        list[NudbQualityError]: Errors describing columns that exceed their
+        thresholds, or an empty list when all limits are met.
     """
     emptiness = empty_percents_over_columns(df)
     errors = []
@@ -171,19 +157,16 @@ def df_within_missing_thresholds(
 def check_missing_thresholds_dataset_name(
     df: pd.DataFrame, dataset_name: str, raise_errors: bool = True
 ) -> list[NudbQualityError]:
-    """Check whether the provided DataFrame meets the missing value thresholds defined for a specific dataset.
+    """Validate a dataset against the configured missing-value thresholds.
 
     Args:
-        df: Input DataFrame to be validated against the missing value thresholds.
-        dataset_name : Name of the dataset whose threshold configuration is used for comparison.
-        raise_errors: If True, raise a grouped NudbQualityError if any issues are found;
-                      if False, return a list of errors without raising.
+        df: DataFrame to validate.
+        dataset_name: Name of the dataset whose threshold config should be used.
+        raise_errors: When True, raise grouped errors if violations are found.
 
     Returns:
-        list[NudbQualityError]: List of threshold validation errors for variables exceeding the allowed missing value limits.
-
-    Raises:
-        NudbQualityError: and `raise_errors` is True.
+        list[NudbQualityError]: Errors describing columns that exceed their
+        thresholds, or an empty list when all limits are met.
     """
     with LoggerStack(
         "Checking amount of missing against defined thresholds in the config from dataset-level."
@@ -197,7 +180,7 @@ def check_missing_thresholds_dataset_name(
         return df_within_missing_thresholds(df, thresholds, raise_errors=raise_errors)
 
 
-def get_thresholds_from_config(dataset_name) -> dict[str, float]:
+def get_thresholds_from_config(dataset_name: str) -> dict[str, float]:
     """Retrieve percentage completion threshold values for a given dataset from config.
 
     Args:

@@ -1,3 +1,5 @@
+"""Validation helpers that ensure column values follow expected widths."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -6,36 +8,32 @@ from nudb_use import logger
 from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.exceptions.groups import warn_exception_group
 
+from nudb_use.exceptions.exception_classes import NudbQualityError
 
-class WidthMismatch(Exception): ...
+class WidthMismatch(NudbQualityError):
+    """Error raised when column values violate defined width constraints."""
+
+    ...
 
 
 def check_column_widths(
     df: pd.DataFrame,
     widths: dict[str, list[int]] | None = None,
-    ignore_na: bool = False,
     raise_errors: bool = True,
 ) -> list[WidthMismatch]:
-    """Validate that the string lengths in specified DataFrame columns match expected widths.
+    """Validate that string lengths in each column match expected widths.
 
-    Note: ignore_na is not implemented in the function.
+    Note: `ignore_na` is currently unused.
 
     Args:
-        df: DataFrame to check.
-        widths (dict[str, list[int]]: A dictionary mapping column names to
-            lists of acceptable string lengths. If None or invalid, falls back to
-            values from config..
-        ignore_na: If True, NaN or missing values are ignored in validation.
-        raise_errors: If True, raises a grouped exception for all mismatches
-                      found; if False, returns the list of mismatches and logs warnings.
+        df: DataFrame to inspect.
+        widths: Optional mapping of column names to allowed string lengths.
+            When omitted or malformed, definitions are loaded from config.
+        raise_errors: When True, raise grouped errors if mismatches are found.
 
     Returns:
-        list[WidthMismatch]: A list of `WidthMismatch` errors, one for each column that
-            contains values not conforming to the expected widths. Empty if all values pass.
-
-    Raises:
-        WidthMismatch: Raised as an exception group if any column contains string lengths
-            outside of the allowed range and `raise_errors` is True.
+        list[WidthMismatch]: Errors describing columns whose values are outside
+        the allowed width definitions, or an empty list when all pass.
     """
     with LoggerStack(
         "Checking the widths of values in columns according to a dict sent in or gotten from the config."

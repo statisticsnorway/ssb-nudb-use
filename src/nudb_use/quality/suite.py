@@ -1,3 +1,5 @@
+"""High-level orchestration for NUDB quality checks."""
+
 import pandas as pd
 
 from nudb_use import logger
@@ -19,26 +21,21 @@ def run_quality_suite(
     data_time_start: str | None = None,
     data_time_end: str | None = None,
     raise_errors: bool = True,
-    **kwargs,
+    **kwargs: object,
 ) -> list[NudbQualityError]:
-    """Run all quality checks for a dataset.
-
-    Nested function combining check_column_presence, check_column_widths
-    run_all_specific_variable_tests, check_klass_codes, and check_missing_thresholds_dataset_name.
+    """Run the full NUDB quality suite over a dataset.
 
     Args:
-        df: Dataframe to check.
-        dataset_name: Name of dataset to validate from defined in config.
-        data_time_start:
-        data_time_end:
-        raise_errors: If True, raises an exception group on validation errors;
-                      otherwise, only logs warnings.
+        df: DataFrame to validate.
+        dataset_name: Name of the dataset in config; controls which part of the config to choose for values used in the valiadations.
+        data_time_start: Optional start date used by codelist validations.
+        data_time_end: Optional end date used by codelist validations.
+        raise_errors: When True, raise grouped exceptions if any check fails.
+        **kwargs: Additional keyword arguments forwarded to specific checks.
 
     Returns:
-        list[NudbQualityError]: List of quality errors detected during validation, empty if none.
-
-    Raises:
-        NudbQualityError: Raised if any quality errors are found and `raise_errors` is True.
+        list[NudbQualityError]: All collected quality errors, or an empty list
+        when every check passes.
     """
     # Check if dataset name is in config
 

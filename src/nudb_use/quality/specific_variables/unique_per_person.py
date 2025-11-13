@@ -1,3 +1,5 @@
+"""Validations ensuring certain columns are unique per person."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -11,7 +13,18 @@ from .utils import get_column
 UNIQUE_PER_PERSON_COLS = ["pers_kjoenn", "pers_foedselsdato", "gr_grunnskolepoeng"]
 
 
-def check_unique_per_person(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_unique_per_person(
+    df: pd.DataFrame, **kwargs: object
+) -> list[NudbQualityError]:
+    """Ensure configured columns have at most one value per person.
+
+    Args:
+        df: DataFrame containing personal identifier and value columns.
+        **kwargs: Placeholder for future options. Passed in from parent function.
+
+    Returns:
+        list[NudbQualityError]: Errors describing rows that violate uniqueness.
+    """
     pers_id = get_column(df, col="pers_id")
     fnr = get_column(df, col="fnr")
 
@@ -38,6 +51,18 @@ def check_unique_per_person(df: pd.DataFrame, **kwargs) -> list[NudbQualityError
 def subcheck_unique_per_person(
     fnr: pd.Series, pers_id: pd.Series, unique_col: pd.Series, unique_col_name: str
 ) -> NudbQualityError | None:
+    """Check that a single column has unique values per person.
+
+    Args:
+        fnr: Series containing national identifiers.
+        pers_id: Series containing NUDB person identifiers.
+        unique_col: Column that should hold unique values per person.
+        unique_col_name: Name of the column for logging context.
+
+    Returns:
+        NudbQualityError | None: Error when multiple values exist per person,
+        else None.
+    """
     if args_have_None(fnr=fnr, pers_id=pers_id, unique_col=unique_col):
         return None
 

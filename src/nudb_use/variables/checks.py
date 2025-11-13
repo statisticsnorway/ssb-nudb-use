@@ -1,3 +1,5 @@
+"""Validation utilities for ensuring variable schemas match expectations."""
+
 from pathlib import Path
 
 import klass
@@ -29,7 +31,7 @@ def identify_cols_not_in_keep_drop_in_paths(
     cols_keep: list[str],
     cols_drop: list[str],
     raise_error_found: bool = False,
-):
+) -> set[str]:
     """Identifies columns in data files that are not in keep or drop lists.
 
     Args:
@@ -90,13 +92,8 @@ def check_column_presence(
             errors. If False, errors are only returned. Defaults to True.
 
     Returns:
-        errors: List of Exception objects encountered during validation. May include
-        ValueError and KeyError exceptions for missing columns or invalid
-        configuration.
-
-    Raises:
-        ExceptionGroup: If `raise_errors` is True and any validation errors occur.
-            Contains all accumulated errors from the validation process.
+        list[Exception]: Validation errors, including ValueError/KeyError instances
+        describing missing or unexpected columns.
     """
     with LoggerStack(
         f"Checking for column presence in dataframe for dataset: {dataset_name}"
@@ -156,7 +153,9 @@ def check_column_presence(
         return errors
 
 
-def _find_earliest_latest_klass_version_date(klass_classification_id: int) -> str:
+def _find_earliest_latest_klass_version_date(
+    klass_classification_id: int,
+) -> tuple[str, str]:
     """Finds the earliest and latest version dates for a KLASS classification.
 
     Retrieves all versions of a given KLASS classification and identifies the
@@ -168,7 +167,7 @@ def _find_earliest_latest_klass_version_date(klass_classification_id: int) -> st
             to query.
 
     Returns:
-        min_date, max_date: Tuple of two date strings (min_date, max_date) representing the earliest
+        tuple[str, str]: A `(min_date, max_date)` tuple representing the earliest
         and latest valid dates for the classification versions.
     """
     min_date: str = ""
@@ -273,9 +272,6 @@ def check_cols_against_klass_codelists(
         col_codelist: Dictionary mapping column names to their valid codes.
             If None, codelists are retrieved from KLASS
             configuration. Defaults to None.
-
-    Returns:
-        None.
 
     Raises:
         TypeError: If a codelist value is neither a list nor a dict.

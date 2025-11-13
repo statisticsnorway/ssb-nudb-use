@@ -1,3 +1,5 @@
+"""Derivations related to school-year columns."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack

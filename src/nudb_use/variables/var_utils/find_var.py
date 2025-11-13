@@ -1,4 +1,7 @@
+"""Lookup helpers for NUDB variable metadata defined in config."""
+
 from collections.abc import Iterable
+from typing import Any
 
 import klass
 from nudb_config import settings
@@ -6,7 +9,16 @@ from nudb_config import settings
 from nudb_use import logger
 
 
-def find_vars(var_names: str) -> dict[str, dict]:
+def find_vars(var_names: Iterable[str]) -> dict[str, dict]:
+    """Look up multiple variables and return their configuration metadata.
+
+    Args:
+        var_names: Iterable of variable identifiers to resolve.
+
+    Returns:
+        dict[str, dict]: Mapping of requested names to their resolved metadata.
+        Missing entries map to None.
+    """
     result = {}
     for name in var_names:
         found_data = find_var(name)
@@ -19,26 +31,22 @@ def find_vars(var_names: str) -> dict[str, dict]:
     return result
 
 
-def find_var(var_name: str):
-    """Retrieves configuration and metadata for a variable by name.
+def find_var(var_name: str) -> dict[str, Any] | None:
+    """Retrieve configuration and KLASS metadata for a single variable.
 
     Args:
-        var_name: The name of the variable to look up. Search is case-insensitive.
-            Can be either the current variable name or a previous name if the
-            variable has been renamed.
+        var_name: Variable name (current or historical). Comparison is
+            case-insensitive.
 
     Returns:
-        var_data: Dictionary containing the variable configuration and metadata, including:
+        dict[str, Any] | None: Dictionary with metadata when the variable is
+        defined, otherwise None. The dictionary contains the variable configuration and metadata, including:
             - "name": The canonical variable name
             - All fields from the variable configuration
             - "klass_codelist_metadata": KlassClassification object if the variable
               has an associated codelist
             - "klass_variant_metadata": KlassVariant object if the variable has
               an associated variant
-
-    Raises:
-        KeyError: If the variable name is not found in either current variables
-            or the renamed_from mapping.
     """
     variables = settings.variables
     var_data = None

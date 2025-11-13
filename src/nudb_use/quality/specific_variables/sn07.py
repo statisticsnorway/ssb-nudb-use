@@ -1,3 +1,5 @@
+"""Validations for the SN07 classification variable."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -9,7 +11,16 @@ from .utils import args_have_None
 from .utils import get_column
 
 
-def check_sn07(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_sn07(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
+    """Execute SN07-specific checks and return collected errors.
+
+    Args:
+        df: DataFrame containing SN07 codes.
+        **kwargs: Placeholder for future configuration. Passed in from parent function.
+
+    Returns:
+        list[NudbQualityError]: Errors describing invalid SN07 codes.
+    """
     with LoggerStack("Validating for specific variable: sn07"):
         sn07 = get_column(df, col="sn07")
 
@@ -20,6 +31,14 @@ def check_sn07(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
 
 
 def subcheck_sn07_bad_value(sn07: pd.Series) -> NudbQualityError | None:
+    """Detect disallowed SN07 codes.
+
+    Args:
+        sn07: Series containing SN07 codes to inspect.
+
+    Returns:
+        NudbQualityError | None: Error when forbidden codes are present, else None.
+    """
     if args_have_None(sn07_col=sn07):
         return None
 

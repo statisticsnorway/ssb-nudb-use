@@ -1,3 +1,5 @@
+"""Helpers for detecting which identifier column is in use."""
+
 from typing import Literal
 
 import pandas as pd
@@ -24,5 +26,5 @@ def detect_pers_id_fnr_used(
         return "fnr"
     else:
         raise ValueError(
-            f"What sort of personal id has {common_width} as the most common width? We only support pers_id (snr) or fnr."
+            f"What sort of personal id has {common_width} as the most common width? We only support pers_id (snr, 7 chars) or fnr (11 chars)."
         )

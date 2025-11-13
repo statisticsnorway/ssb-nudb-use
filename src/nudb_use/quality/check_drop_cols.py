@@ -1,3 +1,5 @@
+"""Ensure requested drop columns do not collide with configured variables."""
+
 from nudb_use import LoggerStack
 from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
@@ -9,21 +11,26 @@ def check_drop_cols_for_valid_cols(
     drop_cols: list[str],
     ignores: list[str] | str | None = None,
     raise_errors: bool = False,
-):
-    """Check if there are any columns in drop that is contained in the valid variables or their renames (old variables that are renamed to valid ones).
+) -> NudbQualityError | None:
+    """Warn when requested drop columns overlap with defined valid columns.
 
     Args:
-        drop_cols: The columns we are considering dropping.
-        raise_errors: If we shoud raise the errors found, or return them (if any).
+        drop_cols: Column names that are about to be dropped.
+        ignores: Optional iterable or single column name that should be ignored
+            when computing the overlap.
+        raise_errors: When True, raise a NudbQualityError instead of returning
+            it. Defaults to False.
 
     Returns:
-        None | NudbQualityError: If nothing is found, returns None, otherwise returns the error.
+        NudbQualityError | None: Error describing the overlapping columns, or
+        None when no problematic columns are found.
 
     Raises:
-        NudbQualityError: If raise_errors is set to True, and
+        NudbQualityError: Raised when overlaps exist and `raise_errors` is True.
     """
     with LoggerStack("Looking for columns in your drop that you might want to keep."):
         var_meta_valid = get_var_metadata().query("unit != 'utdatert'")
+        
         renamed_list = [
             x
             for y in (
@@ -31,6 +38,10 @@ def check_drop_cols_for_valid_cols(
             )
             for x in y
         ]
+        drops_old_names = [c for c in drop_cols if c in renamed_list]
+        if drops_old_names:
+            logger.warning(f"You are trying to drop the old names of columns (should have been renamed?), these may not be handled correctly: {drops_old_names}")
+        
         want_list = var_meta_valid.index.to_list()
 
         overlap = [col for col in want_list if col in [c.lower() for c in drop_cols]]
@@ -50,12 +61,15 @@ def check_drop_cols_for_valid_cols(
         if overlap:
             # Lets be nice and find the mappings to show what the current renaming is.
             overlap_dict = {k: v["name"] for k, v in find_vars(overlap).items()}
-            err_msg = f"There are columns in your drop, that you should consider keeping, because they are part of valid columns or their renames: {overlap_dict}"
+            err_msg = (
+                "There are columns in your drop that you should consider keeping, "
+                "because they are part of valid columns or their renames: "
+                f"{overlap_dict}"
+            )
             logger.warning(err_msg)
-            error = NudbQualityError(err_msg)
             if raise_errors:
-                raise error
-            return error
+                raise NudbQualityError(err_msg)
+            return NudbQualityError(err_msg)
 
         # Found no overlaps
         return None

@@ -1,27 +1,33 @@
+"""Threshold helpers for completeness and fill-rate validations."""
+
 from collections.abc import Iterable
-from typing import Any
+from nudb_use.exceptions.exception_classes import NudbQualityError
 
 import pandas as pd
 
 
 def filled_value_to_threshold(
-    col: pd.Series, value: Any, threshold_lower: float, raise_error: bool = True
+    col: pd.Series,
+    value: Iterable[object] | object,
+    threshold_lower: float,
+    raise_error: bool = True,
 ) -> ValueError | None:
-    """Check the fill rate of a value in a column is above a threshold.
+    """Ensure the proportion of specific values stays above a threshold.
 
     Args:
-        col: Name of column to check.
-        value: Value to check for.
-        threshold_lower: Lower threshold of percentage fill rate for column.
-        raise_error: If True, raises an exception group on values below the threshold;
-            otherwise, only logs warnings.
+        col: Series to inspect.
+        value: Single value or iterable of values that must meet the threshold.
+        threshold_lower: Minimum allowed percentage of matching values.
+        raise_error: When True, raise ValueError if the threshold is not met.
 
     Returns:
-        error[ValueError]: Returns a ValueError instance if the threshold is not met and
-            `raise_error` is False; otherwise, returns None.
+        ValueError: Error describing the shortage when the threshold is not met
+            and `raise_error` is False.
+        None: Returned when the column satisfies the threshold.
 
     Raises:
-        ValueError: If the percentage of matching values is below the threshold and `raise_error` is True.
+        ValueError: If the percentage of matching values is below the threshold
+            while `raise_error` is True.
     """
     if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
         pass
@@ -29,40 +35,40 @@ def filled_value_to_threshold(
         value = [value]
 
     percent = ((col.isin(value)).sum() / len(col)) * 100
-    error: None | ValueError = None
     if threshold_lower > percent:
-        error = ValueError(
-            f"mrk_dl {percent} is below the threshold of {threshold_lower}%"
-        )
+        err_msg = f"mrk_dl {percent} is below the threshold of {threshold_lower}%"
         if raise_error:
-            raise error
-    return error
+            raise NudbQualityError(err_msg)
+        return NudbQualityError(err_msg)
+    return None
 
 
 def non_empty_to_threshold(
     col: pd.Series, threshold_lower: float, raise_error: bool = True
 ) -> ValueError | None:
-    """Check if the percentage of empty values in a dataframe is above a threshold.
+    """Ensure the proportion of non-empty values stays above a threshold.
 
     Args:
-        col: Name of column to check.
-        threshold_lower: Lower threshold of percentage empty columns.
-        raise_error: If True, raises an exception group on empty values below the threshold;
-            otherwise, only logs warnings.
+        col: Series to inspect.
+        threshold_lower: Minimum allowed percentage of non-empty values.
+        raise_error: When True, raise ValueError if the threshold is not met.
 
     Returns:
-        error[ValueError]: Returns a ValueError instance if the threshold is not met and
-            `raise_error` is False; otherwise, returns None.
+        ValueError: Error describing the shortage when the threshold is not met
+            and `raise_error` is False.
+        None: Returned when the column satisfies the threshold.
 
     Raises:
-        ValueError: If the percentage of empty values is below the threshold and `raise_error` is True.
+        ValueError: If the percentage of non-empty values is below the threshold
+            while `raise_error` is True.
     """
     percent_empty = ((col.isna()).sum() / len(col)) * 100
-    error: None | ValueError = None
-    if threshold_lower > percent_empty:
-        error = ValueError(
-            f"mrk_dl {percent_empty} is below the threshold of {threshold_lower}%"
+    percent_filled = 100 - percent_empty
+    if threshold_lower > percent_filled:
+        err_msg = (
+            f"mrk_dl {percent_filled} is below the threshold of {threshold_lower}%"
         )
         if raise_error:
-            raise error
-    return error
+            raise NudbQualityError(err_msg)
+        return NudbQualityError(err_msg)
+    return None

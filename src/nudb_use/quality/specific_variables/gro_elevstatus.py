@@ -1,3 +1,5 @@
+"""Validations for the `gro_elevstatus` variable."""
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -9,7 +11,16 @@ from .utils import args_have_None
 from .utils import get_column
 
 
-def check_gro_elevstatus(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
+def check_gro_elevstatus(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
+    """Run all gro_elevstatus-specific checks on the provided DataFrame.
+
+    Args:
+        df: DataFrame containing gro_elevstatus and supporting columns.
+        **kwargs: Additional keyword arguments for future compatibility.
+
+    Returns:
+        list[NudbQualityError]: Errors reported by the gro_elevstatus checks.
+    """
     with LoggerStack("Validating specific variable: gro_elevstatus"):
         utd_utdanningstype = get_column(df, col="utd_utdanningstype")
         gro_elevstatus = get_column(df, col="gro_elevstatus")
@@ -25,6 +36,15 @@ def check_gro_elevstatus(df: pd.DataFrame, **kwargs) -> list[NudbQualityError]:
 def subcheck_elevstatus_utd_211(
     utd_utdanningstype: pd.Series, gro_elevstatus: pd.Series
 ) -> NudbQualityError | None:
+    """Ensure gro_elevstatus is 'E' whenever utd_utdanningstype equals 211.
+
+    Args:
+        utd_utdanningstype: Series containing the utdanningstype codes.
+        gro_elevstatus: Series containing gro_elevstatus values.
+
+    Returns:
+        NudbQualityError | None: Error when invalid combinations exist, else None.
+    """
     if args_have_None(
         utd_utdanningstype=utd_utdanningstype, gro_elevstatus=gro_elevstatus
     ):
