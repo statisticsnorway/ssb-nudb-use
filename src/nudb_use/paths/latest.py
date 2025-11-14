@@ -53,7 +53,7 @@ def filter_out_periods_paths(p: Path) -> str:
     return "_".join(parts_left)
 
 
-def latest_shared_paths(dataset_name: str = "") -> list[Path] | Path:
+def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
     """Find the last shared version and period of each stem in the shared folder.
 
     Args:
@@ -80,6 +80,6 @@ def latest_shared_paths(dataset_name: str = "") -> list[Path] | Path:
 
         # We should probably log what we found as latest files to disk?
 
-        if dataset_name:
+        if dataset_name and dataset_name in paths_dict:
             return paths_dict[dataset_name]
         return paths_dict

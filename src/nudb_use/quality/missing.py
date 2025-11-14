@@ -132,7 +132,7 @@ def df_within_missing_thresholds(
         thresholds, or an empty list when all limits are met.
     """
     emptiness = empty_percents_over_columns(df)
-    errors = []
+    errors: list[NudbQualityError] = []
     if thresholds is None:
         logger.warning("No thresholds were sent into df_within_missing_thresholds, why?")
         return errors
@@ -193,4 +193,5 @@ def get_thresholds_from_config(dataset_name: str) -> dict[str, float]:
     Returns:
         dict[str,float]: Dictionary mapping variable names to specified percentage completion threshold values.
     """
-    return settings.datasets[dataset_name]["thresholds_empty"]
+    thresholds_empty: dict[str, float] = settings.datasets[dataset_name]["thresholds_empty"]
+    return thresholds_empty

@@ -17,7 +17,7 @@ def get_klass_codes(
     klassid: int,
     data_time_start: str | None = None,
     data_time_end: str | None = None,
-) -> list[dict[str, str]]:
+) -> list[str]:
     """Fetch code dictionaries for a classification scheme within a given time range.
 
     Args:
@@ -26,7 +26,7 @@ def get_klass_codes(
         data_time_end: End date (YYYY-MM-DD) for code filtering.
 
     Returns:
-        list[dict[str, str]]: List of dictionaries of codes for the classification.
+        list[str]: List of codes for the classification.
 
     Raises:
         ValueError: If data_time_end is specified, but not data_time_start.
@@ -82,7 +82,7 @@ def check_klass_codes(
                 logger.warning(f"Not checking `{col}`, no registered codelist!")
             else:
                 logger.info(f"Checking `{col}`, found codelist ID!")
-                klassid = int(metadata.loc[col, "klass_codelist"])
+                klassid = int(metadata["klass_codelist"].astype("Int64").loc[col])
                 from_date = metadata.loc[col, "klass_codelist_from_date"]
                 to_date = (
                     None
