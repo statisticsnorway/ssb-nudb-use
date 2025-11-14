@@ -9,7 +9,8 @@ import sys
 from collections.abc import Sequence
 from datetime import datetime
 from types import TracebackType
-from typing import Any, TypeVar
+from typing import Any
+from typing import TypeVar
 
 from colorama import Back
 from colorama import Fore

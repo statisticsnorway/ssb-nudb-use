@@ -283,20 +283,24 @@ def check_cols_against_klass_codelists(
         TypeError: If a codelist value is neither a list nor a dict.
     """
     col_codelist = _get_klass_codelist(df, col_codelist)
-    col_codelist_earliest = _get_klass_codelist(df, None, full_timeline=True)
+    col_codelist_earliest: dict[str, list[str] | dict[str, str]] = _get_klass_codelist(
+        df, None, full_timeline=True
+    )
 
     for col, codes in col_codelist.items():
         logger.info(col)
 
-        if isinstance(codes, list):
+        earliest_codes = col_codelist_earliest[col]
+
+        if isinstance(codes, list) and isinstance(earliest_codes, list):
             codelist = codes
-            earliest_codelist = col_codelist_earliest[col]
-        elif isinstance(codes, dict):
-            codelist = codes.keys()
-            earliest_codelist = col_codelist_earliest[col].keys()
+            earliest_codelist: list[str] = list(earliest_codes)
+        elif isinstance(codes, dict) and isinstance(earliest_codes, dict):
+            codelist = list(codes.keys())
+            earliest_codelist = list(earliest_codes.keys())
         else:
             raise TypeError(
-                f"Codes does not seem to have correct datatype. {type(codes)}"
+                f"Codes does not seem to have correct datatype, or they dont match. codes={type(codes)}, col_codelist_earliest[col]={type(col_codelist_earliest[col])}"
             )
 
         outside_df = df[(~df[col].isin(codelist)) & (df[col].notna())]

@@ -1,6 +1,7 @@
 """Shared helpers for the variable-specific validation modules."""
 
 import inspect
+from typing import cast
 
 import pandas as pd
 
@@ -13,24 +14,33 @@ def get_column(df: pd.DataFrame, col: str) -> pd.Series | None:
     return df[col] if col in df.columns else None
 
 
-def add_err2list(errors: list, error: None | NudbQualityError) -> None:
+def add_err2list(
+    errors: list[NudbQualityError], error: None | NudbQualityError
+) -> None:
     """Append a validation error to a list if it is not None."""
     if error is not None:
         errors.append(error)
 
 
-def args_have_None(**kwargs: dict[str, pd.Series | None]) -> bool:
-    """Log and return True if any keyword arguments are None."""
-    FUNCTION_NAME = inspect.currentframe().f_back.f_code.co_name
+def require_series_present(
+    **series_by_name: pd.Series | None,
+) -> dict[str, pd.Series] | None:
+    """Ensure required pandas Series exist before continuing a validation step."""
+    caller = inspect.currentframe()
+    caller_frame = caller.f_back if caller else None
+    function_name = caller_frame.f_code.co_name if caller_frame else "UNKNOWN"
 
-    for key, value in kwargs.items():
-        if value is None:
+    for name, series in series_by_name.items():
+        if series is None:
             logger.info(
-                f"Terminating: `{FUNCTION_NAME}()`, Reason: `{key}` is `None` - maybe the needed columns are not in the dataset?"
+                f"Terminating: `{function_name}()`, Reason: `{name}` is `None` - maybe the needed columns are not in the dataset?"
             )
-            return True
+            return None
 
-    # ugly side effect right here...
-    logger.info(f"Args are OK, running `{FUNCTION_NAME}()`")
-
-    return False
+    logger.info(f"Args are OK, running `{function_name}()`")
+    # mypy does not narrow automatically when dict values are passed through **,
+    # so we build a new mapping that is explicitly typed as pd.Series.
+    result: dict[str, pd.Series] = {}
+    for name, series in series_by_name.items():
+        result[name] = cast(pd.Series, series)
+    return result

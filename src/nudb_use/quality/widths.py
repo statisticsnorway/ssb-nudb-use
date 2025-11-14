@@ -3,24 +3,18 @@
 import pandas as pd
 
 from nudb_use import LoggerStack
-from nudb_use import config
 from nudb_use import logger
+from nudb_use import settings
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.exceptions.groups import warn_exception_group
-
-
-class WidthMismatch(NudbQualityError):
-    """Error raised when column values violate defined width constraints."""
-
-    ...
 
 
 def check_column_widths(
     df: pd.DataFrame,
     widths: dict[str, list[int]] | None = None,
     raise_errors: bool = True,
-) -> list[WidthMismatch]:
+) -> list[NudbQualityError]:
     """Validate that string lengths in each column match expected widths.
 
     Note: `ignore_na` is currently unused.
@@ -32,7 +26,7 @@ def check_column_widths(
         raise_errors: When True, raise grouped errors if mismatches are found.
 
     Returns:
-        list[WidthMismatch]: Errors describing columns whose values are outside
+        list[NudbQualityError]: Errors describing columns whose values are outside
         the allowed width definitions, or an empty list when all pass.
     """
     with LoggerStack(
@@ -50,9 +44,9 @@ def check_column_widths(
 
         else:
             logger.info("widths does not match datatype, getting widths from config.")
-            widths_def: dict[str, int] = {
+            widths_def = {
                 col: var_info.length
-                for col, var_info in config.settings.variables.items()
+                for col, var_info in settings.variables.items()
                 if col in df.columns and "length" in var_info
             }
 
@@ -62,13 +56,13 @@ def check_column_widths(
         # Check for variables in the dataframe, that are not defined in the config?
         errors = []
         maxprint = 50
-        for col, widths in widths_def.items():
-            if not widths:
+        for col, widths_conf in widths_def.items():
+            if not widths_conf:
                 continue
 
             logger.debug(col)
             # display(~df[col])
-            len_mask_diff = (~df[col].str.len().isin(widths)) & (~df[col].isna())
+            len_mask_diff = (~df[col].str.len().isin(widths_conf)) & (~df[col].isna())
             if len_mask_diff.sum():
                 first_values = pd.Series(df[len_mask_diff][col].unique()).head(
                     maxprint
@@ -78,8 +72,8 @@ def check_column_widths(
                     f"first {maxprint}" if len(unique_mismatch_vals) > maxprint else ""
                 )
                 errors.append(
-                    WidthMismatch(
-                        f"In {col} found values not of the defined widths: {widths}, the {too_many_message} mismatched codes:\n{unique_mismatch_vals}"
+                    NudbQualityError(
+                        f"In {col} found values not of the defined widths: {widths_conf}, the {too_many_message} mismatched codes:\n{unique_mismatch_vals}"
                     )
                 )
 

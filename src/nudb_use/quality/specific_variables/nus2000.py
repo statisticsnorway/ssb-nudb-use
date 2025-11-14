@@ -1,5 +1,7 @@
 """Validations for the nus2000 classification variable."""
 
+from typing import Any
+
 import pandas as pd
 
 from nudb_use import LoggerStack
@@ -8,8 +10,8 @@ from nudb_use import settings as settings_use
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 
 def check_nus2000(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
@@ -29,9 +31,22 @@ def check_nus2000(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
         uh_institusjon_id = get_column(df, col="uh_institusjon_id")
         utd_skoleaar_start = get_column(df, col="utd_skoleaar_start")
 
-        errors = []
+        errors: list[NudbQualityError] = []
         add_err2list(errors, subcheck_nus2000_valid_nus(nus2000))
-        add_err2list(errors, subcheck_nus2000_valid_range(nus2000, **kwargs))
+
+        range_override = kwargs.get("range_valid_nus")
+        range_valid = range_override if isinstance(range_override, range) else None
+        dataset_name_obj = kwargs.get("dataset_name")
+        dataset_name = dataset_name_obj if isinstance(dataset_name_obj, str) else None
+
+        add_err2list(
+            errors,
+            subcheck_nus2000_valid_range(
+                nus2000,
+                range_valid_nus=range_valid,
+                dataset_name=dataset_name,
+            ),
+        )
         add_err2list(
             errors,
             subcheck_nus2000_uh_institusjon_id_against_nus(
@@ -54,8 +69,10 @@ def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None
         NudbQualityError | None: Validation error describing the invalid codes, or
         None when all codes satisfy the required format.
     """
-    if args_have_None(nus2000=col):
+    validated = require_series_present(nus2000=col)
+    if validated is None:
         return None
+    col = validated["nus2000"]
 
     # nus2000: første siffer skal kun være '1','2','3','4','5','6','7','8'
     # nus2000 skal være 6 siffer lang, og kun tallsiffer
@@ -72,9 +89,10 @@ def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None
 
 
 def subcheck_nus2000_valid_range(
-    nus_col: pd.Series,
+    nus_col: pd.Series | None,
     range_valid_nus: range | None = None,
-    **kwargs: object,
+    dataset_name: str | None = None,
+    **kwargs: Any,
 ) -> NudbQualityError | None:
     """Check that nus2000 codes stay inside the configured numeric range.
 
@@ -82,28 +100,32 @@ def subcheck_nus2000_valid_range(
         nus_col: Series containing nus2000 codes to validate.
         range_valid_nus: Optional range describing the allowed first-digit span.
             When omitted, dataset-specific or default ranges are used.
-        **kwargs: Keyword arguments that may include `range_valid_nus` or
-            `dataset_name` to look up configuration overrides.
+        dataset_name: to look up configuration overrides.
+        **kwargs: Keyword arguments that may include `range_valid_nus`
 
     Returns:
         NudbQualityError | None: Validation error listing codes outside the
         allowed range, or None when no violations are detected.
     """
+    validated = require_series_present(nus_col=nus_col)
+    if validated is None:
+        return None
+    nus_col = validated["nus_col"]
+
     lowest_nus: int = int("099901")  # 6-digit lower clamp
     highest_nus: int = int("999999")  # 6-digit upper clamp
 
     # Prefer explicit kwarg
-    if range_valid_nus is None and "range_valid_nus" in kwargs:
-        range_valid_nus = kwargs.get("range_valid_nus")
+    if range_valid_nus is not None:
         range_valid_nus = range(range_valid_nus.start, range_valid_nus.stop + 1)
 
     # Try settings if dataset_name given
-    if range_valid_nus is None and "dataset_name" in kwargs:
+    if range_valid_nus is None and dataset_name:
         logger.info(
-            f"Trying to fetch nus2000 valid range from config for dataset {kwargs['dataset_name']}."
+            f"Trying to fetch nus2000 valid range from config for dataset {dataset_name}."
         )
-        min_vals = settings_use.datasets[kwargs["dataset_name"]].get("min_values")
-        max_vals = settings_use.datasets[kwargs["dataset_name"]].get("max_values")
+        min_vals = settings_use.datasets[dataset_name].get("min_values")
+        max_vals = settings_use.datasets[dataset_name].get("max_values")
         min_val: int | None = int(min_vals.get("nus2000")) if min_vals else None
         max_val: int | None = int(max_vals.get("nus2000")) if max_vals else None
         if min_val is not None and max_val is not None:
@@ -155,9 +177,9 @@ def subcheck_nus2000_valid_range(
 
 
 def subcheck_nus2000_uh_institusjon_id_against_nus(
-    uh_institusjon_id_col: pd.Series,
-    nus_col: pd.Series,
-    utd_skoleaar_start_col: pd.Series,
+    uh_institusjon_id_col: pd.Series | None,
+    nus_col: pd.Series | None,
+    utd_skoleaar_start_col: pd.Series | None,
 ) -> NudbQualityError | None:
     """Ensure UH institution id is populated when nus2000 starts with 6, 7, or 8.
 
@@ -171,12 +193,16 @@ def subcheck_nus2000_uh_institusjon_id_against_nus(
         NudbQualityError | None: Validation error describing offending
         combinations, or None when every row satisfies the rule.
     """
-    if args_have_None(
+    validated = require_series_present(
         hskode=uh_institusjon_id_col,
         nus2000=nus_col,
         utd_skoleaar_start=utd_skoleaar_start_col,
-    ):
+    )
+    if validated is None:
         return None
+    uh_institusjon_id_col = validated["hskode"]
+    nus_col = validated["nus2000"]
+    utd_skoleaar_start_col = validated["utd_skoleaar_start"]
 
     # hskode: Når første siffer i nus er 6, 7, eller 8, så skal ikke hskode være blankt eller '999'.
     # hskode ble ikke inført før i 1994, så testen er ikke valid før det.

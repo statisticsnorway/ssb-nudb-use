@@ -7,8 +7,8 @@ from nudb_use import LoggerStack
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 LAND_VARS = [
     var_name
@@ -43,7 +43,7 @@ def check_land(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
 
 
 def subcheck_landkode_000(
-    land_col: pd.Series, col_name: str
+    land_col: pd.Series | None, col_name: str
 ) -> NudbQualityError | None:
     """Ensure the reserved land code `000` is not incorrectly used.
 
@@ -54,8 +54,10 @@ def subcheck_landkode_000(
     Returns:
         NudbQualityError | None: Error when invalid codes are present, else None.
     """
-    if args_have_None(land_col=land_col, col_name=col_name):
+    validated = require_series_present(land_col=land_col)
+    if validated is None:
         return None
+    land_col = validated["land_col"]
 
     illegal_vals = ["000"]
     err_results = [

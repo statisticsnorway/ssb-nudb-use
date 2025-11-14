@@ -7,8 +7,8 @@ from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 
 def check_grunnskolepoeng(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
@@ -24,7 +24,7 @@ def check_grunnskolepoeng(df: pd.DataFrame, **kwargs: object) -> list[NudbQualit
     with LoggerStack("Validating specific variable: gr_grunnskolepoeng"):
         grunnskolepoeng = get_column(df, "gr_grunnskolepoeng")
 
-        errors = []
+        errors: list[NudbQualityError] = []
 
         add_err2list(errors, subcheck_grunnskolepoeng_maxval(grunnskolepoeng))
 
@@ -32,7 +32,7 @@ def check_grunnskolepoeng(df: pd.DataFrame, **kwargs: object) -> list[NudbQualit
 
 
 def subcheck_grunnskolepoeng_maxval(
-    grunnskolepoeng: pd.Series, max_poeng: int = 70
+    grunnskolepoeng: pd.Series | None, max_poeng: int = 70
 ) -> NudbQualityError | None:
     """Verify that grunnskolepoeng values stay within the allowed maximum.
 
@@ -43,8 +43,10 @@ def subcheck_grunnskolepoeng_maxval(
     Returns:
         NudbQualityError | None: Error when values exceed the maximum, else None.
     """
-    if args_have_None(grunnskolepoeng=grunnskolepoeng):
+    validated = require_series_present(grunnskolepoeng=grunnskolepoeng)
+    if validated is None:
         return None
+    grunnskolepoeng = validated["grunnskolepoeng"]
 
     ok = (grunnskolepoeng.astype("Int64") <= max_poeng).all()
     if not ok:

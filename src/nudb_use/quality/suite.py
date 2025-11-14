@@ -1,9 +1,10 @@
 """High-level orchestration for NUDB quality checks."""
 
+from collections.abc import Sequence
+
 import pandas as pd
 
 from nudb_use import logger
-from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.metadata.nudb_klass import check_klass_codes
 from nudb_use.quality.duplicated_columns import check_duplicated_columns
@@ -22,7 +23,7 @@ def run_quality_suite(
     data_time_end: str | None = None,
     raise_errors: bool = True,
     **kwargs: object,
-) -> list[NudbQualityError]:
+) -> Sequence[Exception]:
     """Run the full NUDB quality suite over a dataset.
 
     Args:
@@ -43,7 +44,7 @@ def run_quality_suite(
     errors += check_column_presence(df, dataset_name=dataset_name, raise_errors=False)
     errors += check_outdated_variables(df)
     errors += check_duplicated_columns(df)
-    errors += check_column_widths(df, ignore_na=True, raise_errors=False)
+    errors += check_column_widths(df, raise_errors=False)
     errors += run_all_specific_variable_tests(
         df, dataset_name=dataset_name, raise_errors=False, **kwargs
     )

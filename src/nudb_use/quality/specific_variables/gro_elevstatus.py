@@ -7,8 +7,8 @@ from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 
 def check_gro_elevstatus(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
@@ -25,7 +25,7 @@ def check_gro_elevstatus(df: pd.DataFrame, **kwargs: object) -> list[NudbQuality
         utd_utdanningstype = get_column(df, col="utd_utdanningstype")
         gro_elevstatus = get_column(df, col="gro_elevstatus")
 
-        errors = []
+        errors: list[NudbQualityError] = []
         add_err2list(
             errors, subcheck_elevstatus_utd_211(utd_utdanningstype, gro_elevstatus)
         )
@@ -34,7 +34,7 @@ def check_gro_elevstatus(df: pd.DataFrame, **kwargs: object) -> list[NudbQuality
 
 
 def subcheck_elevstatus_utd_211(
-    utd_utdanningstype: pd.Series, gro_elevstatus: pd.Series
+    utd_utdanningstype: pd.Series | None, gro_elevstatus: pd.Series | None
 ) -> NudbQualityError | None:
     """Ensure gro_elevstatus is 'E' whenever utd_utdanningstype equals 211.
 
@@ -45,10 +45,13 @@ def subcheck_elevstatus_utd_211(
     Returns:
         NudbQualityError | None: Error when invalid combinations exist, else None.
     """
-    if args_have_None(
+    validated = require_series_present(
         utd_utdanningstype=utd_utdanningstype, gro_elevstatus=gro_elevstatus
-    ):
+    )
+    if validated is None:
         return None
+    utd_utdanningstype = validated["utd_utdanningstype"]
+    gro_elevstatus = validated["gro_elevstatus"]
 
     wrong = (utd_utdanningstype == "211") & (gro_elevstatus == "M")
 

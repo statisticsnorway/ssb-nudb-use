@@ -7,8 +7,8 @@ from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 UNIQUE_PER_PERSON_COLS = ["pers_kjoenn", "pers_foedselsdato", "gr_grunnskolepoeng"]
 
@@ -49,7 +49,10 @@ def check_unique_per_person(
 
 
 def subcheck_unique_per_person(
-    fnr: pd.Series, pers_id: pd.Series, unique_col: pd.Series, unique_col_name: str
+    fnr: pd.Series | None,
+    pers_id: pd.Series | None,
+    unique_col: pd.Series | None,
+    unique_col_name: str,
 ) -> NudbQualityError | None:
     """Check that a single column has unique values per person.
 
@@ -63,8 +66,12 @@ def subcheck_unique_per_person(
         NudbQualityError | None: Error when multiple values exist per person,
         else None.
     """
-    if args_have_None(fnr=fnr, pers_id=pers_id, unique_col=unique_col):
+    validated = require_series_present(fnr=fnr, pers_id=pers_id, unique_col=unique_col)
+    if validated is None:
         return None
+    fnr = validated["fnr"]
+    pers_id = validated["pers_id"]
+    unique_col = validated["unique_col"]
 
     test_df = pd.DataFrame({"pers_id": pers_id.fillna(fnr), "unique_col": unique_col})
     test_mask = test_df.groupby("pers_id")["unique_col"].transform("nunique") > 1

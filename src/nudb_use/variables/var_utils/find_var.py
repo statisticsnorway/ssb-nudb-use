@@ -8,18 +8,38 @@ from nudb_config import settings
 
 from nudb_use import logger
 
+VariableMetadata = dict[str, Any]
 
-def find_vars(var_names: Iterable[str]) -> dict[str, dict]:
+
+def _normalize_variable(variable: Any) -> VariableMetadata:
+    """Return a mutable dict representation of the provided variable metadata."""
+    if isinstance(variable, dict):
+        return dict(variable)
+    if hasattr(variable, "model_dump"):
+        return dict(variable.model_dump())
+    if hasattr(variable, "dict"):
+        return dict(variable.dict())
+    return dict(vars(variable))
+
+
+def _get_value(source: Any, key: str) -> Any:
+    """Retrieve an attribute or mapping entry from a variable definition."""
+    if isinstance(source, dict):
+        return source.get(key)
+    return getattr(source, key, None)
+
+
+def find_vars(var_names: Iterable[str]) -> dict[str, VariableMetadata | None]:
     """Look up multiple variables and return their configuration metadata.
 
     Args:
         var_names: Iterable of variable identifiers to resolve.
 
     Returns:
-        dict[str, dict]: Mapping of requested names to their resolved metadata.
+        dict[str, VariableMetadata]: Mapping of requested names to their resolved metadata.
         Missing entries map to None.
     """
-    result = {}
+    result: dict[str, VariableMetadata | None] = {}
     for name in var_names:
         found_data = find_var(name)
         if found_data:
@@ -31,7 +51,7 @@ def find_vars(var_names: Iterable[str]) -> dict[str, dict]:
     return result
 
 
-def find_var(var_name: str) -> dict[str, Any] | None:
+def find_var(var_name: str) -> VariableMetadata | None:
     """Retrieve configuration and KLASS metadata for a single variable.
 
     Args:
@@ -39,33 +59,23 @@ def find_var(var_name: str) -> dict[str, Any] | None:
             case-insensitive.
 
     Returns:
-        dict[str, Any] | None: Dictionary with metadata when the variable is
-        defined, otherwise None. The dictionary contains the variable configuration and metadata, including:
-            - "name": The canonical variable name
-            - All fields from the variable configuration
-            - "klass_codelist_metadata": KlassClassification object if the variable
-              has an associated codelist
-            - "klass_variant_metadata": KlassVariant object if the variable has
-              an associated variant
+        VariableMetadata | None:
     """
     variables = settings.variables
-    var_data = None
-    if var_name.lower() in variables:
-        var_data = {"name": var_name.lower()} | dict(
-            settings.variables[var_name.lower()]
-        )
+    var_data: VariableMetadata | None = None
+    key = var_name.lower()
+    if key in variables:
+        var_data = _normalize_variable(variables[key])
 
     else:
-        flip = {
-            old_name: k
-            for k, v in variables.items()
-            if v.get("renamed_from")
-            for old_name in v["renamed_from"]
-        }
-        if flip.get(var_name.lower()):
-            var_data = {"name": flip.get(var_name.lower())} | dict(
-                settings.variables[flip[var_name.lower()]]
-            )
+        flip: dict[str, VariableMetadata] = {}
+        for variable in variables.values():
+            renamed_from = _get_value(variable, "renamed_from") or []
+            for old_name in renamed_from:
+                flip[old_name] = _normalize_variable(variable)
+        if flip.get(key):
+            logger.info(f"Column renamed {key} -> {flip.get(key)} - rename it?")
+            var_data = flip[key]
 
     # Get metadata from klass?
     if var_data:
@@ -79,6 +89,7 @@ def find_var(var_name: str) -> dict[str, Any] | None:
             )
     # Get metadata from vardef?
     # Get metadata from datadoc?
+
     return var_data
 
 

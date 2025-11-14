@@ -1,5 +1,7 @@
 """Ensure requested drop columns do not collide with configured variables."""
 
+from nudb_config.pydantic.variables import Variable
+
 from nudb_use import LoggerStack
 from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
@@ -61,8 +63,11 @@ def check_drop_cols_for_valid_cols(
             ]
 
         if overlap:
+            found_vars: dict[str, Variable] = {
+                k: v for k, v in find_vars(overlap).items() if v is not None
+            }
             # Lets be nice and find the mappings to show what the current renaming is.
-            overlap_dict = {k: v["name"] for k, v in find_vars(overlap).items()}
+            overlap_dict = {k: v["name"] for k, v in found_vars.items()}
             err_msg = (
                 "There are columns in your drop that you should consider keeping, "
                 "because they are part of valid columns or their renames: "

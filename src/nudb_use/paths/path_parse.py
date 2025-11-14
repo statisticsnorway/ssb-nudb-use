@@ -32,6 +32,8 @@ def get_periods_from_path(
         The exact return type depends on the number of period elements found and
         the value of `return_datetime`.
 
+    Raises:
+        ValueError: If we cant find a valid period fragment in the path.
     """
     pathp = Path(path)
     parts = [p.split("_")[0].split(".")[0] for p in pathp.stem.split("_p")[-2:]]

@@ -133,7 +133,11 @@ def df_within_missing_thresholds(
     """
     emptiness = empty_percents_over_columns(df)
     errors = []
-    for col, threshold in thresholds.items():
+    if thresholds is None:
+        logger.warning("No thresholds were sent into df_within_missing_thresholds, why?")
+        return errors
+    thresholds_not_none: dict[str, float] = thresholds
+    for col, threshold in thresholds_not_none.items():
         if col not in emptiness.columns:
             errors += [
                 NudbQualityError(

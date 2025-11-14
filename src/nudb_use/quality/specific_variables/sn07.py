@@ -7,8 +7,8 @@ from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 
 def check_sn07(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
@@ -24,13 +24,13 @@ def check_sn07(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
     with LoggerStack("Validating for specific variable: sn07"):
         sn07 = get_column(df, col="sn07")
 
-        errors = []
+        errors: list[NudbQualityError] = []
         add_err2list(errors, subcheck_sn07_bad_value(sn07))
 
         return errors
 
 
-def subcheck_sn07_bad_value(sn07: pd.Series) -> NudbQualityError | None:
+def subcheck_sn07_bad_value(sn07: pd.Series | None) -> NudbQualityError | None:
     """Detect disallowed SN07 codes.
 
     Args:
@@ -39,8 +39,10 @@ def subcheck_sn07_bad_value(sn07: pd.Series) -> NudbQualityError | None:
     Returns:
         NudbQualityError | None: Error when forbidden codes are present, else None.
     """
-    if args_have_None(sn07_col=sn07):
+    validated = require_series_present(sn07_col=sn07)
+    if validated is None:
         return None
+    sn07 = validated["sn07_col"]
 
     # Find the unique codes in the column
     sn07_unique = [v for v in sn07.unique() if not pd.isna(v) and v]

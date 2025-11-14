@@ -8,8 +8,8 @@ from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 from .utils import add_err2list
-from .utils import args_have_None
 from .utils import get_column
+from .utils import require_series_present
 
 KOMMUNE_VARS = [
     var_name
@@ -49,7 +49,7 @@ def check_kommune(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
 
 
 def subcheck_single_kommune_oslo_svalbard_utland(
-    kommune_col: pd.Series, col_name: str
+    kommune_col: pd.Series | None, col_name: str
 ) -> NudbQualityError | None:
     """Ensure fylker with single municipality codes are mapped correctly.
 
@@ -60,8 +60,10 @@ def subcheck_single_kommune_oslo_svalbard_utland(
     Returns:
         NudbQualityError | None: Error when illegal mappings exist, else None.
     """
-    if args_have_None(kommune_col=kommune_col, col_name=col_name):
+    validated = require_series_present(kommune_col=kommune_col)
+    if validated is None:
         return None
+    kommune_col = validated["kommune_col"]
 
     legal_vals = {
         "03": "0301",
@@ -88,7 +90,7 @@ def subcheck_single_kommune_oslo_svalbard_utland(
 
 
 def subcheck_only_single_sentinel_value_9999_allowed(
-    kommune_col: pd.Series, col_name: str
+    kommune_col: pd.Series | None, col_name: str
 ) -> NudbQualityError | None:
     """Ensure kommune codes only use '9999' as the sentinel value.
 
@@ -99,8 +101,10 @@ def subcheck_only_single_sentinel_value_9999_allowed(
     Returns:
         NudbQualityError | None: Error when other sentinel values exist, else None.
     """
-    if args_have_None(kommune_col=kommune_col, col_name=col_name):
+    validated = require_series_present(kommune_col=kommune_col)
+    if validated is None:
         return None
+    kommune_col = validated["kommune_col"]
     unique_vals = pd.Series(kommune_col.dropna().unique())
     mask_weird = (
         unique_vals.str.startswith("00") | unique_vals.str.startswith("9")
