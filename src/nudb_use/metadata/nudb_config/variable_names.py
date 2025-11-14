@@ -50,12 +50,19 @@ def sort_cols_by_unit(data: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame with columns reordered by their units' sort
         order.
+
+    Raises:
+        ValueError: If no config is found for the sort unit.
     """
-    sort_order = {k: v for v, k in enumerate(settings_use.variables_sort_unit)}
+    # Guarding for mypy
+    if settings_use.variables_sort_unit is None:
+        raise ValueError("Missing config for variables_sort_unit.")
+    sorting: list[str] = settings_use.variables_sort_unit
+    sort_order = {k: v for v, k in enumerate(sorting)}
 
     # Raise error if column in data is not in the settings_use?
     order = (
-        get_var_metadata(variables=data.columns)
+        get_var_metadata(variables=list(data.columns))
         .assign(sort_unit=lambda df: df["unit"].map(sort_order))
         .sort_values(by="unit")
         .index
@@ -77,7 +84,7 @@ def get_cols_in_config(name: str | None) -> list[str]:
         KeyError: If the provided dataset name is not defined in settings_use.
     """
     if name is None:
-        cols_in_config = settings_use["variables"].keys()
+        cols_in_config: list[str] = list(settings_use["variables"].keys())
     else:
         datasets = list(settings_use["datasets"].keys())
         if name not in datasets:
@@ -89,7 +96,7 @@ def get_cols_in_config(name: str | None) -> list[str]:
             """
             )
 
-        cols_in_config = settings_use["datasets"][name]["variables"]
+        cols_in_config = list(settings_use["datasets"][name]["variables"])
 
     return cols_in_config
 

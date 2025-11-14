@@ -96,7 +96,7 @@ def check_klass_codes(
                 )
 
                 if isinstance(codelist_extras, dict):
-                    codes += list(codelist_extras.keys())
+                    codes += list(codelist_extras.keys())  # type: ignore[unreachable]
 
                 outside_df = df[(~df[col].isin(codes)) & (df[col].notna())]
 

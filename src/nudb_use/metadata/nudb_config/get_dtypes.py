@@ -3,7 +3,6 @@
 from nudb_config import settings as SETTINGS
 
 from nudb_use import logger
-from nudb_use.metadata.nudb_config.get_variable_info import get_toml_field
 
 MAPPINGS: dict[str, dict[str, str]] = {
     "pandas": {
@@ -85,10 +84,10 @@ def get_dtypes(
     """
     conf_variables = SETTINGS["variables"]
 
-    dtypes_want: dict[str, str] = {}
+    dtypes_want: dict[str, str | None] = {}
     renamed = {}
     for new in conf_variables.keys():
-        old = get_toml_field(conf_variables[new], "renamed_from")
+        old: list[str] | str | None = conf_variables[new].renamed_from
         if old is not None:
             if isinstance(old, str):
                 renamed[old] = new
