@@ -83,7 +83,7 @@ def check_klass_codes(
             else:
                 logger.info(f"Checking `{col}`, found codelist ID!")
                 klassid = int(metadata["klass_codelist"].astype("Int64").loc[col])
-                from_date = metadata.loc[col, "klass_codelist_from_date"]
+                from_date = str(metadata.loc[col, "klass_codelist_from_date"])
                 to_date = (
                     None
                     if from_date is None

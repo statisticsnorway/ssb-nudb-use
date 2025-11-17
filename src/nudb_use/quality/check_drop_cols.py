@@ -1,11 +1,10 @@
 """Ensure requested drop columns do not collide with configured variables."""
 
-from nudb_config.pydantic.variables import Variable
-
 from nudb_use import LoggerStack
 from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.metadata.nudb_config import get_var_metadata
+from nudb_use.variables.var_utils.find_var import VariableMetadata
 from nudb_use.variables.var_utils.find_var import find_vars
 
 
@@ -63,7 +62,7 @@ def check_drop_cols_for_valid_cols(
             ]
 
         if overlap:
-            found_vars: dict[str, Variable] = {
+            found_vars: dict[str, VariableMetadata] = {
                 k: v for k, v in find_vars(overlap).items() if v is not None
             }
             # Lets be nice and find the mappings to show what the current renaming is.
