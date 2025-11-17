@@ -1,7 +1,5 @@
 """Tools for sorting and renaming NUDB variables based on config metadata."""
 
-from typing import Any
-
 import pandas as pd
 
 from nudb_use import settings as settings_use
@@ -12,7 +10,7 @@ from nudb_use.variables.var_utils.duped_columns import find_duplicated_columns
 from .get_variable_info import get_var_metadata
 
 
-def _collapse(x: Any) -> list[str] | str:
+def _collapse(x: list[str] | str) -> list[str] | str:
     return x[0] if isinstance(x, list) and len(x) == 1 else x
 
 
