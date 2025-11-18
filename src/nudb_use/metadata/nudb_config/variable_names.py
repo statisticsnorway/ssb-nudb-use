@@ -10,6 +10,10 @@ from nudb_use.variables.var_utils.duped_columns import find_duplicated_columns
 from .get_variable_info import get_var_metadata
 
 
+def _collapse(x: list[str] | str) -> list[str] | str:
+    return x[0] if isinstance(x, list) and len(x) == 1 else x
+
+
 def sort_cols_after_config_order_and_unit(data: pd.DataFrame) -> pd.DataFrame:
     """Sort columns after order defined in the config and by unit.
 
@@ -244,18 +248,19 @@ def handle_dataset_specific_renames(
 
 
 def _flip_dict_to_list(d: dict[str, str]) -> dict[str, str | list[str]]:
+    # Here we just invert the dictionary, so values become keys,
+    # and keys become values. Multiple keys have the same value,
+    # the keys are gathered in a list for where the value is the new key
     flipped: dict[str, list[str]] = {}
+
     for k, v in d.items():
-        if v in flipped:
-            # already a list, just append
-            if isinstance(flipped[v], list):
-                flipped[v].append(k)
-            else:
-                # convert existing single value into a list
-                flipped[v] = [flipped[v], k]
-        else:
-            flipped[v] = k
-    return flipped
+        flipped[v] = flipped[v] + [k] if v in flipped else [k]
+
+    # Flatten single value lists
+    # Do it in a seperate step, to make type checker happy
+    # Doing it directly in the main loop, confuses it
+
+    return {k: _collapse(v) for k, v in flipped.items()}
 
 
 def fjern_ftype_fyll_kontrakt_provekand(
