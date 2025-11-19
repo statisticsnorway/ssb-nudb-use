@@ -13,7 +13,7 @@ FLOAT_DTYPE_NAME = "FLOAT"
 BOOL_DTYPE_NAME = "BOOLEAN"
 DATETIME_DTYPES = {DATETIME_DTYPE_NAME}
 
-MAPPINGS: dict[str, dict[str, str]] = {
+DTYPE_MAPPINGS: dict[str, dict[str, str]] = {
     "pandas": {
         DATETIME_DTYPE_NAME: "datetime64[s]",
         STRING_DTYPE_NAME: "string[pyarrow]",
@@ -70,13 +70,13 @@ def map_dtype_datadoc(
         str: Concrete dtype string for the target engine.
 
     Raises:
-        KeyError: If `engine` is not defined in `MAPPINGS`.
+        KeyError: If `engine` is not defined in `DTYPE_MAPPINGS`.
     """
-    if engine not in MAPPINGS:
+    if engine not in DTYPE_MAPPINGS:
         raise KeyError(
-            f"Specify an engine in the mapping, or add to the mapping: {MAPPINGS.keys()}"
+            f"Specify an engine in the mapping, or add to the mapping: {DTYPE_MAPPINGS.keys()}"
         )
-    mapping = MAPPINGS[engine]
+    mapping = DTYPE_MAPPINGS[engine]
     return get_dtype_from_dict(
         dtype=dtype, mapping=mapping, datetimes_as_string=datetimes_as_string
     )
