@@ -23,7 +23,7 @@ def generate_test_variable(
     add_klass_errors: bool = True,
     add_old_cols: bool = True,
     seed: int = DEFAULT_SEED,
-) -> tuple[str | pd.Series]:  # (newname, values)
+) -> tuple[str, pd.Series]:  # (newname, values)
 
     if name not in settings.variables.keys():
         raise ValueError(f"Unable to find '{name}' in config!")
@@ -77,7 +77,7 @@ def generate_test_variable(
     values = values.reset_index(drop=True)
     newname: str = renamed_from[0] if has_rename else name
 
-    return newname, values  # type: ignore
+    return newname, values
 
 
 def generate_test_data(
@@ -95,7 +95,7 @@ def generate_test_data(
     cols = {}
     for var in variables:
         try:
-            newname, values = generate_test_variable(  # type: ignore
+            newname, values = generate_test_variable(
                 name=var,
                 n=n,
                 add_klass_errors=add_klass_errors,
