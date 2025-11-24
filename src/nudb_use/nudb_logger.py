@@ -8,6 +8,7 @@ import logging
 import sys
 from collections.abc import Sequence
 from datetime import datetime
+from pathlib import Path
 from types import TracebackType
 from typing import Any
 from typing import TypeVar
@@ -221,7 +222,8 @@ def GET_CURRENT_JSON() -> dict[str, Any]:
     return copy.deepcopy(JSON)
 
 
-def SAVE_CURRENT_JSON(path: str, indent: int = 4) -> None:
+def SAVE_CURRENT_JSON(path: str | Path, indent: int = 4) -> None:
     """Persist the accumulated logging JSON structure to disk."""
-    with open(path, "w") as file:
+    path_path = Path(path)
+    with path_path.open("w") as file:
         json.dump(JSON, file, indent=indent)
