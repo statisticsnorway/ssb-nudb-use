@@ -1,6 +1,6 @@
 """Column filter definitions for the Skolereg external API."""
 
-variabelfilter = [
+VARIABELER = [
     "rectype",
     "org_nr",
     "fnr",
