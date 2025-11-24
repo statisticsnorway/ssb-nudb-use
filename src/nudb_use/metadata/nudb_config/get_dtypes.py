@@ -4,13 +4,22 @@ from nudb_config import settings as SETTINGS
 
 from nudb_use import logger
 
+# Global variables to refer to names programatically
+# in case we want to change names later
+STRING_DTYPE_NAME = "STRING"
+DATETIME_DTYPE_NAME = "DATETIME"
+INTEGER_DTYPE_NAME = "INTEGER"
+FLOAT_DTYPE_NAME = "FLOAT"
+BOOL_DTYPE_NAME = "BOOLEAN"
+DATETIME_DTYPES = {DATETIME_DTYPE_NAME}
+
 MAPPINGS: dict[str, dict[str, str]] = {
     "pandas": {
-        "DATETIME": "datetime64[s]",
-        "STRING": "string[pyarrow]",
-        "INTEGER": "Int64",
-        "FLOAT": "Float64",
-        "BOOLEAN": "bool[pyarrow]",
+        DATETIME_DTYPE_NAME: "datetime64[s]",
+        STRING_DTYPE_NAME: "string[pyarrow]",
+        INTEGER_DTYPE_NAME: "Int64",
+        FLOAT_DTYPE_NAME: "Float64",
+        BOOL_DTYPE_NAME: "bool[pyarrow]",
     }
 }
 
@@ -31,14 +40,19 @@ def get_dtype_from_dict(
     Raises:
         ValueError: If `dtype` is not defined in `mapping`.
     """
+    dtype = (
+        dtype.upper()
+    )  # Make sure we have the same format as the names in the mapping
     if dtype not in mapping.keys():
         raise ValueError(f"Unkown type: {dtype}")
+
     result = mapping[dtype]
     logger.debug(f"First result from mapping: {result}")
-    if datetimes_as_string and dtype.lower().startswith("datet"):
-        k = next([x for x in mapping if x.lower().startswith("str")])
-        result = mapping[k]
+
+    if datetimes_as_string and dtype in DATETIME_DTYPES:
+        result = mapping[STRING_DTYPE_NAME]
         logger.debug(f"Second result from mapping: {result}")
+
     return result
 
 
@@ -70,7 +84,7 @@ def map_dtype_datadoc(
 
 def get_dtypes(
     vars_map: list[str], engine: str = "pandas", datetimes_as_string: bool = False
-) -> dict[str, str]:
+) -> dict[str, str | None]:
     """Build a dtype mapping for a set of variables based on config metadata.
 
     Args:

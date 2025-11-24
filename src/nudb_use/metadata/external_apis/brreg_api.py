@@ -7,7 +7,7 @@ from typing import Any
 
 import pandas as pd
 import requests
-from brreg.enhetsregisteret import Client
+from brreg.enhetsregisteret import Client  # type: ignore
 from brreg.enhetsregisteret import UnderenhetQuery
 from pydantic import BaseModel
 
@@ -78,13 +78,25 @@ def get_enhet(orgnr: str) -> None | dict[str, str]:
 
     Returns:
         dict or None: Information about the main unit or sub-unit, or None if not found.
+
+    Raises:
+        TypeError: If we get unexpected output from brreg.enhetsregisteret.Client.get_enhet() or
+                   brreg.enhetsregisteret.Client.get_underenhet()
     """
     orgnr_clean = "".join([c for c in orgnr if c.isdigit()])
     with Client() as client:
-        result = client.get_enhet(orgnr_clean)
-        if result is None:
-            result = client.get_underenhet(orgnr_clean)
-    return result
+        result_untyped = client.get_enhet(orgnr_clean)
+
+        if result_untyped is None:
+            result_untyped = client.get_underenhet(orgnr_clean)
+
+    # breg is not typed, so we have to do some manual checking, to make mypy happy
+    if result_untyped is None:
+        return None
+    elif isinstance(result_untyped, dict):
+        return {k: str(v) for k, v in result_untyped.items()}
+    else:
+        raise TypeError("Unexpected dtype for output from `get_enhet/get_underenhet`")
 
 
 def search_nace(naces: list[str]) -> pd.DataFrame:
@@ -111,24 +123,34 @@ def search_nace(naces: list[str]) -> pd.DataFrame:
         raise ValueError(
             "One of the nace-codes is missing a point in the third position."
         )
-    dataframe_list = []
+    dataframe_list: list[pd.DataFrame] = []
+
     for nacekode in naces:
         sok = UnderenhetQuery()
         sok.naeringskode = [nacekode]
         with Client() as client:
             search = client.search_enhet(sok)
+
             for elem in search.get_page(0):
                 if elem[0] == "total_pages":
                     total_pages = elem[1]
                     logger.info(f"Total pages for nacekode {nacekode}: {total_pages}")
                     logger.debug(elem)
-            continue
-            for page_num in range(total_pages):
-                for elem in search.get_page(page_num):
-                    if elem[0] == "items":
-                        for item in elem[1:]:
-                            for enhet in item:
-                                dataframe_list.append(pd.DataFrame([flatten(enhet)]))
+                    # continue
+                    logger.warning(
+                        """Kjell: I commented out line 135, and indented lines 138-143,
+                                      in .../external_apis/brreg_api.py. This may be wrong!?"""
+                    )
+
+                    for page_num in range(total_pages):
+                        for elem in search.get_page(page_num):
+                            if elem[0] == "items":
+                                for item in elem[1:]:
+                                    for enhet in item:
+                                        dataframe_list.append(
+                                            pd.DataFrame([flatten(enhet)])
+                                        )
+
     return pd.concat(dataframe_list)
 
 
