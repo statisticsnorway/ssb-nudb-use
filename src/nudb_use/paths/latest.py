@@ -3,9 +3,15 @@
 from pathlib import Path
 
 from fagfunksjoner.paths.versions import get_latest_fileversions
+from nudb_config import settings
 
 from nudb_use import LoggerStack
 from nudb_use import logger
+
+UTDANNING_SHARED_EXTERNAL = settings.paths.get(
+    "local_daplalab", "/buckets/shared/utd-nudb/utdanning/"
+)
+UTDANNING_SHARED_LOCAL = "/buckets/delt-utdanning/nudb-data"
 
 
 def find_delt_path() -> Path:
@@ -17,9 +23,9 @@ def find_delt_path() -> Path:
     Raises:
         OSError: If neither of the expected shared data locations exists.
     """
-    utdata_path = Path("/buckets/shared/utd-nudb/utdanning/nudb-data")
+    utdata_path = Path(UTDANNING_SHARED_EXTERNAL) / "nudb-data"
     if not utdata_path.is_dir():
-        utdata_path = Path("/buckets/delt-utdanning/nudb-data")
+        utdata_path = Path(UTDANNING_SHARED_LOCAL)
     if not utdata_path.is_dir():
         raise OSError("Cant find the folder for the shared data...")
 
