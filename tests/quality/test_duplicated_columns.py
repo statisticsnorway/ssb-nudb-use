@@ -1,7 +1,7 @@
 import pandas as pd
 
 from nudb_use.quality.duplicated_columns import check_duplicated_columns
-from tests.utils import validate_NudbQualityErrorList
+from tests.exceptions.test_groups import validate_NudbQualityError_list
 
 
 def test_duplicated_columns(avslutta: pd.DataFrame) -> None:
@@ -14,9 +14,9 @@ def test_duplicated_columns(avslutta: pd.DataFrame) -> None:
     ]
 
     errors = check_duplicated_columns(avslutta_copy)
-    validate_NudbQualityErrorList(errors, n=2)
+    validate_NudbQualityError_list(errors, n=2)
 
 
 def test_non_duplicated_columns(avslutta: pd.DataFrame) -> None:
     errors = check_duplicated_columns(avslutta)
-    validate_NudbQualityErrorList(errors, n=0)
+    validate_NudbQualityError_list(errors, n=0)
