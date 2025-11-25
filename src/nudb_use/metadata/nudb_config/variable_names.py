@@ -211,8 +211,9 @@ def handle_dataset_specific_renames(
     renames_flip_list = _flip_dict_to_list(renames)
 
     for new_name, old_names in renames_flip_list.items():
+        old_names_list = [old_names] if isinstance(old_names, str) else old_names
         in_df = [
-            c for c in [new_name, *old_names] if c in df.columns
+            c for c in [new_name, *old_names_list] if c in df.columns
         ]  # config sets order
         # Warn if fillnas will happen
         if len(in_df) > 1:
@@ -234,11 +235,11 @@ def handle_dataset_specific_renames(
                     )
                     df[new_name] = df[new_name].fillna(df[col])
                 del df[col]  # Either it is empty or we used it to fill
-        elif len(in_df) == 1 and old_names[0] in df.columns:
+        elif len(in_df) == 1 and old_names_list[0] in df.columns:
             logger.info(
-                f"Single value found for dataset_specific_rename, just renaming: {old_names[0]} to {new_name}"
+                f"Single value found for dataset_specific_rename, just renaming: {old_names_list[0]} to {new_name}"
             )
-            return df.rename(columns={old_names[0]: new_name})
+            return df.rename(columns={old_names_list[0]: new_name})
         else:
             logger.debug(
                 "Dont know if anything needs to be done, if the dataset only contains the correct new name?"
@@ -261,22 +262,3 @@ def _flip_dict_to_list(d: dict[str, str]) -> dict[str, str | list[str]]:
     # Doing it directly in the main loop, confuses it
 
     return {k: _collapse(v) for k, v in flipped.items()}
-
-
-def fjern_ftype_fyll_kontrakt_provekand(
-    df: pd.DataFrame, inndata_type: str = "", del_ftype_cols: bool = True
-) -> pd.DataFrame:
-    """Splits the column ftype back into its original names.
-
-    Args:
-        df: The dataframe containing the columns we want to correct.
-        inndata_type: We split the variable into different columns based on the inndata-type.
-        del_ftype_cols: If you want to delete the source ftype columns or not.
-
-    Raises:
-        NotImplementedError: Always raised because the logic moved to config-based
-            dataset-specific renames.
-    """
-    raise NotImplementedError(
-        "Functionality should now be handled with datasets.toml dataset_specific_renames from config instead. + handle_dataset_specific_renames."
-    )
