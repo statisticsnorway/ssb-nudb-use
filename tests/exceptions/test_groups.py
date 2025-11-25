@@ -18,5 +18,3 @@ def test_warn_exception_group(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
         warn_exception_group([NudbQualityError("TestError")])
         assert "TestError" in caplog.text
-
-

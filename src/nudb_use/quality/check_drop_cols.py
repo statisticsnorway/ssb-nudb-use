@@ -5,7 +5,7 @@ from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.metadata.nudb_config import get_var_metadata
 from nudb_use.metadata.nudb_config.find_var import VariableMetadata
-from nudb_use.variables.var_utils.find_var import find_vars
+from nudb_use.metadata.nudb_config.find_var import find_vars
 
 
 def check_drop_cols_for_valid_cols(

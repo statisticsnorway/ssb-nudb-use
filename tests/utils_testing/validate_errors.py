@@ -1,5 +1,5 @@
-
 from typing import Any
+
 from nudb_use.exceptions.exception_classes import NudbQualityError
 
 
