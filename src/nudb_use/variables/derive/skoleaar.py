@@ -22,8 +22,21 @@ def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.DataFrame:
             )
             return df
 
-        df["utd_skoleaar_slutt"] = (
-            df["utd_skoleaar_start"].astype("Int64") + 1
-        ).astype("string[pyarrow]")
+        # Lets only operate on valid aar
+        valid_mask = (
+            df["utd_skoleaar_start"].astype("string[pyarrow]").str.len() == 4
+        ) & (df["utd_skoleaar_start"].astype("string[pyarrow]").str.isdigit())
+
+        # Fill non valid with a placeholder
+        placeholder_year = "1000"
+        temp_start = df["utd_skoleaar_start"].copy()
+        temp_start.loc[~valid_mask] = pd.Series(placeholder_year, index=df.index)
+
+        df["utd_skoleaar_slutt"] = (temp_start.astype("Int64") + 1).astype(
+            "string[pyarrow]"
+        )
+
+        # Empty the invalid values from the newly created column
+        df.loc[~valid_mask, "utd_skoleaar_slutt"] = pd.NA
 
         return df
