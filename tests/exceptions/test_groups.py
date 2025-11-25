@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 import pytest
 
@@ -21,15 +20,3 @@ def test_warn_exception_group(caplog: pytest.LogCaptureFixture) -> None:
         assert "TestError" in caplog.text
 
 
-def validate_NudbQualityError_list(errors: list[Any] | None, n: int = 0) -> None:
-    errors_list: list[Any]
-
-    if errors is None:
-        errors_list = []
-    elif isinstance(errors, list):
-        errors_list = errors
-
-    assert len(errors_list) == n
-
-    for err in errors_list:
-        assert isinstance(err, NudbQualityError)
