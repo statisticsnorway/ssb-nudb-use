@@ -22,13 +22,11 @@ def filled_value_to_threshold(
         raise_error: When True, raise NudbQualityError if the threshold is not met.
 
     Returns:
-        NudbQualityError: Error describing the shortage when the threshold is not met
-            and `raise_error` is False.
+        NudbQualityError: Error describing the shortage when the threshold is not met and `raise_error` is False.
         None: Returned when the column satisfies the threshold.
 
     Raises:
-        NudbQualityError: If the percentage of matching values is below the threshold
-            while `raise_error` is True.
+        NudbQualityError: If the percentage of matching values is below the threshold while `raise_error` is True.
     """
     if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
         pass
@@ -55,13 +53,11 @@ def non_empty_to_threshold(
         raise_error: When True, raise NudbQualityError if the threshold is not met.
 
     Returns:
-        NudbQualityError: Error describing the shortage when the threshold is not met
-            and `raise_error` is False.
+        NudbQualityError: Error describing the shortage when the threshold is not met and `raise_error` is False.
         None: Returned when the column satisfies the threshold.
 
     Raises:
-        NudbQualityError: If the percentage of non-empty values is below the threshold
-            while `raise_error` is True.
+        NudbQualityError: If the percentage of non-empty values is below the threshold while `raise_error` is True.
     """
     percent_empty = ((col.isna()).sum() / len(col)) * 100
     percent_filled = 100 - percent_empty
