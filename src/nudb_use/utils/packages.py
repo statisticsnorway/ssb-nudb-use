@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, TypeVar
-import warnings
+from typing import ParamSpec
+from typing import TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
 
 def move_to_use_deprecate(
     func: Callable[P, R],
@@ -32,7 +34,7 @@ def move_to_use_deprecate(
         message: Optional custom warning message to display. If provided, it overrides
                  the auto-generated message.
         warn_once: If True (default), warn only on the first call; subsequent calls
-                   won’t repeat the warning.
+                   won't repeat the warning.
         category: The warning category to use. Defaults to DeprecationWarning.
         stacklevel: Passed to warnings.warn to point at the caller. Defaults to 2.
 
@@ -66,8 +68,5 @@ def move_to_use_deprecate(
             warnings.warn(default_msg, category, stacklevel=stacklevel)
             emitted = True
         return func(*args, **kwargs)
-
-    # For introspection/debugging
-    wrapper.__deprecated_original__ = func
 
     return wrapper
