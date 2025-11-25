@@ -1,5 +1,6 @@
 import string
 from collections.abc import Generator
+from functools import lru_cache
 
 import klass
 import numpy as np
@@ -80,9 +81,11 @@ def generate_test_variable(
     return newname, values
 
 
+# This is costly, and should be a pure function, so lets try caching the results
+@lru_cache(maxsize=50)
 def generate_test_data(
     dataset: str,
-    n: int = 1_000_000,
+    n: int = 100_000,
     add_klass_errors: bool = True,
     add_old_cols: bool = True,
     add_non_nudb_vars: bool = True,
@@ -112,14 +115,14 @@ def generate_test_data(
 
 @pytest.fixture
 def avslutta() -> YieldDataFrame:
-    yield generate_test_data("avslutta")
+    yield generate_test_data("avslutta").copy(deep=True)
 
 
 @pytest.fixture
 def igang() -> YieldDataFrame:
-    yield generate_test_data("igang")
+    yield generate_test_data("igang").copy(deep=True)
 
 
 @pytest.fixture
 def eksamen_uh() -> YieldDataFrame:
-    yield generate_test_data("eksamen_uh")
+    yield generate_test_data("eksamen_uh").copy(deep=True)
