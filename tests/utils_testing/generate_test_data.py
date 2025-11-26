@@ -22,7 +22,7 @@ DEFAULT_SEED = 2384972
 
 def generate_test_variable(
     name: str,
-    n: int = 1_000_000,
+    n: int = 100_000,
     add_klass_errors: bool = True,
     add_old_cols: bool = True,
     seed: int = DEFAULT_SEED,
@@ -49,9 +49,7 @@ def generate_test_variable(
             codes = codes[codes.str.len().isin(length)]
 
         if add_klass_errors:
-            codes = mutated_extra_codes(
-                codes, coverage_pct=20
-            )  # Adds mutated false codes for about 20% of the existing codes
+            codes = pd.concat([codes, mutated_extra_codes(codes, coverage_pct=0.2)])
 
     else:
 
@@ -114,6 +112,7 @@ def generate_test_data(
             )
 
             cols[newname] = values
+            logger.info(f"Generation of {var} worked!")
         except Exception as err:
             logger.warning(f"Generation of {var} failed, with message: '{err}'...")
 

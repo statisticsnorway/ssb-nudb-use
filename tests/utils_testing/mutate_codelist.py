@@ -16,11 +16,17 @@ DEFAULT_SEED = 2384972
 def mutated_extra_codes(
     codes: pd.Series, coverage_pct: float = 0.2, r: int | None = None
 ) -> pd.Series[Any]:
-    letters = pd.Series(list(set(codes.str.cat()))).astype("string[pyarrow]")
+    letters = pd.Series(list(set(codes.str.cat())), dtype="string[pyarrow]")
+    if letters.empty:
+        logger.warning(
+            "No characters available to generate extra codes; returning original codes."
+        )
+        return codes
     width = codes.str.len().max()
 
-    r = r or 10 * len(codes)
-    valid_extra_codes = pd.Series([])
+    if not r:
+        r = 10 * len(codes)
+    valid_extra_codes = pd.Series([], dtype="string[pyarrow]")
 
     if coverage_pct >= 1:
         coverage_pct = 0.99
@@ -31,7 +37,7 @@ def mutated_extra_codes(
     extra_n = max(1, int(total_n * coverage_pct))  # pct of total number of codes
 
     for i in range(100):
-        if valid_extra_codes.shape[0] < extra_n:
+        if valid_extra_codes.shape[0] >= extra_n:
             break
 
         all_codes = pd.concat([codes, valid_extra_codes])
@@ -49,11 +55,14 @@ def mutated_extra_codes(
         )
 
         available = list(set(LETTERS) | set(NUMBERS) - set(letters))
-        if i > 100:
+        if i >= 99:
             logger.warning("max iter reached!")
-            return valid_extra_codes
+            break
         elif i % 2 == 0 and available:
-            letters.add(available[0])
+            letters = pd.concat(
+                [letters, pd.Series([available[0]], dtype="string[pyarrow]")],
+                ignore_index=True,
+            )
         elif i % 5 == 0:
             width += 1
 

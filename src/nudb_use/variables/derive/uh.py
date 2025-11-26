@@ -22,9 +22,13 @@ def univ(
         pandas.Series: A pandas.Series object containing the values for the `univ` variable.
     """
     if utd_col not in df.columns:
-        raise ValueError(f"DataFrame does not contain: '{utd_col}''!")
+        raise ValueError(
+            f"DataFrame does not contain: '{utd_col}'! Columns: {df.columns.to_list()}"
+        )
     elif kilde_col not in df.columns:
-        raise ValueError(f"DataFrame does not contain: '{kilde_col}''!")
+        raise ValueError(
+            f"DataFrame does not contain: '{kilde_col}'! Columns: {df.columns.to_list()}"
+        )
 
     # SAS code:
     # if SN07 in ('85.421','85.422') then univ = '1';
