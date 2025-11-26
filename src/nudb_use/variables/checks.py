@@ -10,6 +10,7 @@ from nudb_config import settings
 from nudb_use import LoggerStack
 from nudb_use import logger
 from nudb_use.exceptions.groups import raise_exception_group
+from nudb_use.metadata.nudb_klass.codes import _find_earliest_latest_klass_version_date
 
 
 def pyarrow_columns_from_metadata(path: str | Path) -> list[str]:
@@ -157,38 +158,6 @@ def check_column_presence(
                 "All columns exist in the datasets config, or in the provided check_for list."
             )
         return errors
-
-
-def _find_earliest_latest_klass_version_date(
-    klass_classification_id: int,
-) -> tuple[str, str]:
-    """Finds the earliest and latest version dates for a KLASS classification.
-
-    Retrieves all versions of a given KLASS classification and identifies the
-    earliest and latest dates when the classification was valid. Used to
-    determine the full historical range of a classification's validity.
-
-    Args:
-        klass_classification_id: The numeric ID of the KLASS classification
-            to query.
-
-    Returns:
-        tuple[str, str]: A `(min_date, max_date)` tuple representing the earliest
-        and latest valid dates for the classification versions.
-    """
-    min_date: str = ""
-    max_date: str = ""
-    for version in klass.KlassClassification(klass_classification_id).versions:
-        valid_from = version["validFrom"]
-        if not min_date:
-            min_date = valid_from
-        else:
-            min_date = sorted([min_date, valid_from])[0]
-        if not max_date:
-            max_date = valid_from
-        else:
-            max_date = sorted([max_date, valid_from])[-1]
-    return min_date, max_date
 
 
 def _get_klass_codelist(

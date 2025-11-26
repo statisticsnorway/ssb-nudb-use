@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 
 from nudb_use.metadata.nudb_config.variable_names import update_colnames
+from nudb_use.metadata.nudb_klass import codes
 from nudb_use.variables import checks
 from nudb_use.variables.checks import check_cols_against_klass_codelists
 from nudb_use.variables.checks import check_column_presence
@@ -84,7 +85,7 @@ def test_check_cols_against_klass_codelists(
         ),
     )
     monkeypatch.setattr(
-        checks,
+        codes,
         "_find_earliest_latest_klass_version_date",
         lambda _id: ("2000-01-01", "2001-01-01"),
     )

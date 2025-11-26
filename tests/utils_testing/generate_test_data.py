@@ -11,6 +11,8 @@ from nudb_config import settings
 from nudb_use.metadata.nudb_config.get_dtypes import DTYPE_MAPPINGS
 from nudb_use.nudb_logger import logger
 
+from .mutate_codelist import mutated_extra_codes
+
 YieldDataFrame = Generator[pd.DataFrame, None, None]
 
 
@@ -46,6 +48,11 @@ def generate_test_variable(
         if has_length:
             codes = codes[codes.str.len().isin(length)]
 
+        if add_klass_errors:
+            codes = mutated_extra_codes(
+                codes, coverage_pct=20
+            )  # Adds mutated false codes for about 20% of the existing codes
+
     else:
 
         match dtype:
@@ -76,7 +83,7 @@ def generate_test_variable(
     pdtype: str = DTYPE_MAPPINGS["pandas"][dtype]
     values: pd.Series = codes.sample(n=n, random_state=rng, replace=True).astype(pdtype)  # type: ignore
     values = values.reset_index(drop=True)
-    newname: str = renamed_from[0] if has_rename else name
+    newname: str = renamed_from[0] if has_rename and add_old_cols else name
 
     return newname, values
 

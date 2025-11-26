@@ -60,6 +60,6 @@ def univ(
     univ = df[utd_col].astype("string[pyarrow]").map(initial_mapping)
     kilde = df[kilde_col]
 
-    univ[kilde.isin(("41", "48"))] = "2"  # 41 = FS-Høgskoler, 48 = Lånekassedata
+    univ.loc[kilde.isin(("41", "48"))] = "2"  # 41 = FS-Høgskoler, 48 = Lånekassedata
 
     return univ.astype("string[pyarrow]")
