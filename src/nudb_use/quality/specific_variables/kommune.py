@@ -55,7 +55,6 @@ def subcheck_single_kommune_oslo_svalbard_utland(
 
     Args:
         kommune_col: Series with kommune codes.
-        col_name: Name of the kommune column for logging.
 
     Returns:
         NudbQualityError | None: Error when illegal mappings exist, else None.
