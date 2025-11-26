@@ -9,7 +9,6 @@ from nudb_use.metadata.nudb_config import update_colnames
 __all__ = [
     "get_cols2drop",
     "get_cols2keep",
-    "get_nudb_settings",
     "get_var_metadata",
     "sort_cols_by_unit",
     "update_colnames",

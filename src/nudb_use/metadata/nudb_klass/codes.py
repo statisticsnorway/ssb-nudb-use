@@ -1,7 +1,5 @@
 """Fetch and validate KLASS classification codes."""
 
-import datetime
-
 import dateutil.parser
 import klass
 import pandas as pd
@@ -31,7 +29,6 @@ def get_klass_codes(
 
     Raises:
         ValueError: If data_time_end is specified, but not data_time_start.
-        ValueError: If both data_time_start and data_time_end are unspecified.
     """
     if data_time_start is None and data_time_end is None:
         codes = klass.KlassClassification(klassid).get_codes()
@@ -41,12 +38,10 @@ def get_klass_codes(
         codes = klass.KlassClassification(klassid).get_codes(
             from_date=data_time_start, to_date=data_time_end
         )
-    elif data_time_start is None:
+    else:
         raise ValueError(
             "If you specify the end, you MUST also specify the start date (or just the start)."
         )
-    else:
-        raise ValueError("What the hell are you doing with the date parameters?")
     return list(codes.to_dict().keys())
 
 
@@ -161,15 +156,10 @@ def _prioritize_dates_from_param_or_config(
             from_date = None
 
     # Prioritize sent parameter
-    if data_time_end is not None:
+    if data_time_end and not pd.isna(data_time_end):
         to_date: str | None = dateutil.parser.parse(data_time_end).strftime(r"%Y-%m-%d")
     else:
-        to_date = (
-            None
-            # mypy thinks there can be no NAs in pandas, sure buddy
-            if data_time_end is None or pd.isna(data_time_end)  # type: ignore[unreachable]
-            else datetime.datetime.now().strftime(r"%Y-%m-%d")
-        )
+        to_date = None  # This will default to the codelist only being from the specified from date - what we want?
 
     return from_date, to_date
 
