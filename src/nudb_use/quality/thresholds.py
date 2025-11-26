@@ -28,9 +28,7 @@ def filled_value_to_threshold(
     Raises:
         NudbQualityError: If the percentage of matching values is below the threshold while `raise_error` is True.
     """
-    if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
-        pass
-    else:
+    if not (isinstance(value, Iterable) and not isinstance(value, (str, bytes))):
         value = [value]
 
     percent = ((col.isin(value)).sum() / len(col)) * 100

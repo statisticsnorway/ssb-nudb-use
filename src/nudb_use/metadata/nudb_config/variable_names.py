@@ -40,7 +40,7 @@ def sort_cols_after_config_order(data: pd.DataFrame) -> pd.DataFrame:
     """
     data.columns = data.columns.str.lower()
     sorted_cols = [
-        col for col in list(settings_use.variables.keys()) if col in data.columns
+        col for col in settings_use.variables.keys() if col in data.columns
     ] + [col for col in data.columns if col not in settings_use.variables.keys()]
     return data[sorted_cols]
 
@@ -211,40 +211,61 @@ def handle_dataset_specific_renames(
     renames_flip_list = _flip_dict_to_list(renames)
 
     for new_name, old_names in renames_flip_list.items():
-        old_names_list = [old_names] if isinstance(old_names, str) else old_names
-        in_df = [
-            c for c in [new_name, *old_names_list] if c in df.columns
-        ]  # config sets order
-        # Warn if fillnas will happen
-        if len(in_df) > 1:
-            logger.warning(
-                f"Found multiple columns that will map to the same, meaning we are doing a fillna, instead of a pure rename: {in_df}"
-            )
-            if new_name not in df.columns:
-                df[new_name] = pd.Series(pd.NA, index=df.index).astype(
-                    "string[pyarrow]"
-                )  # <- sketchy type setting
-            for col in [c for c in in_df if c != new_name]:
-                if df[col].isna().all():
-                    logger.debug(
-                        f"{col} is all empty, no need to do dataset_specific_rename_fillna"
-                    )
-                else:
-                    logger.warning(
-                        f"Found multiple columns that will map to the same, meaning we are doing a fillna into {new_name} from {col}, deleting {col} after."
-                    )
-                    df[new_name] = df[new_name].fillna(df[col])
-                del df[col]  # Either it is empty or we used it to fill
-        elif len(in_df) == 1 and old_names_list[0] in df.columns:
-            logger.info(
-                f"Single value found for dataset_specific_rename, just renaming: {old_names_list[0]} to {new_name}"
-            )
-            return df.rename(columns={old_names_list[0]: new_name})
-        else:
-            logger.debug(
-                "Dont know if anything needs to be done, if the dataset only contains the correct new name?"
-            )
+        df = _apply_dataset_specific_rename(df, new_name, old_names)
 
+    return df
+
+
+def _apply_dataset_specific_rename(
+    df: pd.DataFrame, new_name: str, old_names: str | list[str]
+) -> pd.DataFrame:
+    """Apply a single dataset-specific rename or fillna merge."""
+    old_names_list = [old_names] if isinstance(old_names, str) else old_names
+    candidates = [c for c in [new_name, *old_names_list] if c in df.columns]
+
+    if len(candidates) > 1:
+        _warn_fillna(candidates)
+        df = _ensure_target_column(df, new_name)
+        df = _fill_and_drop_sources(df, new_name, candidates)
+    elif len(candidates) == 1 and old_names_list[0] in df.columns:
+        logger.info(
+            f"Single value found for dataset_specific_rename, just renaming: {old_names_list[0]} to {new_name}"
+        )
+        return df.rename(columns={old_names_list[0]: new_name})
+    else:
+        logger.debug(
+            "Dont know if anything needs to be done, if the dataset only contains the correct new name?"
+        )
+
+    return df
+
+
+def _warn_fillna(candidates: list[str]) -> None:
+    logger.warning(
+        f"Found multiple columns that will map to the same, meaning we are doing a fillna, instead of a pure rename: {candidates}"
+    )
+
+
+def _ensure_target_column(df: pd.DataFrame, new_name: str) -> pd.DataFrame:
+    if new_name not in df.columns:
+        df[new_name] = pd.Series(pd.NA, index=df.index).astype("string[pyarrow]")
+    return df
+
+
+def _fill_and_drop_sources(
+    df: pd.DataFrame, new_name: str, candidates: list[str]
+) -> pd.DataFrame:
+    for col in [c for c in candidates if c != new_name]:
+        if df[col].isna().all():
+            logger.debug(
+                f"{col} is all empty, no need to do dataset_specific_rename_fillna"
+            )
+        else:
+            logger.warning(
+                f"Found multiple columns that will map to the same, meaning we are doing a fillna into {new_name} from {col}, deleting {col} after."
+            )
+            df[new_name] = df[new_name].fillna(df[col])
+        del df[col]
     return df
 
 

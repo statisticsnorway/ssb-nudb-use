@@ -1,6 +1,7 @@
 """Validation utilities for ensuring variable schemas match expectations."""
 
 from pathlib import Path
+from typing import cast
 
 import klass
 import pandas as pd
@@ -14,17 +15,10 @@ from nudb_use.metadata.nudb_klass.codes import _find_earliest_latest_klass_versi
 
 
 def pyarrow_columns_from_metadata(path: str | Path) -> list[str]:
-    """Read the metadata and column names from a Parquet file using PyArrow without loading the data.
-
-    Args:
-        path: The file path to the Parquet file.
-
-    Returns:
-        list: A list of column names in the Parquet file.
-    """
-    file_path = Path(path)  # Convert to pathlib.Path
-    metadata = pq.ParquetFile(file_path).metadata  # Read only the metadata
-    return metadata.schema.names  # Return the column names
+    """Read column names from a Parquet file via metadata only."""
+    file_path = Path(path)
+    metadata = pq.ParquetFile(file_path).metadata
+    return metadata.schema.names
 
 
 def identify_cols_not_in_keep_drop_in_paths(
@@ -33,35 +27,15 @@ def identify_cols_not_in_keep_drop_in_paths(
     cols_drop: list[str],
     raise_error_found: bool = False,
 ) -> set[str]:
-    """Identifies columns in data files that are not in keep or drop lists.
-
-    Args:
-        paths: List of file paths to scan for column metadata.
-        cols_keep: List of column names that should be kept in the data.
-        cols_drop: List of column names that should be dropped from the data.
-        raise_error_found: If True, raises a KeyError when columns are found
-            that are not in either list. If False, only returns the columns.
-            Defaults to False.
-
-    Returns:
-        extra_cols: Set of column names found in the data files that are not present in
-        either `cols_keep` or `cols_drop`.
-
-    Raises:
-        KeyError: If `raise_error_found` is True and unconfigured columns are
-            found in the data files.
-    """
+    """Identify columns present in data files that are missing from keep/drop lists."""
     extra_cols: set[str] = set()
     for path in paths:
         columns_in_data = pyarrow_columns_from_metadata(path)
-
-        extra_cols = extra_cols | set(
-            [
-                col
-                for col in columns_in_data
-                if col not in cols_keep and col not in cols_drop
-            ]
-        )
+        extra_cols |= {
+            col
+            for col in columns_in_data
+            if col not in cols_keep and col not in cols_drop
+        }
     if extra_cols and raise_error_found:
         raise KeyError(
             f"These columns are missing from keep / drop, please define them in your config or keep+drop lists: {extra_cols}"
@@ -76,80 +50,36 @@ def check_column_presence(
     check_for: None | list[str] = None,
     raise_errors: bool = True,
 ) -> list[Exception]:
-    """Validates that DataFrame columns match expected schema configuration.
-
-    Checks that all columns in the DataFrame are defined in the schema and that
-    all required columns from the schema are present in the DataFrame. Optionally
-    logs information about columns that appear to be integer-typed but are stored
-    as floats.
-
-    Args:
-        df: DataFrame to check.
-        dataset_name: Name of dataset layout in config. Used to look up expected
-            columns if `check_for` is not provided.
-        check_for: List of column names to validate against. If provided, takes
-            precedence over `dataset_name`. If neither is provided, raises an error.
-        raise_errors: If True, raises an ExceptionGroup containing all validation
-            errors. If False, errors are only returned. Defaults to True.
-
-    Returns:
-        list[Exception]: Validation errors, including ValueError/KeyError instances
-        describing missing or unexpected columns.
-    """
+    """Validate columns against config or a supplied list."""
     with LoggerStack(
         f"Checking for column presence in dataframe for dataset: {dataset_name}"
     ):
         datasets = list(settings["datasets"].keys())
         errors: list[Exception] = []
 
-        if dataset_name is None and check_for is None:
-            errors += [
-                ValueError(
-                    f"""
-                `check_column_presence()` needs either `check_for` or `name`.
-                `name` can be one of the following:
-                    {datasets}
-            """
-                )
-            ]
+        columns_to_check = _derive_columns_to_check(
+            datasets=datasets,
+            dataset_name=dataset_name,
+            check_for=check_for,
+            errors=errors,
+        )
 
-        elif check_for is None:
-            if dataset_name not in datasets:
-                errors += [
-                    KeyError(
-                        f"""
-                    `name` must be one of the following:
-                        {datasets}
-                    got '{dataset_name}'
-                """
-                    )
-                ]
-            check_for = settings["datasets"][dataset_name]["variables"]
+        _log_integer_like_floats(df)
 
-        columns_to_check: list[str] = check_for if check_for is not None else []
+        col_in_df_but_not_defined, col_defined_but_not_in_data = (
+            _find_column_mismatches(df.columns, columns_to_check)
+        )
 
-        # Sjekk om nåværende flyttall trenger være flyttall?
-        for col in df.select_dtypes("float").columns:
-            maske_heltall = df[col].mod(1.0) == 0
-            if maske_heltall.all():
-                logger.info(f"{col} ser ut til å kunne være ett heltall.")
-
-        col_in_df_but_not_defined = [
-            column for column in df.columns if column not in columns_to_check
-        ]
-        col_defined_but_not_in_data = [
-            column for column in columns_to_check if column not in df.columns
-        ]
-
-        if col_in_df_but_not_defined:
-            err_msg = f"Cant find columns among defined columns, but they're in the data: {col_in_df_but_not_defined}"
-            logger.warning(err_msg)
-            errors.append(KeyError(err_msg))
-
-        if col_defined_but_not_in_data:
-            err_msg = f"Cant find colums in the data, which are defined as if we want them in the dataset: {col_defined_but_not_in_data}"
-            logger.warning(err_msg)
-            errors.append(KeyError(err_msg))
+        _append_if_missing(
+            errors,
+            col_in_df_but_not_defined,
+            "Cant find columns among defined columns, but they're in the data: {}",
+        )
+        _append_if_missing(
+            errors,
+            col_defined_but_not_in_data,
+            "Cant find colums in the data, which are defined as if we want them in the dataset: {}",
+        )
 
         if raise_errors and errors:
             raise_exception_group(errors)
@@ -160,97 +90,137 @@ def check_column_presence(
         return errors
 
 
+def _derive_columns_to_check(
+    datasets: list[str],
+    dataset_name: str | None,
+    check_for: list[str] | None,
+    errors: list[Exception],
+) -> list[str]:
+    if dataset_name is None and check_for is None:
+        errors.append(
+            ValueError(
+                f"""
+                `check_column_presence()` needs either `check_for` or `name`.
+                `name` can be one of the following:
+                    {datasets}
+            """
+            )
+        )
+        return []
+
+    if check_for is None:
+        if dataset_name not in datasets:
+            errors.append(
+                KeyError(
+                    f"""
+                    `name` must be one of the following:
+                        {datasets}
+                    got '{dataset_name}'
+                """
+                )
+            )
+            return []
+        return cast(list[str], settings["datasets"][dataset_name]["variables"])
+
+    return check_for
+
+
+def _log_integer_like_floats(df: pd.DataFrame) -> None:
+    # Sjekk om naavarende flyttall trenger vaere flyttall?
+    for col in df.select_dtypes("float").columns:
+        mask_whole_number = df[col].mod(1.0) == 0
+        if mask_whole_number.all():
+            logger.info(f"{col} ser ut til aa kunne vaere ett heltall.")
+
+
+def _find_column_mismatches(
+    df_columns: pd.Index, expected_columns: list[str]
+) -> tuple[list[str], list[str]]:
+    col_in_df_but_not_defined = [
+        column for column in df_columns if column not in expected_columns
+    ]
+    col_defined_but_not_in_data = [
+        column for column in expected_columns if column not in df_columns
+    ]
+    return col_in_df_but_not_defined, col_defined_but_not_in_data
+
+
+def _append_if_missing(errors: list[Exception], missing: list[str], msg: str) -> None:
+    if missing:
+        err_msg = msg.format(missing)
+        logger.warning(err_msg)
+        errors.append(KeyError(err_msg))
+
+
 def _get_klass_codelist(
     df: pd.DataFrame,
     col_codelist: dict[str, list[str] | dict[str, str]] | None = None,
     full_timeline: bool = False,
 ) -> dict[str, list[str] | dict[str, str]]:
-    """Retrieves or validates KLASS codelists for DataFrame columns.
+    """Retrieve or validate KLASS codelists for DataFrame columns."""
+    if _col_codelist_is_valid(col_codelist):
+        assert col_codelist is not None
+        return col_codelist
 
-    Args:
-        df: DataFrame to check.
-        col_codelist: Dictionary mapping column names to their codelists. Values
-            can be lists or dicts of valid codes. If None or invalid format,
-            codelists are retrieved from configuration instead. Defaults to None.
-        full_timeline: If True, retrieves all valid codes across the entire
-            historical timeline for KLASS classifications that have changed.
-            If False, retrieves only current codes. Defaults to False.
+    return _build_codelists_from_config(df, full_timeline)
 
-    Returns:
-        col_codelist: Dictionary mapping column names to their codelists, where each codelist
-        is either a list of code strings or a dict with codes as keys.
-    """
-    # If col_codelist does not match types, get data from config
-    if not (
+
+def _col_codelist_is_valid(
+    col_codelist: dict[str, list[str] | dict[str, str]] | None,
+) -> bool:
+    return bool(
         isinstance(col_codelist, dict)
         and all(isinstance(k, str) for k in col_codelist)
-        and all(isinstance(v, list | str) for v in col_codelist.values())
-    ):
+        and all(isinstance(v, (list, str)) for v in col_codelist.values())
+    )
 
-        variables = settings.variables
 
-        col_codelist = {}
-        for col in df.columns:
-            logger.debug(col)
-            logger.debug(f"col in variables: {col in variables}")
+def _build_codelists_from_config(
+    df: pd.DataFrame, full_timeline: bool
+) -> dict[str, list[str] | dict[str, str]]:
+    variables = settings.variables
+    col_codelist: dict[str, list[str] | dict[str, str]] = {}
 
-            if col in variables:
-                logger.debug(f"variables[col]:\n{variables[col]}")
+    for col in df.columns:
+        logger.debug(col)
+        logger.debug(f"col in variables: {col in variables}")
 
-            if col in variables and variables[col]["klass_codelist"]:
+        if col in variables:
+            logger.debug(f"variables[col]:\n{variables[col]}")
 
-                earliest_version_date, latest_version_date = (
-                    _find_earliest_latest_klass_version_date(
-                        variables[col]["klass_codelist"]
-                    )
-                )
-
-                if full_timeline and earliest_version_date != latest_version_date:
-                    col_codelist |= {
-                        col: list(
-                            klass.KlassClassification(variables[col]["klass_codelist"])
-                            .get_codes(
-                                from_date=earliest_version_date,
-                                to_date=latest_version_date,
-                            )
-                            .to_dict()
-                            .keys()
-                        )
-                    }
-                else:
-                    col_codelist |= {
-                        col: list(
-                            klass.KlassClassification(variables[col]["klass_codelist"])
-                            .get_codes()
-                            .to_dict()
-                            .keys()
-                        )
-                    }
-
-            elif col in variables and variables[col]["klass_variant"]:
-                col_codelist |= {
-                    col: klass.KlassVariant(variables[col]["klass_variant"])
-                    .data["code"]
-                    .to_list()
-                }
+        if col in variables and variables[col]["klass_codelist"]:
+            col_codelist |= _build_codelist_entry(col, variables[col], full_timeline)
+        elif col in variables and variables[col]["klass_variant"]:
+            col_codelist |= {
+                col: klass.KlassVariant(variables[col]["klass_variant"])
+                .data["code"]
+                .to_list()
+            }
 
     return col_codelist
+
+
+def _build_codelist_entry(
+    col: str, meta: dict[str, str], full_timeline: bool
+) -> dict[str, list[str]]:
+    klass_id = int(meta["klass_codelist"])
+    earliest_version_date, latest_version_date = (
+        _find_earliest_latest_klass_version_date(klass_id)
+    )
+    if full_timeline and earliest_version_date != latest_version_date:
+        codes = klass.KlassClassification(klass_id).get_codes(
+            from_date=earliest_version_date, to_date=latest_version_date
+        )
+    else:
+        codes = klass.KlassClassification(klass_id).get_codes()
+
+    return {col: list(codes.to_dict().keys())}
 
 
 def check_cols_against_klass_codelists(
     df: pd.DataFrame, col_codelist: dict[str, list[str] | dict[str, str]] | None = None
 ) -> None:
-    """Validates DataFrame column values against defined KLASS codelists.
-
-    Args:
-        df: DataFrame to check.
-        col_codelist: Dictionary mapping column names to their valid codes.
-            If None, codelists are retrieved from KLASS
-            configuration. Defaults to None.
-
-    Raises:
-        TypeError: If a codelist value is neither a list nor a dict.
-    """
+    """Validate DataFrame values against KLASS codelists."""
     col_codelist = _get_klass_codelist(df, col_codelist)
     col_codelist_earliest: dict[str, list[str] | dict[str, str]] = _get_klass_codelist(
         df, None, full_timeline=True

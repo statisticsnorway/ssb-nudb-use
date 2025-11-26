@@ -31,6 +31,15 @@ T = TypeVar("T")
 ID_COUNTERS: list[int] = [0]
 JSON: dict[str, Any] = {}
 JSON_FIELDS: list[dict[str, Any]] = [JSON]
+__all__ = [
+    "LoggerStack",
+    "add_log_record_to_json",
+    "enter_new_logger_stack",
+    "exit_current_logger_stack",
+    "get_current_json",
+    "logger",
+    "save_current_json",
+]
 
 
 def last(items: Sequence[T]) -> T | None:
@@ -38,7 +47,7 @@ def last(items: Sequence[T]) -> T | None:
     return None if not items else items[-1]
 
 
-def add_LogRecord_to_json(record: logging.LogRecord) -> None:
+def add_log_record_to_json(record: logging.LogRecord) -> None:
     """Persist the current log record into the in-memory JSON structure."""
     global STACK_LABELS, ID_COUNTERS, JSON_FIELDS
     stack_label = last(STACK_LABELS)
@@ -85,7 +94,7 @@ class ColoredFormatter(logging.Formatter):
         global INDENT_WIDTH, STACK_LEVEL, EXITING_STACK, WIDTH_LEVEL_NAME, ENTERING_STACK
 
         if not ENTERING_STACK and not EXITING_STACK:
-            add_LogRecord_to_json(record)
+            add_log_record_to_json(record)
 
         if INDENT_WIDTH < 1:
             raise ValueError(
@@ -205,24 +214,24 @@ class LoggerStack:
         STACK_LEVEL -= 1
 
 
-def ENTER_NEW_LOGGER_STACK(label: str | None = None) -> None:
+def enter_new_logger_stack(label: str | None = None) -> None:
     """Enter a new logger stack context with the given label."""
-    loggerStack = LoggerStack(label)
-    loggerStack.__enter__()
+    stack = LoggerStack(label)
+    stack.__enter__()
 
 
-def EXIT_CURRENT_LOGGER_STACK(label: str | None = last(STACK_LABELS)) -> None:
+def exit_current_logger_stack(label: str | None = last(STACK_LABELS)) -> None:
     """Exit the current logger stack context in a safe way."""
-    loggerStack = LoggerStack(label)
-    loggerStack.__exit__(None, None, None)
+    stack = LoggerStack(label)
+    stack.__exit__(None, None, None)
 
 
-def GET_CURRENT_JSON() -> dict[str, Any]:
+def get_current_json() -> dict[str, Any]:
     """Return a shallow copy of the accumulated logging JSON structure."""
     return copy.deepcopy(JSON)
 
 
-def SAVE_CURRENT_JSON(path: str | Path, indent: int = 4) -> None:
+def save_current_json(path: str | Path, indent: int = 4) -> None:
     """Persist the accumulated logging JSON structure to disk."""
     path_path = Path(path)
     with path_path.open("w") as file:

@@ -35,9 +35,7 @@ def values_not_in_column(
     Raises:
         ValueError: If forbidden values are found and `raise_error` is True.
     """
-    if isinstance(values, Iterable) and not isinstance(values, (str, bytes)):
-        pass
-    else:
+    if not (isinstance(values, Iterable) and not isinstance(values, (str, bytes))):
         values = [values]
 
     values_col_mask = col.isin(values)

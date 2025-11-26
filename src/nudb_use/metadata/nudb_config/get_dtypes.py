@@ -1,5 +1,7 @@
 """Utilities for mapping NUDB variable types to concrete dtype strings."""
 
+from typing import Any
+
 from nudb_config import settings as SETTINGS
 
 from nudb_use import logger
@@ -97,39 +99,49 @@ def get_dtypes(
         not found in config map to None.
     """
     conf_variables = SETTINGS["variables"]
+    renamed = _build_renamed_lookup(conf_variables)
 
-    dtypes_want: dict[str, str | None] = {}
-    renamed = {}
-    for new in conf_variables.keys():
-        old: list[str] | str | None = conf_variables[new].renamed_from
-        if old is not None:
-            if isinstance(old, str):
-                renamed[old] = new
-            else:
-                for old_elem in old:
-                    renamed[old_elem] = new
+    return {
+        var: _map_single_dtype(
+            var, conf_variables, renamed, engine, datetimes_as_string
+        )
+        for var in vars_map
+    }
 
-    # check for vars in 'renamed_from'?
-    for var in vars_map:
-        if var not in conf_variables.keys() and var not in renamed:
-            logger.warning(
-                f"Variable {var} not found, returning dtype=None!"
-            )  # replace with logger later
-            dtypes_want[var] = None
-        elif var not in conf_variables.keys() and var in renamed:
-            newname = renamed[var]
-            logger.warning(f"Variables has been renamed from {var} to {newname}!")
 
-            dtypes_want[var] = map_dtype_datadoc(
-                dtype=conf_variables[newname]["dtype"],
-                engine=engine,
-                datetimes_as_string=datetimes_as_string,
-            )
+def _build_renamed_lookup(conf_variables: dict[str, Any]) -> dict[str, str]:
+    """Build a lookup from historical names to current names."""
+    renamed: dict[str, str] = {}
+    for new, meta in conf_variables.items():
+        old: list[str] | str | None = meta.renamed_from
+        if old is None:
+            continue
+        if isinstance(old, str):
+            renamed[old] = new
         else:
-            dtypes_want[var] = map_dtype_datadoc(
-                dtype=conf_variables[var]["dtype"],
-                engine=engine,
-                datetimes_as_string=datetimes_as_string,
-            )
+            for old_elem in old:
+                renamed[old_elem] = new
+    return renamed
 
-    return dtypes_want
+
+def _map_single_dtype(
+    var: str,
+    conf_variables: dict[str, Any],
+    renamed: dict[str, str],
+    engine: str,
+    datetimes_as_string: bool,
+) -> str | None:
+    """Resolve dtype for a single variable, handling missing and renamed cases."""
+    if var not in conf_variables and var not in renamed:
+        logger.warning(f"Variable {var} not found, returning dtype=None!")
+        return None
+
+    target = renamed.get(var, var)
+    if var in renamed:
+        logger.warning(f"Variables has been renamed from {var} to {target}!")
+
+    return map_dtype_datadoc(
+        dtype=conf_variables[target]["dtype"],
+        engine=engine,
+        datetimes_as_string=datetimes_as_string,
+    )

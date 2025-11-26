@@ -115,43 +115,60 @@ def search_nace(naces: list[str]) -> pd.DataFrame:
         pd.DataFrame: Concatenated DataFrame of search results per NACE code.
                       Currently always empty due to incomplete implementation.
 
-    Raises:
-        ValueError: If any NACE code does not have a dot '.' at the third character.
     """
-    # Make sure codes follow standard
-    if not all([x[2] == "." for x in naces]):
-        raise ValueError(
-            "One of the nace-codes is missing a point in the third position."
-        )
-    dataframe_list: list[pd.DataFrame] = []
+    _validate_nace_codes(naces)
 
+    dataframe_list: list[pd.DataFrame] = []
     for nacekode in naces:
         sok = UnderenhetQuery()
         sok.naeringskode = [nacekode]
         with Client() as client:
             search = client.search_enhet(sok)
 
-            for elem in search.get_page(0):
-                if elem[0] == "total_pages":
-                    total_pages = elem[1]
-                    logger.info(f"Total pages for nacekode {nacekode}: {total_pages}")
-                    logger.debug(elem)
-                    # continue
-                    logger.warning(
-                        """Kjell: I commented out line 135, and indented lines 138-143,
-                                      in .../external_apis/brreg_api.py. This may be wrong!?"""
-                    )
+        total_pages = _extract_total_pages(search, nacekode)
+        if total_pages == 0:
+            continue
 
-                    for page_num in range(total_pages):
-                        for elem in search.get_page(page_num):
-                            if elem[0] == "items":
-                                for item in elem[1:]:
-                                    for enhet in item:
-                                        dataframe_list.append(
-                                            pd.DataFrame([flatten(enhet)])
-                                        )
+        dataframe_list.extend(_collect_search_results(search, total_pages))
+
+    if not dataframe_list:
+        return pd.DataFrame()
 
     return pd.concat(dataframe_list)
+
+
+def _validate_nace_codes(naces: list[str]) -> None:
+    """Ensure NACE codes have the expected dot in position three."""
+    for code in naces:
+        if len(code) < 3 or code[2] != ".":
+            raise ValueError(
+                "One of the nace-codes is missing a point in the third position."
+            )
+
+
+def _extract_total_pages(search: Any, nacekode: str) -> int:
+    """Read total page count from the first page of a search."""
+    for elem in search.get_page(0):
+        if elem[0] == "total_pages":
+            total_pages = int(elem[1])
+            logger.info(f"Total pages for nacekode {nacekode}: {total_pages}")
+            logger.debug(elem)
+            return total_pages
+    logger.warning(f"No total_pages found for nacekode {nacekode}")
+    return 0
+
+
+def _collect_search_results(search: Any, total_pages: int) -> list[pd.DataFrame]:
+    """Collect flattened search items from all pages."""
+    results: list[pd.DataFrame] = []
+    for page_num in range(total_pages):
+        for elem in search.get_page(page_num):
+            if elem[0] != "items":
+                continue
+            for item in elem[1:]:
+                for enhet in item:
+                    results.append(pd.DataFrame([flatten(enhet)]))
+    return results
 
 
 def flatten(obj: object, prefix: str = "", sep: str = "_") -> dict[str, Any]:

@@ -43,7 +43,7 @@ def check_kommune(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
             )
             add_err2list(
                 errors,
-                subcheck_only_single_sentinel_value_9999_allowed(kom_col, kom_col_name),
+                subcheck_only_single_sentinel_value_9999_allowed(kom_col),
             )
         return errors
 
@@ -90,13 +90,12 @@ def subcheck_single_kommune_oslo_svalbard_utland(
 
 
 def subcheck_only_single_sentinel_value_9999_allowed(
-    kommune_col: pd.Series | None, col_name: str
+    kommune_col: pd.Series | None,
 ) -> NudbQualityError | None:
     """Ensure kommune codes only use '9999' as the sentinel value.
 
     Args:
         kommune_col: Series with kommune codes.
-        col_name: Name of the kommune column for logging context.
 
     Returns:
         NudbQualityError | None: Error when other sentinel values exist, else None.
@@ -113,6 +112,9 @@ def subcheck_only_single_sentinel_value_9999_allowed(
     if mask_weird.sum() == 0:
         return None
 
-    err_msg = f"Found weird sentinel values in your kommune-col: {col_name}, here are the values: {list(unique_vals[mask_weird])}"
+    err_msg = (
+        f"Found weird sentinel values in your kommune-col, here are the values: "
+        f"{list(unique_vals[mask_weird])}"
+    )
     logger.warning(err_msg)
     return NudbQualityError(err_msg)

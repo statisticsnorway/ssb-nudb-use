@@ -1,9 +1,13 @@
 """Derivations related to school-year columns."""
 
+from typing import Literal
+
 import pandas as pd
 
 from nudb_use import LoggerStack
 from nudb_use import logger
+
+PYARROW_STRING: Literal["string[pyarrow]"] = "string[pyarrow]"
 
 
 def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.DataFrame:
@@ -24,8 +28,8 @@ def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.DataFrame:
 
         # Lets only operate on valid aar
         valid_mask = (
-            df["utd_skoleaar_start"].astype("string[pyarrow]").str.len() == 4
-        ) & (df["utd_skoleaar_start"].astype("string[pyarrow]").str.isdigit())
+            df["utd_skoleaar_start"].astype(PYARROW_STRING).str.len() == 4
+        ) & (df["utd_skoleaar_start"].astype(PYARROW_STRING).str.isdigit())
 
         # Fill non valid with a placeholder
         placeholder_year = "1000"
@@ -33,7 +37,7 @@ def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.DataFrame:
         temp_start.loc[~valid_mask] = pd.Series(placeholder_year, index=df.index)
 
         df["utd_skoleaar_slutt"] = (temp_start.astype("Int64") + 1).astype(
-            "string[pyarrow]"
+            PYARROW_STRING
         )
 
         # Empty the invalid values from the newly created column
