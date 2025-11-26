@@ -109,7 +109,7 @@ def last_period_within_thresholds(
         list[NudbQualityError]: Errors describing columns that exceed thresholds
         in the most recent period, or an empty list if all pass.
     """
-    last_period = sorted(list(df[period_col].unique()))[-1]
+    last_period = sorted(df[period_col].unique())[-1]
     return df_within_missing_thresholds(
         df[df[period_col] == last_period], thresholds, raise_errors
     )

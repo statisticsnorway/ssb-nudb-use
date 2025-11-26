@@ -39,7 +39,7 @@ def check_kommune(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
             kom_col = get_column(df, col=kom_col_name)
             add_err2list(
                 errors,
-                subcheck_single_kommune_oslo_svalbard_utland(kom_col, kom_col_name),
+                subcheck_single_kommune_oslo_svalbard_utland(kom_col),
             )
             add_err2list(
                 errors,
@@ -49,7 +49,7 @@ def check_kommune(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
 
 
 def subcheck_single_kommune_oslo_svalbard_utland(
-    kommune_col: pd.Series | None, col_name: str
+    kommune_col: pd.Series | None
 ) -> NudbQualityError | None:
     """Ensure fylker with single municipality codes are mapped correctly.
 
