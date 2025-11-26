@@ -49,7 +49,7 @@ def check_kommune(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
 
 
 def subcheck_single_kommune_oslo_svalbard_utland(
-    kommune_col: pd.Series | None
+    kommune_col: pd.Series | None,
 ) -> NudbQualityError | None:
     """Ensure fylker with single municipality codes are mapped correctly.
 
