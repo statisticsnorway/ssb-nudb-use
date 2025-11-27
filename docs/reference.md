@@ -13,14 +13,27 @@ delete the .rst file afterwards.
 
 ```{eval-rst}
 nudb\_use package
-=============================================================================
+=================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   nudb_use.exceptions
+   nudb_use.metadata
+   nudb_use.paths
+   nudb_use.quality
+   nudb_use.variables
 
 
-nudb\_use.functions module
------------------------------------------------------------------------------
+nudb\_use.nudb\_logger module
+-----------------------------
 
-.. automodule:: nudb_use.functions
+.. automodule:: nudb_use.nudb_logger
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
+
 ```
