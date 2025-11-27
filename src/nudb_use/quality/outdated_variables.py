@@ -3,9 +3,9 @@
 import pandas as pd
 from nudb_config.pydantic.variables import Variable
 
-from nudb_use import LoggerStack
 from nudb_use import settings as settings_use
 from nudb_use.exceptions.exception_classes import NudbQualityError
+from nudb_use.nudb_logger import LoggerStack
 
 
 def check_outdated_variables(df: pd.DataFrame) -> list[NudbQualityError]:

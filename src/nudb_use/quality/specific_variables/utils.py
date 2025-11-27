@@ -5,8 +5,8 @@ from typing import cast
 
 import pandas as pd
 
-from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
+from nudb_use.nudb_logger import logger
 
 
 def get_column(df: pd.DataFrame, col: str) -> pd.Series | None:

@@ -1,4 +1,4 @@
-# SSB Nudb Use
+# SSB-NUDB-USE
 
 [![PyPI](https://img.shields.io/pypi/v/ssb-nudb-use.svg)][pypi status]
 [![Status](https://img.shields.io/pypi/status/ssb-nudb-use.svg)][pypi status]
@@ -24,25 +24,83 @@
 [black]: https://github.com/psf/black
 [poetry]: https://python-poetry.org/
 
-## Features
+# Description
 
-- TODO
+NUDB is the National Education Database of Norway. It is operated by Statsitics Norway - section 360.
+This package is the main "usage-package" for those seeking to use NUDB-data, or deliver data to NUDB.
 
-## Requirements
+NUDBs data is kept as parquet files in GCP, and you will need seperate access to this data to utilize this package.
+Some features in this package might require access to other data, like BRREG (Brønnøysundregisteret), BOF (befolkningsregisteret), VOF (virksomhetsregisteret) etc.
 
-- TODO
 
 ## Installation
 
-You can install _SSB Nudb Use_ via [pip] from [PyPI]:
+You can install _SSB Nudb Use_ via [poetry] from [PyPI]:
 
 ```console
-pip install ssb-nudb-use
+poetry add ssb-nudb-use
 ```
+
+## Dependencies
+
+This package depends on the package "ssb-nudb-config", which contains metadata, but also points to content in other metadatasystems like Vardef, Klass and Datadoc.
+
 
 ## Usage
 
 Please see the [Reference Guide] for details.
+
+
+### Usage for extraction (data from NUDB)
+
+Find the latest of each file shared.
+```python
+from nudb_use import latest_shared_paths
+latest_shared_paths()
+```
+
+Get the periods out of any paths following the SSB-naming standard.
+```python
+from nudb_use import get_periods_from_path
+get_periods_from_path(path)
+```
+
+Deriving variables not stored in data, is done by the derive module:
+```python
+from nudb_use import derive
+df = derive.utd_skoleaar_slutt(df)
+```
+
+
+### Usage for delivery (data to NUDB)
+
+We have renamed a lot of our variables transitioning from the old on-prem systems. If you are looking for the new or old names of variables, you can use the find_var or find_vars functions:
+```python
+from nudb_use import find_vars
+find_vars(["snr", "sosbak"])
+```
+
+If you want to update the column names you have in a pandas dataframe, to the new column names - there's a function for that:
+```python
+from nudb_use import update_colnames
+df = update_colnames(df)
+```
+
+After renaming, you can get the pandas dtypes the columns should have with get_dtypes:
+```python
+from nudb_use import get_dtypes
+dtypes = get_dtypes(df)
+df = df.astype(dtypes)
+```
+If you are delivering to NUDB, we want you to run our quality suite before sharing the data with us:
+```python
+from nudb_use import run_quality_suite
+run_quality_suite(df, "avslutta")
+```
+Data about your delivery, like "avslutta", should first have its data entered into, and released in the ssb-nudb-config package before available in this function. Contact the NUDB-team to define a new delivery.
+
+
+
 
 ## Contributing
 

@@ -4,7 +4,7 @@ from typing import Any
 
 from nudb_config import settings as SETTINGS
 
-from nudb_use import logger
+from nudb_use.nudb_logger import logger
 
 # Global variables to refer to names programatically
 # in case we want to change names later

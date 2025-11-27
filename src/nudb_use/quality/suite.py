@@ -4,9 +4,9 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-from nudb_use import logger
 from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.metadata.nudb_klass import check_klass_codes
+from nudb_use.nudb_logger import logger
 from nudb_use.quality.duplicated_columns import check_duplicated_columns
 from nudb_use.quality.missing import check_columns_only_missing
 from nudb_use.quality.missing import check_missing_thresholds_dataset_name

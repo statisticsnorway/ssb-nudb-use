@@ -2,10 +2,14 @@ import importlib
 
 import pytest
 
-get_dtypes_module = importlib.import_module("nudb_use.metadata.nudb_config.get_dtypes")
-from nudb_use.metadata.nudb_config.get_dtypes import get_dtype_from_dict
-from nudb_use.metadata.nudb_config.get_dtypes import get_dtypes as get_dtypes_function
-from nudb_use.metadata.nudb_config.get_dtypes import map_dtype_datadoc
+get_dtypes_module = importlib.import_module(
+    "nudb_use.metadata.nudb_config.map_get_dtypes"
+)
+from nudb_use.metadata.nudb_config.map_get_dtypes import get_dtype_from_dict
+from nudb_use.metadata.nudb_config.map_get_dtypes import (
+    get_dtypes as get_dtypes_function,
+)
+from nudb_use.metadata.nudb_config.map_get_dtypes import map_dtype_datadoc
 
 
 class DummyVar:

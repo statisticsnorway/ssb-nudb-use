@@ -6,12 +6,12 @@ import dateutil.parser
 import klass
 import pandas as pd
 
-from nudb_use import LoggerStack
-from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.exceptions.groups import warn_exception_group
 from nudb_use.metadata.nudb_config.get_variable_info import get_var_metadata
+from nudb_use.nudb_logger import LoggerStack
+from nudb_use.nudb_logger import logger
 
 
 def get_klass_codes(

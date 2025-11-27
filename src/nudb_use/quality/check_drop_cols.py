@@ -1,11 +1,11 @@
 """Ensure requested drop columns do not collide with configured variables."""
 
-from nudb_use import LoggerStack
-from nudb_use import logger
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.metadata.nudb_config import get_var_metadata
-from nudb_use.metadata.nudb_config.find_var import VariableMetadata
-from nudb_use.metadata.nudb_config.find_var import find_vars
+from nudb_use.metadata.nudb_config.find_var_missing import VariableMetadata
+from nudb_use.metadata.nudb_config.find_var_missing import find_vars
+from nudb_use.nudb_logger import LoggerStack
+from nudb_use.nudb_logger import logger
 
 
 def check_drop_cols_for_valid_cols(

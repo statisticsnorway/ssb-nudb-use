@@ -8,10 +8,10 @@ import pandas as pd
 import pyarrow.parquet as pq
 from nudb_config import settings
 
-from nudb_use import LoggerStack
-from nudb_use import logger
 from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.metadata.nudb_klass.codes import _find_earliest_latest_klass_version_date
+from nudb_use.nudb_logger import LoggerStack
+from nudb_use.nudb_logger import logger
 
 
 def pyarrow_columns_from_metadata(path: str | Path) -> list[str]:

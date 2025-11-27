@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from nudb_config import settings
 
-from nudb_use.metadata.nudb_config.get_dtypes import DTYPE_MAPPINGS
+from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.nudb_logger import logger
 
 from .mutate_codelist import mutated_extra_codes
