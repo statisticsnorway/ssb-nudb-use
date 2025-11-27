@@ -1,6 +1,6 @@
 [project]
 name = "ssb-nudb-use"
-version = "2025.10.0"
+version = "2025.11.0"
 description = "NUDB Use - is a usage-package for the Norwegian National Education Database cloud-data. Both for data-consumers and data-deliverers"
 authors = [{ name = "Carl F. Corneil", email = "cfc@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, Education statistics Department (360)" }]
