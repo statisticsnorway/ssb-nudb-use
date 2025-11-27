@@ -3,8 +3,8 @@
 import pandas as pd
 from nudb_config import settings
 
-from nudb_use import LoggerStack
 from nudb_use.exceptions.exception_classes import NudbQualityError
+from nudb_use.nudb_logger import LoggerStack
 
 from .utils import add_err2list
 from .utils import get_column

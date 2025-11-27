@@ -6,7 +6,7 @@ from typing import Any
 import klass
 from nudb_config import settings
 
-from nudb_use import logger
+from nudb_use.nudb_logger import logger
 
 VariableMetadata = dict[str, Any]
 

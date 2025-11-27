@@ -4,10 +4,10 @@ from typing import Any
 
 import pandas as pd
 
-from nudb_use import LoggerStack
-from nudb_use import logger
 from nudb_use import settings as settings_use
 from nudb_use.exceptions.exception_classes import NudbQualityError
+from nudb_use.nudb_logger import LoggerStack
+from nudb_use.nudb_logger import logger
 
 from .utils import add_err2list
 from .utils import get_column

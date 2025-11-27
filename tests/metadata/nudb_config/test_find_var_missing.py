@@ -4,10 +4,12 @@ from typing import Any
 
 import pytest
 
-find_var_module = importlib.import_module("nudb_use.metadata.nudb_config.find_var")
-from nudb_use.metadata.nudb_config.find_var import find_var
-from nudb_use.metadata.nudb_config.find_var import find_vars
-from nudb_use.metadata.nudb_config.find_var import variables_missing_from_config
+find_var_module = importlib.import_module(
+    "nudb_use.metadata.nudb_config.find_var_missing"
+)
+from nudb_use.metadata.nudb_config.find_var_missing import find_var
+from nudb_use.metadata.nudb_config.find_var_missing import find_vars
+from nudb_use.metadata.nudb_config.find_var_missing import variables_missing_from_config
 
 
 class FakeSettings:

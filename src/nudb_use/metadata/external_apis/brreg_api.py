@@ -11,8 +11,8 @@ from brreg.enhetsregisteret import Client  # type: ignore
 from brreg.enhetsregisteret import UnderenhetQuery
 from pydantic import BaseModel
 
-from nudb_use import logger
 from nudb_use import settings
+from nudb_use.nudb_logger import logger
 
 
 def download_csv_content_enheter() -> pd.DataFrame:

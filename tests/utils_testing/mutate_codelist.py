@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from nudb_use import logger
+from nudb_use.nudb_logger import logger
 
 LETTERS = pd.Series(list(string.ascii_lowercase) + list(string.ascii_uppercase))
 NUMBERS = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
