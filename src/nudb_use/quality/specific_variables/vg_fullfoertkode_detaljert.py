@@ -11,7 +11,9 @@ from .utils import get_column
 from .utils import require_series_present
 
 
-def check_vg_fullfoertkode_detaljert(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
+def check_vg_fullfoertkode_detaljert(
+    df: pd.DataFrame, **kwargs: object
+) -> list[NudbQualityError]:
     """Run all vg_fullfoertkode_detaljert-specific checks on the provided DataFrame.
 
     Args:
@@ -27,13 +29,15 @@ def check_vg_fullfoertkode_detaljert(df: pd.DataFrame, **kwargs: object) -> list
 
         errors: list[NudbQualityError] = []
         add_err2list(
-            errors, subcheck_vg_fullfoertkode_detaljert_utd_211(utd_utdanningstype, vg_fullfoertkode_detaljert)
+            errors,
+            subcheck_vg_fullfoertkode_detaljert_utd_211(
+                utd_utdanningstype, vg_fullfoertkode_detaljert
+            ),
         )
 
         return errors
-    
 
-    
+
 def subcheck_vg_fullfoertkode_detaljert_utd_211(
     utd_utdanningstype: pd.Series | None, vg_fullfoertkode_detaljert: pd.Series | None
 ) -> NudbQualityError | None:
@@ -47,14 +51,24 @@ def subcheck_vg_fullfoertkode_detaljert_utd_211(
         NudbQualityError | None: Error when invalid combinations exist, else None.
     """
     validated = require_series_present(
-        utd_utdanningstype=utd_utdanningstype, vg_fullfoertkode_detaljert=vg_fullfoertkode_detaljert
+        utd_utdanningstype=utd_utdanningstype,
+        vg_fullfoertkode_detaljert=vg_fullfoertkode_detaljert,
     )
     if validated is None:
         return None
     utd_utdanningstype = validated["utd_utdanningstype"]
     vg_fullfoertkode_detaljert = validated["vg_fullfoertkode_detaljert"]
 
-    outside_vg = ~(utd_utdanningstype.isin("211", "212", "220", "610"))
+    outside_vg = ~(
+        utd_utdanningstype.isin(
+            (
+                "211",
+                "212",
+                "220",
+                "610",
+            )
+        )
+    )
     has_fulldetj = vg_fullfoertkode_detaljert.notna()
     wrong = outside_vg & has_fulldetj
 
@@ -64,4 +78,3 @@ def subcheck_vg_fullfoertkode_detaljert_utd_211(
     err_msg = "Where `utd_utdanningstype` is something other than 211, 212, 220 and 610 (not vg), `vg_fullfoertkode_detaljert` should be empty."
     logger.warning(err_msg)
     return NudbQualityError(err_msg)
-
