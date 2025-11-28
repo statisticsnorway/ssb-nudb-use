@@ -8,6 +8,7 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 from .gro_elevstatus import check_gro_elevstatus
+from .vg_fullfoertkode_detaljert import check_vg_fullfoertkode_detaljert
 from .grunnskolepoeng import check_grunnskolepoeng
 from .kommune import check_kommune
 from .land import check_land
@@ -22,6 +23,7 @@ VARIABLE_CHECKS = [
     check_land,
     check_kommune,
     check_gro_elevstatus,
+    check_vg_fullfoertkode_detaljert,
     check_sn07,
     check_unique_per_person,
     check_has_personal_ids,
