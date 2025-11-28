@@ -15,6 +15,7 @@ from .nus2000 import check_nus2000
 from .pers_id_fnr import check_has_personal_ids
 from .sn07 import check_sn07
 from .unique_per_person import check_unique_per_person
+from .vg_fullfoertkode_detaljert import check_vg_fullfoertkode_detaljert
 
 VARIABLE_CHECKS = [
     check_nus2000,
@@ -22,6 +23,7 @@ VARIABLE_CHECKS = [
     check_land,
     check_kommune,
     check_gro_elevstatus,
+    check_vg_fullfoertkode_detaljert,
     check_sn07,
     check_unique_per_person,
     check_has_personal_ids,
