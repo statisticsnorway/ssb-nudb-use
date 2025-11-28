@@ -130,5 +130,5 @@ def igang() -> YieldDataFrame:
 
 
 @pytest.fixture
-def eksamen_uh() -> YieldDataFrame:
-    yield generate_test_data("eksamen_uh").copy(deep=True)
+def eksamen() -> YieldDataFrame:
+    yield generate_test_data("eksamen").copy(deep=True)

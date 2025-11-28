@@ -26,8 +26,8 @@ def test_check_klass_codes_igang(igang: pd.DataFrame) -> None:
     subtest_check_klass_codes(update_colnames(igang))
 
 
-def test_check_klass_codes_eksamen_uh(eksamen_uh: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(eksamen_uh))
+def test_check_klass_codes_eksamen(eksamen: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(eksamen))
 
 
 def test_check_klass_codes_avslutta(avslutta: pd.DataFrame) -> None:
