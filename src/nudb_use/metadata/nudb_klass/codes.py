@@ -32,6 +32,7 @@ def get_klass_codes(
     Raises:
         ValueError: If data_time_end is specified, but not data_time_start.
     """
+    logger.info(f"Getting klass-codes for date-range: {data_time_start} -> {data_time_end}")
     if data_time_start is None and data_time_end is None:
         codes = klass.KlassClassification(klassid).get_codes()
     elif data_time_end is None:
