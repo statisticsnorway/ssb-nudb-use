@@ -204,10 +204,19 @@ def handle_dataset_specific_renames(
         dataset_name: Dataset key used to look up override rules.
 
     Returns:
-        pd.DataFrame: DataFrame with overrides applied.
+        pd.DataFrame: DataFrame with overrides applied if they exist in the config.
     """
     # Get the overrides from the config
-    renames = dict(settings_use.datasets[dataset_name].dataset_specific_renames)
+    dataset_specific_renames = settings_use.datasets[
+        dataset_name
+    ].dataset_specific_renames
+    if dataset_specific_renames is None:
+        logger.info(
+            "Found specified dataset in config, but the 'dataset_specific_renames' is empty. So no such extra renaming will occur."
+        )
+        return df
+
+    renames = dict(dataset_specific_renames)
     renames_flip_list = _flip_dict_to_list(renames)
 
     for new_name, old_names in renames_flip_list.items():
