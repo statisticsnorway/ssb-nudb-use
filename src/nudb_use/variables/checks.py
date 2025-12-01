@@ -9,7 +9,7 @@ import pyarrow.parquet as pq
 from nudb_config import settings
 
 from nudb_use.exceptions.groups import raise_exception_group
-from nudb_use.metadata.nudb_klass.codes import _find_earliest_latest_klass_version_date
+from nudb_use.metadata.nudb_klass.codes import find_earliest_latest_klass_version_date
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
@@ -205,7 +205,7 @@ def _build_codelist_entry(
 ) -> dict[str, list[str]]:
     klass_id = int(meta["klass_codelist"])
     earliest_version_date, latest_version_date = (
-        _find_earliest_latest_klass_version_date(klass_id)
+        find_earliest_latest_klass_version_date(klass_id)
     )
     if full_timeline and earliest_version_date != latest_version_date:
         codes = klass.KlassClassification(klass_id).get_codes(

@@ -86,7 +86,7 @@ def test_check_cols_against_klass_codelists(
     )
     monkeypatch.setattr(
         codes,
-        "_find_earliest_latest_klass_version_date",
+        "find_earliest_latest_klass_version_date",
         lambda _id: ("2000-01-01", "2001-01-01"),
     )
 

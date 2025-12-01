@@ -193,7 +193,7 @@ def _prioritize_dates_from_param_or_config(
     return from_date, to_date
 
 
-def _find_earliest_latest_klass_version_date(
+def find_earliest_latest_klass_version_date(
     klass_classification_id: int,
 ) -> tuple[str, str]:
     """Finds the earliest and latest version dates for a KLASS classification.
