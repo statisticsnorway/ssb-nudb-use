@@ -100,23 +100,25 @@ def _check_column_against_klass(
 ) -> list[NudbQualityError]:
     """Validate a single column against its configured KLASS codes."""
     if col not in metadata.index:
-        logger.warning(f"Not checking `{col}`, not in nudb_config!")
+        logger.info(f"Not checking `{col}`, not in nudb_config!")
         return []
 
     codelist_id = cast(float | int | str | None, metadata.loc[col, "klass_codelist"])
-    if codelist_id == 0:
+    if not codelist_id:
         logger.debug(
             f"Not checking `{col}`, its not supposed to have a codelist, the codelist-int is 0."
         )
         return []
     if pd.isna(codelist_id):
-        logger.warning(f"Not checking `{col}`, no registered codelist!")
+        logger.info(f"Not checking `{col}`, no registered codelist!")  # type: ignore[unreachable]
         return []
+    codelist_id_int = int(codelist_id)
 
     logger.info(f"Checking `{col}`, found codelist ID!")
     klassid = int(metadata["klass_codelist"].astype("Int64").loc[col])
 
     from_date, to_date = _resolve_date_range(
+        codelist_id_int,
         metadata.loc[col, "klass_codelist_from_date"],
         data_time_start,
         data_time_end,
@@ -136,6 +138,7 @@ def _check_column_against_klass(
 
 
 def _resolve_date_range(
+    klassid: int,
     klass_codelist_from_date: object,
     data_time_start: str | None,
     data_time_end: str | None,
@@ -143,7 +146,7 @@ def _resolve_date_range(
     """Pick dates from parameters over metadata, validating type."""
     metadata_from_date = _ensure_optional_str(klass_codelist_from_date)
     return _prioritize_dates_from_param_or_config(
-        metadata_from_date, data_time_start, data_time_end
+        klassid, metadata_from_date, data_time_start, data_time_end
     )
 
 
@@ -164,6 +167,7 @@ def _ensure_optional_str(value: object) -> str | None:
 
 
 def _prioritize_dates_from_param_or_config(
+    klassid: int,
     klass_codelist_from_date: str | None = None,
     data_time_start: str | None = None,
     data_time_end: str | None = None,
@@ -189,8 +193,20 @@ def _prioritize_dates_from_param_or_config(
     # Prioritize sent parameter
     if data_time_end and not pd.isna(data_time_end):
         to_date: str | None = dateutil.parser.parse(data_time_end).strftime(r"%Y-%m-%d")
+    # Decided with pph that when we set the start date, we usually want the full range of a codelist... (?)
+    # So if we have a non-None start date, we want a filled stop date, the latest available version.
+    elif from_date is not None and data_time_end is None:
+        first_available_date, to_date = find_earliest_latest_klass_version_date(klassid)
+        if dateutil.parser.parse(first_available_date) > dateutil.parser.parse(
+            from_date
+        ):
+            # Move the from_date to the first available date
+            from_date = first_available_date
+            logger.info(
+                f"The sent from_date was earlier than the first available klass version date, so we changed it to: {from_date}"
+            )
     else:
-        to_date = None  # This will default to the codelist only being from the specified from date - what we want?
+        to_date = None  # This will default to the codelist only being from the specified from date?
 
     return from_date, to_date
 
