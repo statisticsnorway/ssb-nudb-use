@@ -33,12 +33,12 @@ JSON: dict[str, Any] = {}
 JSON_FIELDS: list[dict[str, Any]] = [JSON]
 __all__ = [
     "LoggerStack",
+    "_enter_new_logger_stack",
+    "_exit_current_logger_stack",
+    "_get_current_json",
+    "_save_current_json",
     "add_log_record_to_json",
-    "enter_new_logger_stack",
-    "exit_current_logger_stack",
-    "get_current_json",
     "logger",
-    "save_current_json",
 ]
 
 
@@ -214,24 +214,24 @@ class LoggerStack:
         STACK_LEVEL -= 1
 
 
-def enter_new_logger_stack(label: str | None = None) -> None:
+def _enter_new_logger_stack(label: str | None = None) -> None:
     """Enter a new logger stack context with the given label."""
     stack = LoggerStack(label)
     stack.__enter__()
 
 
-def exit_current_logger_stack(label: str | None = last(STACK_LABELS)) -> None:
+def _exit_current_logger_stack(label: str | None = last(STACK_LABELS)) -> None:
     """Exit the current logger stack context in a safe way."""
     stack = LoggerStack(label)
     stack.__exit__(None, None, None)
 
 
-def get_current_json() -> dict[str, Any]:
+def _get_current_json() -> dict[str, Any]:
     """Return a shallow copy of the accumulated logging JSON structure."""
     return copy.deepcopy(JSON)
 
 
-def save_current_json(path: str | Path, indent: int = 4) -> None:
+def _save_current_json(path: str | Path, indent: int = 4) -> None:
     """Persist the accumulated logging JSON structure to disk."""
     path_path = Path(path)
     with path_path.open("w") as file:
