@@ -3,23 +3,25 @@
 import pandas as pd
 
 
-def univ(
+def uh_univ_eller_hogskole(
     df: pd.DataFrame,
     utd_col: str = "utd_utdanningstype",
     kilde_col: str = "utd_datakilde",
-) -> pd.Series:
-    """Derive `univ` from `df`. `df` must have columns corresponding to `utd` and `kilde`.
+) -> pd.DataFrame:
+    """Derive `uh_univ_eller_hogskole` from `df`. `df` must have columns corresponding to `utd` and `kilde`.
+
+    uh_univ_eller_hogskole's old name was `UNIV`.
 
     Args:
-        df: The dataset from which `univ` is generated.
-        utd_col: Column corresponding to the variable `utd`. Defaults to "utd".
-        kilde_col: Column corresponding to the variable `kilde`. Defaults to "kilde".
+        df: The dataset from which `uh_univ_eller_hogskole` should be generated.
+        utd_col: Column corresponding to the variable `utd`. Defaults to "utd_utdanningstype".
+        kilde_col: Column corresponding to the variable `kilde`. Defaults to "utd_datakilde".
 
     Raises:
         ValueError: If `utd_col` or `kilde_col` cannot be found in the columns of `df`.
 
     Returns:
-        pandas.Series: A pandas.Series object containing the values for the `univ` variable.
+        pandas.Dataframe: A dataframe containing the derived column `uh_univ_eller_hogskole`.
     """
     if utd_col not in df.columns:
         raise ValueError(
@@ -66,4 +68,6 @@ def univ(
 
     univ.loc[kilde.isin(("41", "48"))] = "2"  # 41: FS-Høgskoler, 48: Lånekassedata
 
-    return univ.astype("string[pyarrow]")
+    df["uh_univ_eller_hogskole"] = univ.astype("string[pyarrow]")
+
+    return df
