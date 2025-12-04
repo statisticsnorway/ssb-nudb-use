@@ -121,12 +121,20 @@ def wrap_derive(basefunc: Callable) -> Callable:
             need = set(derived_from)
 
             missing = need - available
+            have = [x for x in need if x in available]
+            if have:
+                logger.info(
+                    f"Already have these columns, not deriving them again (if they are derivable): {have}"
+                )
 
-            for need_var in need:
-                derive_func = get_derive_function(need_var)
+            for missing_var in missing:
+                derive_func = get_derive_function(missing_var)
 
                 if derive_func:
                     df = derive_func(df, *args, priority=priority, **kwargs)
+
+                if missing_var in df.columns:
+                    missing -= {missing_var}
 
             if missing:
                 logger.warning(f"Unable to derive {name}, missing: {list(need)}!")
@@ -169,7 +177,9 @@ def wrap_derive(basefunc: Callable) -> Callable:
                 return df
 
     wrapper.__name__ = basefunc.__name__
-    wrapper.__doc__ = f"""{basefunc.__doc__}
+    # Strip lines starting with noqa from the docstring:
+    stripped_doc = "\n".join([line for line in basefunc.__doc__.split("\n") if not line.strip().startswith("# noqa")])
+    wrapper.__doc__ = f"""{stripped_doc}
 
             Args:
                 df: Dataframe that should contain prerequisites listed in {derived_from}.

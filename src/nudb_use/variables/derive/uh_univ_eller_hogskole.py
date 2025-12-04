@@ -6,15 +6,12 @@ from .derive_decorator import wrap_derive
 @wrap_derive
 def uh_univ_eller_hogskole(
     df: pd.DataFrame,
-    utd_col: str = "utd_utdanningstype",
-    kilde_col: str = "utd_datakilde",
 ) -> pd.Series:
-    """Derive `univ` from {utd_col} and {kilde_col}."""
-    if utd_col not in df.columns:
-        raise ValueError(f"DataFrame does not contain: '{utd_col}''!")
-    elif kilde_col not in df.columns:
-        raise ValueError(f"DataFrame does not contain: '{kilde_col}''!")
+    """Derive `uh_univ_eller_hogskole` from `utd_utdanningstype` and `utd_datakilde`.
 
+    # noqa: DAR101
+    # noqa: DAR201
+    """
     # SAS code:
     # if SN07 in ('85.421','85.422') then univ = '1';
     # if kilde = '41'                then univ = '2'; * FS-høgskoler *;
@@ -46,8 +43,8 @@ def uh_univ_eller_hogskole(
         "620": "2",
     }
 
-    univ = df[utd_col].astype("string[pyarrow]").map(initial_mapping)
-    kilde = df[kilde_col]
+    univ = df["utd_utdanningstype"].astype("string[pyarrow]").map(initial_mapping)
+    kilde = df["utd_datakilde"]
 
     univ[kilde.isin(("41", "48"))] = "2"  # 41 = FS-Høgskoler, 48 = Lånekassedata
 

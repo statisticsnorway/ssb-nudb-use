@@ -152,10 +152,6 @@ classmethod-decorators = ["classmethod", "validator", "root_validator", "pydanti
 
 [tool.darglint]
 docstring_style = "google"
-ignore = [
-    "DAR101",  # Args emitted by wrap_derive, base docstring omits them
-    "DAR201",  # Return emitted by wrap_derive, base docstring omits it
-]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
