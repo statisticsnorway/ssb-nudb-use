@@ -1,7 +1,7 @@
 """Variable-derivation helpers for NUDB pipelines."""
 
-from .skoleaar import utd_skoleaar_slutt
-from .uh import uh_univ_eller_hogskole
+from .utd_skoleaar import utd_skoleaar_slutt
+from .uh_univ_eller_hogskole import uh_univ_eller_hogskole
 
 __all__ = [
     "uh_univ_eller_hogskole",
