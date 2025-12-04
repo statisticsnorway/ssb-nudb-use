@@ -1,36 +1,15 @@
-"""Derivation logic for the `univ` indicator."""
-
 import pandas as pd
+from .function_factory import wrap_derive_function
 
 
-def uh_univ_eller_hogskole(
-    df: pd.DataFrame,
-    utd_col: str = "utd_utdanningstype",
-    kilde_col: str = "utd_datakilde",
-) -> pd.DataFrame:
-    """Derive `uh_univ_eller_hogskole` from `df`. `df` must have columns corresponding to `utd` and `kilde`.
+@wrap_derive_function
+def uh_univ_eller_hogskole(df: pd.DataFrame, utd_col: str = "utd_utdanningstype", kilde_col: str = "utd_datakilde") -> pd.Series:
+    f"Derive `univ` from `{utd_col}` and `{kilde_col}`"
 
-    uh_univ_eller_hogskole's old name was `UNIV`.
-
-    Args:
-        df: The dataset from which `uh_univ_eller_hogskole` should be generated.
-        utd_col: Column corresponding to the variable `utd`. Defaults to "utd_utdanningstype".
-        kilde_col: Column corresponding to the variable `kilde`. Defaults to "utd_datakilde".
-
-    Raises:
-        ValueError: If `utd_col` or `kilde_col` cannot be found in the columns of `df`.
-
-    Returns:
-        pandas.Dataframe: A dataframe containing the derived column `uh_univ_eller_hogskole`.
-    """
     if utd_col not in df.columns:
-        raise ValueError(
-            f"DataFrame does not contain: '{utd_col}'! Columns: {df.columns.to_list()}"
-        )
+        raise ValueError(f"DataFrame does not contain: '{utd_col}''!")
     elif kilde_col not in df.columns:
-        raise ValueError(
-            f"DataFrame does not contain: '{kilde_col}'! Columns: {df.columns.to_list()}"
-        )
+        raise ValueError(f"DataFrame does not contain: '{kilde_col}''!")
 
     # SAS code:
     # if SN07 in ('85.421','85.422') then univ = '1';
@@ -58,16 +37,14 @@ def uh_univ_eller_hogskole(
         "211": "2",
         "311": "2",
         # "312": "2", # All records with utd=="312" in f_utd_kurs have missing univ
-        "313": "2",  # kanskje feil???
+        "313": "2", # kanskje feil???
         "710": "2",
-        "620": "2",
+        "620": "2"
     }
 
     univ = df[utd_col].astype("string[pyarrow]").map(initial_mapping)
     kilde = df[kilde_col]
 
-    univ.loc[kilde.isin(("41", "48"))] = "2"  # 41: FS-Høgskoler, 48: Lånekassedata
+    univ[kilde.isin(("41", "48"))] = "2" # 41 = FS-Høgskoler, 48 = Lånekassedata
 
-    df["uh_univ_eller_hogskole"] = univ.astype("string[pyarrow]")
-
-    return df
+    return univ.astype("string[pyarrow]")
