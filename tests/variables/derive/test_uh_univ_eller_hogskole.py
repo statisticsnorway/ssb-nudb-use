@@ -1,7 +1,7 @@
 import pandas as pd
 
 from nudb_use.metadata.nudb_config.variable_names import update_colnames
-from nudb_use.variables.derive.uh import uh_univ_eller_hogskole
+from nudb_use.variables.derive.uh_univ_eller_hogskole import uh_univ_eller_hogskole
 
 
 def test_utd_skoleaar_slutt(avslutta: pd.DataFrame) -> None:

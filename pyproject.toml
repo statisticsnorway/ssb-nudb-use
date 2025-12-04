@@ -90,7 +90,7 @@ extend-exclude = [
     "old",
     ".ipynb_checkpoints",
     "noxfile.py",
-    "docs/conf.py",
+    "docs/conf.py"
 ]
 
 # Ruff rules may be customized as desired: https://docs.astral.sh/ruff/rules/
@@ -148,6 +148,13 @@ classmethod-decorators = ["classmethod", "validator", "root_validator", "pydanti
     "D102",
     "D103",
     "S101",    # asserts are encouraged in pytest
+]
+
+[tool.darglint]
+docstring_style = "google"
+ignore = [
+    "DAR101",  # Args emitted by wrap_derive, base docstring omits them
+    "DAR201",  # Return emitted by wrap_derive, base docstring omits it
 ]
 
 [build-system]
