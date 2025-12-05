@@ -1,11 +1,10 @@
-import hashlib
 import string
 from collections.abc import Generator
 from functools import lru_cache
 
 import klass
+import numpy as np
 import pandas as pd
-from pandas._typing import DtypeArg
 import pytest
 from nudb_config import settings
 
@@ -21,12 +20,6 @@ LETTERS = pd.Series(list(string.ascii_lowercase) + list(string.ascii_uppercase))
 DEFAULT_SEED = 2384972
 
 
-def _seed_from_name(name: str, base_seed: int) -> int:
-    """Derive a stable deterministic seed from a name and a base seed."""
-    digest = hashlib.sha256(f"{base_seed}:{name}".encode()).digest()
-    return int.from_bytes(digest[:8], "big") & 0x7FFFFFFF
-
-
 def generate_test_variable(
     name: str,
     n: int = 100_000,
@@ -38,7 +31,7 @@ def generate_test_variable(
     if name not in settings.variables.keys():
         raise ValueError(f"Unable to find '{name}' in config!")
 
-    name_seed = _seed_from_name(name, seed)
+    rng = np.random.default_rng(seed=seed)
     metadata = settings.variables[name]
     codelist = metadata.klass_codelist
     length = metadata.length
@@ -62,20 +55,16 @@ def generate_test_variable(
 
         match dtype:
             case "STRING":
-                codes = pd.Series([""] * n)
+                codes = pd.Series(np.repeat([""], n))
 
-                for i in range(length[0] if has_length else 0):
-                    rletters = LETTERS.sample(
-                        n=n,
-                        random_state=_seed_from_name(f"{name}-letters-{i}", seed),
-                        replace=True,
-                    )
+                for _i in range(length[0] if has_length else 0):
+                    rletters = LETTERS.sample(n=n, random_state=rng, replace=True)
                     codes += rletters.reset_index(drop=True)
 
             case "INTEGER":
-                codes = pd.Series(range(n))
+                codes = pd.Series(np.arange(n))
             case "FLOAT":
-                codes = pd.Series(range(n), dtype=float) + 0.28372
+                codes = pd.Series(np.arange(n)) + 0.28372
             case "BOOLEAN":
                 codes = pd.Series([True, False])
             case "DATETIME":
@@ -83,23 +72,14 @@ def generate_test_variable(
                 km = 12
                 endy = 2024
                 starty = endy - ky
-                total_months = ky * km
-                codes = pd.Series(
-                    pd.date_range(
-                        start=f"{starty}-01-01",
-                        periods=total_months,
-                        freq="MS",
-                    )
-                )
+                years = np.repeat(np.arange(starty, endy), km).astype("U")
+                months = np.tile(np.arange(1, km + 1), ky).astype("U")
+                codes = pd.to_datetime(pd.Series(years + "-" + months + "-01"))
             case _:
                 raise TypeError(f"Unknown dtype: {dtype}!")
 
-    pdtype: DtypeArg = DTYPE_MAPPINGS["pandas"][dtype]
-    values: pd.Series = codes.sample(
-        n=n,
-        random_state=name_seed,
-        replace=True,
-    ).astype(pdtype)
+    pdtype: str = DTYPE_MAPPINGS["pandas"][dtype]
+    values: pd.Series = codes.sample(n=n, random_state=rng, replace=True).astype(pdtype)  # type: ignore
     values = values.reset_index(drop=True)
     newname: str = renamed_from[0] if has_rename and add_old_cols else name
 
