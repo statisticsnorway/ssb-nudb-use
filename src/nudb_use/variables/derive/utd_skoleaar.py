@@ -13,7 +13,7 @@ def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.Series:
 
     Raises:
         ValueError: If the dataset has weirdly formatted utd_skoleaar_start.
-    
+
     # noqa: DAR101
     # noqa: DAR201
     """

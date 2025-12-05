@@ -11,7 +11,7 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 
-def get_derive_function(varname: str) -> Callable | None:
+def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
     """Return the derive function for a variable if it exists.
 
     Args:
@@ -23,16 +23,17 @@ def get_derive_function(varname: str) -> Callable | None:
     if varname not in derive.__all__:
         return None
 
-    try:
-        return getattr(derive, varname)
-    except Exception:
-        return None
+    if hasattr(derive, varname):
+        found_func: Callable[..., pd.DataFrame] = getattr(derive, varname)
+        return found_func
+    logger.warning(f"Found no derive function for {varname}")
+    return None
 
 
 def fillna_by_priority(
     newvals: pd.Series | None,
     oldvals: pd.Series | None,
-    priority: Literal["old"] | Literal["new"] = "old",
+    priority: Literal["old", "new"] = "old",
 ) -> pd.Series | None:
     """Fill missing values in prioritized order when a column already exists.
 
@@ -45,7 +46,7 @@ def fillna_by_priority(
         pd.Series | None: The resulting merged columns using fillna-methods. Returns None if both newvals and oldvals is None.
 
     Raises:
-        ValueError: If you are sending in a non-specifiec Literal for the priority-arg.
+        ValueError: If you are sending in a non-specific Literal for the priority-arg.
     """
     if newvals is None:
         logger.info("Newvals is None, just returning oldvals.")
@@ -54,32 +55,43 @@ def fillna_by_priority(
         logger.info("Oldvals is None, just returning newvals.")
         return newvals
 
-    priority = priority.lower()
+    if priority not in ["new", "old"]:
+        raise ValueError("priority must be either 'old' or 'new'!")
+
+    def perc_changed(
+        first_col: pd.Series,
+        second_col: pd.Series,
+        priority: Literal["old", "new"] = "old",
+    ) -> None:
+        ok = first_col.notna()
+        if ok.sum():
+            nchanged = (second_col[ok] != first_col[ok]).sum()
+            pchanged = 100 * nchanged / ok.sum()
+            logger.info(
+                f"{nchanged} ({pchanged:.2f}%) rows with different values were discarded when combining new (derived) values with priority `{priority}`."
+            )
+        else:
+            logger.info(
+                "No existing values in the second column, so nothing was overwritten."
+            )
 
     if priority == "old":
         logger.info("Filling missing values in existing variable...")
-        return oldvals.fillna(newvals)
-
-    elif priority == "new":
-        logger.info("Filling missing values in derived variable with existing ones...")
-        out = newvals.fillna(oldvals)
-
-        ok = oldvals.notna()
-        nchanged = (oldvals[ok] != out[ok]).sum()
-        if ok.sum():
-            pchanged = 100 * nchanged / ok.sum()
-            logger.info(
-                f"{nchanged} ({pchanged:.2f}%) values were overwritten with new (derived) values"
-            )
-        else:
-            logger.info("No existing values in oldvals, so nothing was overwritten.")
-
+        out = oldvals.fillna(newvals)
+        perc_changed(newvals, out)
         return out
-    else:
-        raise ValueError("priority must be either 'old' or 'new'!")
+
+    # priority == "new":
+    logger.info("Filling missing values in derived variable with existing ones...")
+    out = newvals.fillna(oldvals)
+    perc_changed(oldvals, out)
+
+    return out
 
 
-def wrap_derive(basefunc: Callable) -> Callable:
+def wrap_derive(
+    basefunc: Callable[[pd.DataFrame], pd.Series],
+) -> Callable[[pd.DataFrame], pd.DataFrame]:
     """Decorator for derive functions that enforces config metadata and logging.
 
     Notes:
@@ -113,7 +125,10 @@ def wrap_derive(basefunc: Callable) -> Callable:
         )
 
     def wrapper(
-        df: pd.DataFrame, priority: str = "old", *args: Any, **kwargs: Any
+        df: pd.DataFrame,
+        priority: Literal["old", "new"] = "old",
+        *args: Any,
+        **kwargs: Any,
     ) -> pd.DataFrame:
 
         with LoggerStack(f"Deriving {name} from {derived_from}..."):
@@ -127,11 +142,15 @@ def wrap_derive(basefunc: Callable) -> Callable:
                     f"Already have these columns, not deriving them again (if they are derivable): {have}"
                 )
 
+            priority_literal: Literal["old", "new"] = (
+                "new" if priority == "new" else "old"
+            )
+
             for missing_var in missing:
                 derive_func = get_derive_function(missing_var)
 
                 if derive_func:
-                    df = derive_func(df, *args, priority=priority, **kwargs)
+                    df = derive_func(df, *args, priority=priority_literal, **kwargs)
 
                 if missing_var in df.columns:
                     missing -= {missing_var}
@@ -156,9 +175,12 @@ def wrap_derive(basefunc: Callable) -> Callable:
                 )
                 newvals = basefunc(df, *args, **kwargs)
                 if exists:
-                    newvals = fillna_by_priority(
-                        oldvals=oldvals, newvals=newvals, priority=priority
+                    newvals_filled = fillna_by_priority(
+                        oldvals=oldvals, newvals=newvals, priority=priority_literal
                     )
+                    if newvals_filled is None:
+                        return df
+                    newvals = newvals_filled
 
                 fill_pct1 = get_filling_pct(newvals)
                 logger.info(
@@ -178,7 +200,14 @@ def wrap_derive(basefunc: Callable) -> Callable:
 
     wrapper.__name__ = basefunc.__name__
     # Strip lines starting with noqa from the docstring:
-    stripped_doc = "\n".join([line for line in basefunc.__doc__.split("\n") if not line.strip().startswith("# noqa")])
+    docstring = basefunc.__doc__ or ""
+    stripped_doc = "\n".join(
+        [
+            line
+            for line in docstring.split("\n")
+            if not line.strip().startswith("# noqa")
+        ]
+    )
     wrapper.__doc__ = f"""{stripped_doc}
 
             Args:
