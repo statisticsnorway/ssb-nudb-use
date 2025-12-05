@@ -78,36 +78,36 @@ def test_enter_and_exit_helpers_manage_state(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(nudb_logger, "JSON", base_json)
     monkeypatch.setattr(nudb_logger, "JSON_FIELDS", [base_json])
 
-    nudb_logger.enter_new_logger_stack("LBL")
+    nudb_logger._enter_new_logger_stack("LBL")
 
     assert nudb_logger.STACK_LEVEL == 1
     assert nudb_logger.STACK_LABELS == ["LBL"]
     assert "LBL-0" in nudb_logger.JSON
 
-    nudb_logger.exit_current_logger_stack("LBL")
+    nudb_logger._exit_current_logger_stack("LBL")
 
     assert nudb_logger.STACK_LEVEL == 0
     assert nudb_logger.STACK_LABELS == []
     assert nudb_logger.JSON_FIELDS == [base_json]
 
 
-def test_get_current_json_returns_copy(monkeypatch: pytest.MonkeyPatch) -> None:
+def test__get_current_json_returns_copy(monkeypatch: pytest.MonkeyPatch) -> None:
     data = {"a": {"b": 1}}
     monkeypatch.setattr(nudb_logger, "JSON", data)
 
-    copy_data = nudb_logger.get_current_json()
+    copy_data = nudb_logger._get_current_json()
     copy_data["a"]["b"] = 2
 
     assert nudb_logger.JSON["a"]["b"] == 1
 
 
-def test_save_current_json_writes_file(
+def test__save_current_json_writes_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(nudb_logger, "JSON", {"saved": True})
     target = tmp_path / "log.json"
 
-    nudb_logger.save_current_json(target)
+    nudb_logger._save_current_json(target)
 
     with target.open() as fh:
         saved = json.load(fh)

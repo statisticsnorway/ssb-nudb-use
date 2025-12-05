@@ -1,7 +1,7 @@
 import pandas as pd
 
 from nudb_use.metadata.nudb_config.variable_names import update_colnames
-from nudb_use.variables.derive.pick_id_col import detect_pers_id_fnr_used
+from nudb_use.variables.var_utils.pick_id_col import detect_pers_id_fnr_used
 
 
 def test_detect_pers_id_fnr_used(avslutta: pd.DataFrame) -> None:

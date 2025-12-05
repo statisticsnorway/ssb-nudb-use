@@ -5,7 +5,7 @@ from tests.utils_testing.validate_errors import validate_NudbQualityError_list
 
 
 def test_duplicated_columns(avslutta: pd.DataFrame) -> None:
-    avslutta_copy = avslutta.copy().iloc[:, 0:4]
+    avslutta_copy: pd.DataFrame = avslutta.copy().iloc[:, 0:4]
     avslutta_copy.columns = [
         "dup_col_1",
         "dup_col_1",

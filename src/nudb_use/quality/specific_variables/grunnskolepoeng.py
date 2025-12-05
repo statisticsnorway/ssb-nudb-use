@@ -32,7 +32,7 @@ def check_grunnskolepoeng(df: pd.DataFrame, **kwargs: object) -> list[NudbQualit
 
 
 def subcheck_grunnskolepoeng_maxval(
-    grunnskolepoeng: pd.Series | None, max_poeng: int = 70
+    grunnskolepoeng: pd.Series | None, max_poeng: float = 70.0
 ) -> NudbQualityError | None:
     """Verify that grunnskolepoeng values stay within the allowed maximum.
 
@@ -48,7 +48,7 @@ def subcheck_grunnskolepoeng_maxval(
         return None
     grunnskolepoeng = validated["grunnskolepoeng"]
 
-    ok = (grunnskolepoeng.astype("Int64") <= max_poeng).all()
+    ok = (grunnskolepoeng <= max_poeng).all()
     if not ok:
         err_msg = f"Found values in grunnskolepoeng larger than {max_poeng}!"
         logger.warning(err_msg)

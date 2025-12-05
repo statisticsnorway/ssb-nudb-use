@@ -34,5 +34,5 @@ def get_var_metadata(variables: list[str] | None = None) -> pd.DataFrame:
         for var_name in settings_use.variables.keys()
     ]
     df = pd.DataFrame(variables_list_of_dicts).set_index("variable")
-
-    return df.loc[variables, :] if variables else df
+    result: pd.DataFrame = df.loc[variables, :].copy() if variables else df
+    return result

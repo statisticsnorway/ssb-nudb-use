@@ -57,8 +57,8 @@ def check_columns_only_missing(
     """
     with LoggerStack("Looking for columns in the dataset that are only empty"):
         errors: list[NudbQualityError] = []
-        is_empty_cols = df.isna().all(axis=1)
-        empty_cols = list(is_empty_cols[is_empty_cols].index)
+        empty_mask: pd.Series[bool] = df.isna().all(axis=0)
+        empty_cols: list[str] = list(empty_mask[empty_mask].index)
         for col in empty_cols:
             err_msg = f"Column {col} only contains empty values. Why is it in the dataset if it contains nothing?"
             logger.warning(err_msg)

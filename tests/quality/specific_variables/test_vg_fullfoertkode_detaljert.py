@@ -8,8 +8,8 @@ from nudb_use.quality.specific_variables.vg_fullfoertkode_detaljert import (
 
 def test_check_vg_fullfoertkode_detaljert_valid(avslutta: pd.DataFrame) -> None:
     df = avslutta.head(3).copy()
-    df["utd_utdanningstype"] = ["211", "212", "610"]
-    df["vg_fullfoertkode_detaljert"] = ["a", "b", "c"]
+    df["utd_utdanningstype"] = pd.Series(["211", "212", "610"], index=df.index)
+    df["vg_fullfoertkode_detaljert"] = pd.Series(["a", "b", "c"], index=df.index)
 
     errors = check_vg_fullfoertkode_detaljert(df)
     assert errors == []
@@ -17,8 +17,8 @@ def test_check_vg_fullfoertkode_detaljert_valid(avslutta: pd.DataFrame) -> None:
 
 def test_check_vg_fullfoertkode_detaljert_invalid(avslutta: pd.DataFrame) -> None:
     df = avslutta.head(2).copy()
-    df["utd_utdanningstype"] = ["999", "220"]
-    df["vg_fullfoertkode_detaljert"] = ["bad", pd.NA]
+    df["utd_utdanningstype"] = pd.Series(["999", "220"], index=df.index)
+    df["vg_fullfoertkode_detaljert"] = pd.Series(["bad", pd.NA], index=df.index)
 
     errors = check_vg_fullfoertkode_detaljert(df)
     assert len(errors) == 1
