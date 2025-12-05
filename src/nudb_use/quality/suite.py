@@ -38,7 +38,8 @@ def run_quality_suite(
         list[NudbQualityError]: All collected quality errors, or an empty list
         when every check passes.
     """
-    # Check if dataset name is in config
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"First parameter (df) into `run_quality_suite` must be a pandas dataframe, not a {type(df)}.")
 
     errors = []
     errors += check_column_presence(df, dataset_name=dataset_name, raise_errors=False)
