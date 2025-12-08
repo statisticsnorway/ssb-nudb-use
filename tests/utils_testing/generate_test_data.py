@@ -1,3 +1,4 @@
+import datetime
 import string
 from collections.abc import Generator
 from functools import lru_cache
@@ -18,6 +19,11 @@ YieldDataFrame = Generator[pd.DataFrame, None, None]
 
 LETTERS = pd.Series(list(string.ascii_lowercase) + list(string.ascii_uppercase))
 DEFAULT_SEED = 2384972
+
+
+PREDEFINED_CODES_NEWNAME = {
+    "utd_skoleaar_start": [str(yr) for yr in range(1950, datetime.datetime.now().year)],
+}
 
 
 def generate_test_variable(
@@ -50,23 +56,27 @@ def generate_test_variable(
 
         if add_klass_errors:
             codes = pd.concat([codes, mutated_extra_codes(codes, coverage_pct=0.2)])
-
     else:
 
         match dtype:
             case "STRING":
-                codes = pd.Series(np.repeat([""], n))
-
-                for _i in range(length[0] if has_length else 0):
-                    rletters = LETTERS.sample(n=n, random_state=rng, replace=True)
-                    codes += rletters.reset_index(drop=True)
-
+                if name in PREDEFINED_CODES_NEWNAME:
+                    codes = pd.Series(PREDEFINED_CODES_NEWNAME[name]).astype(
+                        "string[pyarrow]"
+                    )
+                else:
+                    codes = pd.Series(np.repeat([""], n)).astype("string[pyarrow]")
+                    for _i in range(
+                        length[0] if has_length else 2
+                    ):  # Mange koder fra kodelister er 2 brei?
+                        rletters = LETTERS.sample(n=n, random_state=rng, replace=True)
+                        codes += rletters.reset_index(drop=True)
             case "INTEGER":
-                codes = pd.Series(np.arange(n))
+                codes = pd.Series(np.arange(n)).astype("Int64")
             case "FLOAT":
-                codes = pd.Series(np.arange(n)) + 0.28372
+                codes = (pd.Series(np.arange(n)) + 0.28372).astype("Float64")
             case "BOOLEAN":
-                codes = pd.Series([True, False])
+                codes = pd.Series([True, False]).astype("bool[pyarrow]")
             case "DATETIME":
                 ky = 30
                 km = 12
@@ -74,14 +84,16 @@ def generate_test_variable(
                 starty = endy - ky
                 years = np.repeat(np.arange(starty, endy), km).astype("U")
                 months = np.tile(np.arange(1, km + 1), ky).astype("U")
-                codes = pd.to_datetime(pd.Series(years + "-" + months + "-01"))
+                codes = pd.to_datetime(pd.Series(years + "-" + months + "-01")).astype(
+                    "datetime64[s]"
+                )
             case _:
                 raise TypeError(f"Unknown dtype: {dtype}!")
 
+    newname: str = renamed_from[0] if has_rename and add_old_cols else name
     pdtype: str = DTYPE_MAPPINGS["pandas"][dtype]
     values: pd.Series = codes.sample(n=n, random_state=rng, replace=True).astype(pdtype)  # type: ignore
     values = values.reset_index(drop=True)
-    newname: str = renamed_from[0] if has_rename and add_old_cols else name
 
     return newname, values
 

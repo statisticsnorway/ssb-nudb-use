@@ -9,3 +9,11 @@ nudb\_use.metadata.nudb\_klass.codes module
    :members:
    :show-inheritance:
    :undoc-members:
+
+nudb\_use.metadata.nudb\_klass.variants module
+----------------------------------------------
+
+.. automodule:: nudb_use.metadata.nudb_klass.variants
+   :members:
+   :show-inheritance:
+   :undoc-members:

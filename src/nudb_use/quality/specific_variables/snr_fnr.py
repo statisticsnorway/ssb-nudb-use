@@ -6,7 +6,7 @@ from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-VALID_PERSONAL_IDS_PRIO = ["pers_id", "fnr"]
+VALID_PERSONAL_IDS_PRIO = ["snr", "fnr"]
 
 
 def check_has_personal_ids(

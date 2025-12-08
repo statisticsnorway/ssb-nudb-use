@@ -27,7 +27,7 @@ def test_identify_cols_not_in_keep_drop_in_paths(
     avslutta.to_parquet(file_path)
 
     cols_keep = ["fnr"]
-    cols_drop = ["pers_id"]
+    cols_drop = ["snr"]
     missing_cols = identify_cols_not_in_keep_drop_in_paths(
         paths=[file_path],
         cols_keep=cols_keep,
@@ -35,7 +35,7 @@ def test_identify_cols_not_in_keep_drop_in_paths(
         raise_error_found=False,
     )
 
-    # We should now have many columns not defined in fnr or pers_id
+    # We should now have many columns not defined in fnr or snr
     assert len(missing_cols)
     assert "estart" in missing_cols
 

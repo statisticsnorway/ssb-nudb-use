@@ -12,8 +12,8 @@ from .grunnskolepoeng import check_grunnskolepoeng
 from .kommune import check_kommune
 from .land import check_land
 from .nus2000 import check_nus2000
-from .pers_id_fnr import check_has_personal_ids
 from .sn07 import check_sn07
+from .snr_fnr import check_has_personal_ids
 from .unique_per_person import check_unique_per_person
 from .vg_fullfoertkode_detaljert import check_vg_fullfoertkode_detaljert
 

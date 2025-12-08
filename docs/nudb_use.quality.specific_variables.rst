@@ -42,14 +42,6 @@ nudb\_use.quality.specific\_variables.nus2000 module
    :show-inheritance:
    :undoc-members:
 
-nudb\_use.quality.specific\_variables.pers\_id\_fnr module
-----------------------------------------------------------
-
-.. automodule:: nudb_use.quality.specific_variables.pers_id_fnr
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 nudb\_use.quality.specific\_variables.run\_all module
 -----------------------------------------------------
 
@@ -66,6 +58,14 @@ nudb\_use.quality.specific\_variables.sn07 module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.quality.specific\_variables.snr\_fnr module
+-----------------------------------------------------
+
+.. automodule:: nudb_use.quality.specific_variables.snr_fnr
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.quality.specific\_variables.unique\_per\_person module
 ----------------------------------------------------------------
 
@@ -78,6 +78,14 @@ nudb\_use.quality.specific\_variables.utils module
 --------------------------------------------------
 
 .. automodule:: nudb_use.quality.specific_variables.utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.quality.specific\_variables.vg\_fullfoertkode\_detaljert module
+-------------------------------------------------------------------------
+
+.. automodule:: nudb_use.quality.specific_variables.vg_fullfoertkode_detaljert
    :members:
    :show-inheritance:
    :undoc-members:
