@@ -49,7 +49,9 @@ def fa_erfagskole_nus(df: pd.DataFrame) -> pd.Series:
     # noqa: DAR101
     # noqa: DAR201
     """
-    return _map_nus_variant(df, "fa_erfagskole_nus")
+    df = _map_nus_variant(df, "fa_erfagskole_nus")
+    df["fa_erfagskole_nus"] = (df["fa_erfagskole_nus"] == "10").astype("bool[pyarrow]")
+    return df
 
 
 @wrap_derive
