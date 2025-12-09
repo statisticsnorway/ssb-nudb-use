@@ -114,19 +114,16 @@ def generate_test_data(
 
     cols = {}
     for var in variables:
-        try:
-            newname, values = generate_test_variable(
-                name=var,
-                n=n,
-                add_klass_errors=add_klass_errors,
-                add_old_cols=add_old_cols,
-                seed=seed,
-            )
+        newname, values = generate_test_variable(
+            name=var,
+            n=n,
+            add_klass_errors=add_klass_errors,
+            add_old_cols=add_old_cols,
+            seed=seed,
+        )
 
-            cols[newname] = values
-            logger.info(f"Generation of {var} worked!")
-        except Exception as err:
-            logger.warning(f"Generation of {var} failed, with message: '{err}'...")
+        cols[newname] = values
+        logger.info(f"Generation of {var} worked!")
 
     return pd.DataFrame(cols)
 
