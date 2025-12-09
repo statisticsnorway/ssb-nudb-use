@@ -49,11 +49,13 @@ def generate_test_variable(
     has_rename = renamed_from is not None
 
     if has_codelist:
-        codes = pd.Series(
-            klass.KlassClassification(codelist).get_codes().data["code"].unique()
-        )
+        codes_data = klass.KlassClassification(codelist).get_codes().data
+        last_level = sorted(list(codes_data["level"].unique()))[-1]
+        filtered_to_last_level = codes_data[codes_data["level"] == last_level].copy()
+        codes = pd.Series(filtered_to_last_level.unique())
+
         logger.info(
-            f"Generating data for col `{name}` with unique klass-codes: {codes}"
+            f"Generating data for col `{name}` with unique klass-codes: {list(codes.unique())}"
         )
         if has_length:
             wrong_codes = codes[~codes.str.len().isin(length)]
