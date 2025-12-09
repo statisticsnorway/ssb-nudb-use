@@ -29,7 +29,7 @@ PREDEFINED_CODES_NEWNAME = {
 def generate_test_variable(
     name: str,
     n: int = 100_000,
-    add_klass_errors: bool = True,
+    add_klass_errors: bool = False,
     add_old_cols: bool = True,
     seed: int = DEFAULT_SEED,
 ) -> tuple[str, pd.Series]:  # (newname, values)
