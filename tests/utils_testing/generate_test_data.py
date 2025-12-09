@@ -109,7 +109,7 @@ def generate_test_variable(
 def generate_test_data(
     dataset: str,
     n: int = 100_000,
-    add_klass_errors: bool = True,
+    add_klass_errors: bool = False,
     add_old_cols: bool = True,
     add_non_nudb_vars: bool = True,
     add_bad_widths: bool = True,
