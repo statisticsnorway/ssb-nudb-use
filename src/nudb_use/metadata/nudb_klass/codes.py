@@ -39,18 +39,22 @@ def get_klass_codes(
         f"Getting klass-codes for date-range: {data_time_start} -> {data_time_end}"
     )
     if data_time_start is None and data_time_end is None:
-        codes = klass.KlassClassification(klassid).get_codes()
+        code_obj = klass.KlassClassification(klassid).get_codes()
     elif data_time_end is None:
-        codes = klass.KlassClassification(klassid).get_codes(from_date=data_time_start)
+        code_obj = klass.KlassClassification(klassid).get_codes(from_date=data_time_start)
     elif data_time_start is not None and data_time_end is not None:
-        codes = klass.KlassClassification(klassid).get_codes(
+        code_obj = klass.KlassClassification(klassid).get_codes(
             from_date=data_time_start, to_date=data_time_end
         )
     else:
         raise ValueError(
             "If you specify the end, you MUST also specify the start date (or just the start)."
         )
-    return list(codes.to_dict().keys())
+    
+    last_level = sorted(list(code_obj.data["level"].unique()))[-1]
+    filtered_to_last_level = code_obj.data[code_obj.data["level"] == last_level].copy()
+
+    return filtered_to_last_level["code"].unique().to_list()
 
 
 def check_klass_codes(
