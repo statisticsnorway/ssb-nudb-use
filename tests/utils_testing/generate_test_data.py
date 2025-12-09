@@ -49,15 +49,21 @@ def generate_test_variable(
     has_rename = renamed_from is not None
 
     if has_codelist:
-        codes = klass.get_classification(codelist).get_codes().data["code"]
-
+        codes = pd.Series(
+            klass.KlassClassification(codelist).get_codes().data["code"].unique()
+        )
+        logger.info(
+            f"Generating data for col `{name}` with unique klass-codes: {codes}"
+        )
         if has_length:
-            codes = codes[codes.str.len().isin(length)]
-
+            wrong_codes = codes[~codes.str.len().isin(length)]
+            if len(wrong_codes):
+                raise ValueError(
+                    f"Found codes for column {name} in the klass-codelist {codelist} that do not match char length: {length}"
+                )
         if add_klass_errors:
             codes = pd.concat([codes, mutated_extra_codes(codes, coverage_pct=0.2)])
     else:
-
         match dtype:
             case "STRING":
                 if name in PREDEFINED_CODES_NEWNAME:
