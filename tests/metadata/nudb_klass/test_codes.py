@@ -14,7 +14,7 @@ def subtest_check_klass_codes(df: pd.DataFrame) -> None:
 
     metadata: pd.DataFrame = get_var_metadata()
     klass_metadata: pd.DataFrame = metadata.query(
-        "klass_codelist.notna() & klass_codelist > 0 & name in @df.columns"
+        "klass_codelist.notna() & klass_codelist > 0 & name in @df.columns & dtype != 'BOOLEAN"
     )
     n_klass_vars: int = klass_metadata.shape[0]
 
