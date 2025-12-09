@@ -3814,15 +3814,15 @@ files = [
 
 [[package]]
 name = "pyarrow-stubs"
-version = "20.0.0.20251107"
+version = "20.0.0.20251209"
 description = "Type annotations for pyarrow"
 optional = false
 python-versions = "<4,>=3.9"
 groups = ["main"]
 markers = "python_version < \"4.0\""
 files = [
-    {file = "pyarrow_stubs-20.0.0.20251107-py3-none-any.whl", hash = "sha256:09da6809f37cc6dbbbf59c9c8e42269290d19ac09f65d2b3456c671f1c3a8765"},
-    {file = "pyarrow_stubs-20.0.0.20251107.tar.gz", hash = "sha256:c0885c09f63e2be51bacb6b0e20b39083f43da1cb214d31e406f982e874bcb5a"},
+    {file = "pyarrow_stubs-20.0.0.20251209-py3-none-any.whl", hash = "sha256:eab02b02d4d74d86619b7f7b9fe6e7ddfe425cedf8c31aa4c7fd33cdb3b189be"},
+    {file = "pyarrow_stubs-20.0.0.20251209.tar.gz", hash = "sha256:a53793149bcbf41670acb8cd843645e3bf0469e4aa035824adda61c48fa900c6"},
 ]
 
 [package.dependencies]
@@ -5514,14 +5514,14 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "2.6.0"
+version = "2.6.1"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "urllib3-2.6.0-py3-none-any.whl", hash = "sha256:c90f7a39f716c572c4e3e58509581ebd83f9b59cced005b7db7ad2d22b0db99f"},
-    {file = "urllib3-2.6.0.tar.gz", hash = "sha256:cb9bcef5a4b345d5da5d145dc3e30834f58e8018828cbc724d30b4cb7d4d49f1"},
+    {file = "urllib3-2.6.1-py3-none-any.whl", hash = "sha256:e67d06fe947c36a7ca39f4994b08d73922d40e6cca949907be05efa6fd75110b"},
+    {file = "urllib3-2.6.1.tar.gz", hash = "sha256:5379eb6e1aba4088bae84f8242960017ec8d8e3decf30480b3a1abdaa9671a3f"},
 ]
 
 [package.extras]

@@ -77,15 +77,20 @@ def check_klass_codes(
         metadata = get_var_metadata()
         errors: list[NudbQualityError] = []
         for col in df.columns:
-            errors.extend(
-                _check_column_against_klass(
-                    df[col],
-                    col,
-                    metadata,
-                    data_time_start=data_time_start,
-                    data_time_end=data_time_end,
+            if pd.api.types.is_bool_dtype(df[col]):
+                logger.info(
+                    f"Column {col} is a BOOLEAN, and should not have an associated codelist in KLASS. Skipping checking the column against klass."
                 )
-            )
+            else:
+                errors.extend(
+                    _check_column_against_klass(
+                        df[col],
+                        col,
+                        metadata,
+                        data_time_start=data_time_start,
+                        data_time_end=data_time_end,
+                    )
+                )
         if raise_errors:
             raise_exception_group(errors)
         else:
