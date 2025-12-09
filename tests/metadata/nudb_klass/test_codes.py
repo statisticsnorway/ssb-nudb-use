@@ -16,7 +16,9 @@ def subtest_check_klass_codes(df: pd.DataFrame) -> None:
     klass_metadata: pd.DataFrame = metadata.query(
         "klass_codelist.notna() & klass_codelist > 0 & name in @df.columns"
     )
-    n_klass_vars: int = klass_metadata.shape[0]
+    n_klass_vars: int = (
+        klass_metadata.shape[0] - (klass_metadata.dtype == "BOOLEAN").sum()
+    )  # we skip boolean
 
     errors: list[NudbQualityError] = check_klass_codes(df, raise_errors=False)
     validate_NudbQualityError_list(errors, n=n_klass_vars)
