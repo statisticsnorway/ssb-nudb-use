@@ -56,7 +56,7 @@ def get_klass_codes(
     last_level = sorted(list(code_obj.data["level"].unique()))[-1]
     filtered_to_last_level = code_obj.data[code_obj.data["level"] == last_level].copy()
 
-    return filtered_to_last_level["code"].unique().to_list()
+    return list(filtered_to_last_level["code"].str.strip().unique())
 
 
 def check_klass_codes(
@@ -201,24 +201,12 @@ def _check_column_against_klass(
     return result
 
 
-def _outside_codes_handeling(
-    series: pd.Series, codes: set[str], col: str
-) -> list[NudbQualityError]:
-    outside_codes = series[(~series.isin(codes)) & (series.notna())]
-    if len(outside_codes):
-        return [
-            NudbQualityError(
-                f"Codes in {col} outside codelist: {outside_codes.unique()}"
-            )
-        ]
-    logger.info(f"Codes from KLASS in {col} OK!")
-    return []
-
-
 def _check_klass_variant_column_id(
     series: pd.Series, col: str, klass_variant: int
 ) -> list[NudbQualityError]:
-    codes = set(klass.KlassVariant(variant_id=klass_variant).to_dict().keys())
+    codes = set(
+        x.strip() for x in klass.KlassVariant(variant_id=klass_variant).to_dict().keys()
+    )
     return _outside_codes_handeling(series=series, codes=codes, col=col)
 
 
@@ -270,7 +258,7 @@ def _check_klass_variant_column_search_term(
         f"For `{col}` found a klass-variant with id {variant.variant_id}, dated {variant.validFrom}, with variant-name {variant.name}, based on search-term {klass_variant_search_term}."
     )
 
-    codes = set(variant.to_dict().keys())
+    codes = set(x.strip() for x in variant.to_dict().keys())
     return _outside_codes_handeling(series=series, codes=codes, col=col)
 
 
@@ -295,6 +283,20 @@ def _check_klass_codelist_codes(
     )
     codes = _include_codelist_extras(codes, codelist_extras)
     return _outside_codes_handeling(series=series, codes=set(codes), col=col)
+
+
+def _outside_codes_handeling(
+    series: pd.Series, codes: set[str], col: str
+) -> list[NudbQualityError]:
+    outside_codes = series[(~series.isin(codes)) & (series.notna())]
+    if len(outside_codes):
+        return [
+            NudbQualityError(
+                f"Codes in {col} outside codelist: {outside_codes.unique()}"
+            )
+        ]
+    logger.info(f"Codes from KLASS in {col} OK!")
+    return []
 
 
 def _resolve_date_range(

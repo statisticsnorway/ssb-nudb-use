@@ -24,13 +24,13 @@ def subtest_check_klass_codes(df: pd.DataFrame) -> None:
     validate_NudbQualityError_list(errors, n=n_klass_vars)
 
 
-def test_check_klass_codes_igang(igang: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(igang))
+def test_check_klass_codes_igang(igang_klasserrors: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(igang_klasserrors))
 
 
-def test_check_klass_codes_eksamen(eksamen: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(eksamen))
+def test_check_klass_codes_eksamen(eksamen_klasserrors: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(eksamen_klasserrors))
 
 
-def test_check_klass_codes_avslutta(avslutta: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(avslutta))
+def test_check_klass_codes_avslutta(avslutta_klasserrors: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(avslutta_klasserrors))
