@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - master
-      - kjell-fixes-stuff-maybe
   pull_request:
 
 permissions:
