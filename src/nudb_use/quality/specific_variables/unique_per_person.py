@@ -25,7 +25,7 @@ def check_unique_per_person(
     Returns:
         list[NudbQualityError]: Errors describing rows that violate uniqueness.
     """
-    pers_id = get_column(df, col="pers_id")
+    snr = get_column(df, col="snr")
     fnr = get_column(df, col="fnr")
 
     errors: list[NudbQualityError] = []
@@ -40,9 +40,7 @@ def check_unique_per_person(
             for unique_col in unique_cols_in_df:
                 add_err2list(
                     errors,
-                    subcheck_unique_per_person(
-                        fnr, pers_id, df[unique_col], unique_col
-                    ),
+                    subcheck_unique_per_person(fnr, snr, df[unique_col], unique_col),
                 )
 
     return errors
@@ -50,7 +48,7 @@ def check_unique_per_person(
 
 def subcheck_unique_per_person(
     fnr: pd.Series | None,
-    pers_id: pd.Series | None,
+    snr: pd.Series | None,
     unique_col: pd.Series | None,
     unique_col_name: str,
 ) -> NudbQualityError | None:
@@ -58,7 +56,7 @@ def subcheck_unique_per_person(
 
     Args:
         fnr: Series containing national identifiers.
-        pers_id: Series containing NUDB person identifiers.
+        snr: Series containing snr person identifiers.
         unique_col: Column that should hold unique values per person.
         unique_col_name: Name of the column for logging context.
 
@@ -66,15 +64,15 @@ def subcheck_unique_per_person(
         NudbQualityError | None: Error when multiple values exist per person,
         else None.
     """
-    validated = require_series_present(fnr=fnr, pers_id=pers_id, unique_col=unique_col)
+    validated = require_series_present(fnr=fnr, snr=snr, unique_col=unique_col)
     if validated is None:
         return None
     fnr = validated["fnr"]
-    pers_id = validated["pers_id"]
+    snr = validated["snr"]
     unique_col = validated["unique_col"]
 
-    test_df = pd.DataFrame({"pers_id": pers_id.fillna(fnr), "unique_col": unique_col})
-    test_mask = test_df.groupby("pers_id")["unique_col"].transform("nunique") > 1
+    test_df = pd.DataFrame({"snr": snr.fillna(fnr), "unique_col": unique_col})
+    test_mask = test_df.groupby("snr")["unique_col"].transform("nunique") > 1
     if not test_mask.sum():
         return None
 

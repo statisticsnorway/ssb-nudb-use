@@ -6,7 +6,7 @@ from nudb_use.quality.values import values_not_in_column
 
 
 def test_get_fill_amount_per_column(avslutta: pd.DataFrame) -> None:
-    sample = avslutta.iloc[:4, :2].copy()
+    sample: pd.DataFrame = avslutta.iloc[:4, :2].copy()
     first, second = sample.columns
 
     sample.loc[0, first] = pd.NA

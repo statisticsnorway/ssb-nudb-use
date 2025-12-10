@@ -1,10 +1,13 @@
 """Fetch and validate KLASS classification codes."""
 
+import datetime
+from typing import Any
 from typing import cast
 
 import dateutil.parser
 import klass
 import pandas as pd
+from klass.requests.klass_types import VersionPartType
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
@@ -36,18 +39,24 @@ def get_klass_codes(
         f"Getting klass-codes for date-range: {data_time_start} -> {data_time_end}"
     )
     if data_time_start is None and data_time_end is None:
-        codes = klass.KlassClassification(klassid).get_codes()
+        code_obj = klass.KlassClassification(klassid).get_codes()
     elif data_time_end is None:
-        codes = klass.KlassClassification(klassid).get_codes(from_date=data_time_start)
+        code_obj = klass.KlassClassification(klassid).get_codes(
+            from_date=data_time_start
+        )
     elif data_time_start is not None and data_time_end is not None:
-        codes = klass.KlassClassification(klassid).get_codes(
+        code_obj = klass.KlassClassification(klassid).get_codes(
             from_date=data_time_start, to_date=data_time_end
         )
     else:
         raise ValueError(
             "If you specify the end, you MUST also specify the start date (or just the start)."
         )
-    return list(codes.to_dict().keys())
+
+    last_level = sorted(list(code_obj.data["level"].unique()))[-1]
+    filtered_to_last_level = code_obj.data[code_obj.data["level"] == last_level].copy()
+
+    return list(filtered_to_last_level["code"].str.strip().unique())
 
 
 def check_klass_codes(
@@ -74,15 +83,20 @@ def check_klass_codes(
         metadata = get_var_metadata()
         errors: list[NudbQualityError] = []
         for col in df.columns:
-            errors.extend(
-                _check_column_against_klass(
-                    df[col],
-                    col,
-                    metadata,
-                    data_time_start=data_time_start,
-                    data_time_end=data_time_end,
+            if pd.api.types.is_bool_dtype(df[col]):
+                logger.info(
+                    f"Column {col} is a BOOLEAN, and should not have an associated codelist in KLASS. Skipping checking the column against klass."
                 )
-            )
+            else:
+                errors.extend(
+                    _check_column_against_klass(
+                        df[col],
+                        col,
+                        metadata,
+                        data_time_start=data_time_start,
+                        data_time_end=data_time_end,
+                    )
+                )
         if raise_errors:
             raise_exception_group(errors)
         else:
@@ -103,36 +117,184 @@ def _check_column_against_klass(
         logger.info(f"Not checking `{col}`, not in nudb_config!")
         return []
 
-    codelist_id = cast(float | int | str | None, metadata.loc[col, "klass_codelist"])
-    if not codelist_id:
-        logger.debug(
-            f"Not checking `{col}`, its not supposed to have a codelist, the codelist-int is 0."
+    # Because we are storing metadata in a pandas dataframe, we gotta be stupid?
+    def _type_narrow_meta(x: Any) -> int | str | None:
+        if x is None or pd.isna(x):
+            return None
+        if isinstance(x, float | int):  # There are no floats in these fields mah dude
+            return int(x)
+        if isinstance(x, str):
+            return x
+        raise TypeError(
+            f"Cant coerce variable metadata field to type expected: {type(x)}"
         )
-        return []
-    if pd.isna(codelist_id):
-        logger.info(f"Not checking `{col}`, no registered codelist!")  # type: ignore[unreachable]
-        return []
-    codelist_id_int = int(codelist_id)
 
-    logger.info(f"Checking `{col}`, found codelist ID!")
-    klassid = int(metadata["klass_codelist"].astype("Int64").loc[col])
+    def _type_narrow_dict_meta(x: Any) -> dict[str, str] | None:
+        if x is None or pd.isna(x):
+            return None
+        if (
+            isinstance(x, dict)
+            and all(isinstance(k, str) for k in x)
+            and all(isinstance(v, str) for v in x.values())
+        ):
+            return x
+        raise TypeError(
+            f"Cant coerce variable metadata dict-field to type expected: {type(x)}"
+        )
 
+    klass_codelist = cast(
+        int | None, _type_narrow_meta(metadata.loc[col, "klass_codelist"])
+    )
+    klass_codelist_from_date = cast(
+        str | None, _type_narrow_meta(metadata.loc[col, "klass_codelist_from_date"])
+    )
+    klass_variant = cast(
+        int | None, _type_narrow_meta(metadata.loc[col, "klass_variant"])
+    )
+    klass_variant_search_term = _type_narrow_meta(
+        metadata.loc[col, "klass_variant_search_term"]
+    )
+    codelist_extras = _type_narrow_dict_meta(metadata.loc[col, "codelist_extras"])
+
+    result: list[NudbQualityError]
+    # If variant fields are filled, we want to get the codelits to check from the variant instead
+    # Prioritize a variant ID if filled
+    if klass_variant is not None:
+        result = _check_klass_variant_column_id(
+            series=series, col=col, klass_variant=klass_variant
+        )
+    # If we have a search-term, we also need the classification to search under
+    elif (
+        klass_variant_search_term is not None
+        and isinstance(klass_variant_search_term, str)
+        and isinstance(klass_codelist, int)
+        and klass_codelist
+    ):
+        result = _check_klass_variant_column_search_term(
+            series=series,
+            col=col,
+            klass_codelist=klass_codelist,
+            klass_variant_search_term=klass_variant_search_term,
+            klass_codelist_from_date=klass_codelist_from_date,
+            data_time_start=data_time_start,
+            data_time_end=data_time_end,
+        )
+    elif klass_variant_search_term:
+        raise ValueError(
+            f"For variable `{col}`: If klass_variant_search_term is filled, we need valid content in klass_codelist (int above 0), otherwise there is no classification to search for the variant under."
+        )
+    elif klass_codelist and isinstance(klass_codelist, int):
+        result = _check_klass_codelist_codes(
+            series=series,
+            col=col,
+            klass_codelist=klass_codelist,
+            klass_codelist_from_date=klass_codelist_from_date,
+            data_time_start=data_time_start,
+            data_time_end=data_time_end,
+            codelist_extras=codelist_extras,
+        )
+    else:
+        logger.debug(
+            f"Not checking `{col}`, its not supposed to have a codelist, the codelist-int is 0 or non-valid: {klass_codelist}, or there is no klass_variant_id {klass_variant}. (For a klass-variant-search term, we need both klass_codelist and klass_variant_search_term)."
+        )
+        result = []
+    return result
+
+
+def _check_klass_variant_column_id(
+    series: pd.Series, col: str, klass_variant: int
+) -> list[NudbQualityError]:
+    codes = set(
+        x.strip() for x in klass.KlassVariant(variant_id=klass_variant).to_dict().keys()
+    )
+    return _outside_codes_handeling(series=series, codes=codes, col=col)
+
+
+def _check_klass_variant_column_search_term(
+    series: pd.Series,
+    col: str,
+    klass_codelist: int,
+    klass_variant_search_term: str,
+    klass_codelist_from_date: str | None,
+    data_time_start: str | None,
+    data_time_end: str | None,
+) -> list[NudbQualityError]:
+
+    # Lets figure out what our refdate for the version should be
+    refdate: str
+    if klass_codelist_from_date:
+        refdate = klass_codelist_from_date
+    elif data_time_end:
+        refdate = data_time_end
+    elif data_time_start:
+        refdate = data_time_start
+    else:
+        _first_date, refdate = find_earliest_latest_klass_version_date(klass_codelist)
+    refdate_datetime = dateutil.parser.parse(refdate)
+
+    # Go backwards from the future until we find an earlier date
+    classification = klass.KlassClassification(klass_codelist)
+    date_keyed: dict[datetime.datetime, VersionPartType] = {
+        dateutil.parser.parse(version_part["validFrom"]): version_part
+        for version_part in classification.versions
+    }
+    date_keyed_sorted_reversed = {k: date_keyed[k] for k in sorted(date_keyed)[::-1]}
+
+    ver_final: None | VersionPartType = None
+    ver_date: datetime.datetime
+    for ver_date, ver in date_keyed_sorted_reversed.items():
+        if ver_date <= refdate_datetime:
+            ver_final = ver
+            break
+
+    if ver_final is None:
+        raise KeyError(
+            f"Couldnt find a version for classification {klass_codelist}, that matches refdate {refdate}."
+        )
+    ver_id: int = ver_final["version_id"]
+    version = klass.KlassVersion(ver_id)
+    variant = version.get_variant(search_term=klass_variant_search_term)
+    logger.info(
+        f"For `{col}` found a klass-variant with id {variant.variant_id}, dated {variant.validFrom}, with variant-name {variant.name}, based on search-term {klass_variant_search_term}."
+    )
+
+    codes = set(x.strip() for x in variant.to_dict().keys())
+    return _outside_codes_handeling(series=series, codes=codes, col=col)
+
+
+def _check_klass_codelist_codes(
+    series: pd.Series,
+    col: str,
+    klass_codelist: int,
+    klass_codelist_from_date: str | None,
+    data_time_start: str | None,
+    data_time_end: str | None,
+    codelist_extras: dict[str, str] | None,
+) -> list[NudbQualityError]:
+    logger.info(f"Checking `{col}`, found codelist ID: {klass_codelist}!")
     from_date, to_date = _resolve_date_range(
-        codelist_id_int,
-        metadata.loc[col, "klass_codelist_from_date"],
+        klass_codelist,
+        klass_codelist_from_date,
         data_time_start,
         data_time_end,
     )
+    codes = get_klass_codes(
+        klass_codelist, data_time_start=from_date, data_time_end=to_date
+    )
+    codes = _include_codelist_extras(codes, codelist_extras)
+    return _outside_codes_handeling(series=series, codes=set(codes), col=col)
 
-    codes = get_klass_codes(klassid, data_time_start=from_date, data_time_end=to_date)
-    codes = _include_codelist_extras(codes, metadata.loc[col, "codelist_extras"])
 
-    outside_df = series[(~series.isin(codes)) & (series.notna())]
-    if len(outside_df):
+def _outside_codes_handeling(
+    series: pd.Series, codes: set[str], col: str
+) -> list[NudbQualityError]:
+    outside_codes = series[(~series.isin(codes)) & (series.notna())]
+    if len(outside_codes):
         return [
-            NudbQualityError(f"Codes in {col} outside codelist: {outside_df.unique()}")
+            NudbQualityError(
+                f"Codes in {col} outside codelist: {outside_codes.unique()}"
+            )
         ]
-
     logger.info(f"Codes from KLASS in {col} OK!")
     return []
 

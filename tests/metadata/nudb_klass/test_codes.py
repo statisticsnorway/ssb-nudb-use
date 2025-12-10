@@ -14,21 +14,23 @@ def subtest_check_klass_codes(df: pd.DataFrame) -> None:
 
     metadata: pd.DataFrame = get_var_metadata()
     klass_metadata: pd.DataFrame = metadata.query(
-        "klass_codelist.notna() & klass_codelist > 0 & name in @df.columns"
+        "klass_codelist.notna() & klass_codelist > 0 & name in @df.columns & dtype != 'BOOLEAN'"
     )
-    n_klass_vars: int = klass_metadata.shape[0]
+    n_klass_vars: int = (
+        klass_metadata.shape[0] - (klass_metadata.dtype == "BOOLEAN").sum()
+    )  # we skip boolean
 
     errors: list[NudbQualityError] = check_klass_codes(df, raise_errors=False)
     validate_NudbQualityError_list(errors, n=n_klass_vars)
 
 
-def test_check_klass_codes_igang(igang: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(igang))
+def test_check_klass_codes_igang(igang_klasserrors: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(igang_klasserrors))
 
 
-def test_check_klass_codes_eksamen(eksamen: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(eksamen))
+def test_check_klass_codes_eksamen(eksamen_klasserrors: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(eksamen_klasserrors))
 
 
-def test_check_klass_codes_avslutta(avslutta: pd.DataFrame) -> None:
-    subtest_check_klass_codes(update_colnames(avslutta))
+def test_check_klass_codes_avslutta(avslutta_klasserrors: pd.DataFrame) -> None:
+    subtest_check_klass_codes(update_colnames(avslutta_klasserrors))

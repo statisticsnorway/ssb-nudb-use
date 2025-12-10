@@ -47,11 +47,16 @@ def filter_utd_csv_enheter() -> pd.DataFrame:
     """
     df = download_csv_content_enheter()
     logger.info("Filtering brreg-data down to UTD-nacecodes.")
-    return df[
-        df["naeringskode1.kode"].isin(settings.utd_nacekoder)
-        | df["naeringskode2.kode"].isin(settings.utd_nacekoder)
-        | df["naeringskode3.kode"].isin(settings.utd_nacekoder)
-    ].convert_dtypes()
+    result: pd.DataFrame = (
+        df[
+            df["naeringskode1.kode"].isin(settings.utd_nacekoder)
+            | df["naeringskode2.kode"].isin(settings.utd_nacekoder)
+            | df["naeringskode3.kode"].isin(settings.utd_nacekoder)
+        ]
+        .convert_dtypes()
+        .copy()
+    )
+    return result
 
 
 def orgnr_is_underenhet(orgnr: str) -> bool:

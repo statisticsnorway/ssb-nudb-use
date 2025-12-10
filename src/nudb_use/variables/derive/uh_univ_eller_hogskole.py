@@ -1,35 +1,17 @@
-"""Derivation logic for the `univ` indicator."""
-
 import pandas as pd
 
+from .derive_decorator import wrap_derive
 
-def univ(
+
+@wrap_derive
+def uh_univ_eller_hogskole(
     df: pd.DataFrame,
-    utd_col: str = "utd_utdanningstype",
-    kilde_col: str = "utd_datakilde",
 ) -> pd.Series:
-    """Derive `univ` from `df`. `df` must have columns corresponding to `utd` and `kilde`.
+    """Derive `uh_univ_eller_hogskole` from `utd_utdanningstype` and `utd_datakilde`.
 
-    Args:
-        df: The dataset from which `univ` is generated.
-        utd_col: Column corresponding to the variable `utd`. Defaults to "utd".
-        kilde_col: Column corresponding to the variable `kilde`. Defaults to "kilde".
-
-    Raises:
-        ValueError: If `utd_col` or `kilde_col` cannot be found in the columns of `df`.
-
-    Returns:
-        pandas.Series: A pandas.Series object containing the values for the `univ` variable.
+    # noqa: DAR101
+    # noqa: DAR201
     """
-    if utd_col not in df.columns:
-        raise ValueError(
-            f"DataFrame does not contain: '{utd_col}'! Columns: {df.columns.to_list()}"
-        )
-    elif kilde_col not in df.columns:
-        raise ValueError(
-            f"DataFrame does not contain: '{kilde_col}'! Columns: {df.columns.to_list()}"
-        )
-
     # SAS code:
     # if SN07 in ('85.421','85.422') then univ = '1';
     # if kilde = '41'                then univ = '2'; * FS-høgskoler *;
@@ -61,9 +43,9 @@ def univ(
         "620": "2",
     }
 
-    univ = df[utd_col].astype("string[pyarrow]").map(initial_mapping)
-    kilde = df[kilde_col]
+    univ = df["utd_utdanningstype"].astype("string[pyarrow]").map(initial_mapping)
+    kilde = df["utd_datakilde"]
 
-    univ.loc[kilde.isin(("41", "48"))] = "2"  # 41: FS-Høgskoler, 48: Lånekassedata
+    univ[kilde.isin(("41", "48"))] = "2"  # 41 = FS-Høgskoler, 48 = Lånekassedata
 
     return univ.astype("string[pyarrow]")

@@ -28,13 +28,17 @@ def test_check_non_missing(avslutta: pd.DataFrame) -> None:
 def test_check_columns_only_missing(avslutta: pd.DataFrame) -> None:
     assert check_columns_only_missing(avslutta, raise_errors=False) == []
 
+    # Get two rows from the fixture
     empty_df = avslutta.head(2).copy()
+    # Set all cells to missing
     empty_df.loc[:, :] = pd.NA
+    # If any columns are all empty, this should raise an error
     with pytest.raises(ExceptionGroup):
         check_columns_only_missing(empty_df, raise_errors=True)
 
     errors = check_columns_only_missing(empty_df, raise_errors=False)
-    assert len(errors) == len(empty_df)
+    # The amount of errors should match the amount of columns
+    assert len(errors) == len(empty_df.columns)
 
 
 def test_empty_percents_over_columns(avslutta: pd.DataFrame) -> None:
