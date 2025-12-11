@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import datetime as dt
+import re
+import subprocess
 import warnings
 from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec
 from typing import TypeVar
+
+from nudb_use.nudb_logger import logger
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -70,3 +75,43 @@ def move_to_use_deprecate(
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def _parse_version_number(version: str) -> dt.date:
+    nums: list[int] = [0, 0, 0]
+    i: int = 0
+
+    for char in version:
+        if char.isalnum():
+            nums[i] = 10 * nums[i] + int(char)
+        else:
+            i += 1
+
+    return dt.date(year=nums[0], month=nums[1], day=nums[2])
+
+
+def _check_ssb_nudb_config_version() -> None:
+    result = subprocess.run(
+        ["pip", "index", "versions", "ssb-nudb-config"], capture_output=True
+    )
+    stdout = result.stdout.decode("utf-8")
+
+    version_pattern = "([\\.0-9\\-]+)"
+    installed = re.search(f"INSTALLED:\\s+{version_pattern}", stdout)
+    latest = re.search(f"LATEST:\\s+{version_pattern}", stdout)
+
+    if not installed:
+        logger.warning("Unable to determine installed version of `ssb-nudb-config`")
+        return None
+
+    elif not latest:
+        logger.warning("Unable to determine latest version of `ssb-nudb-config`")
+        return None
+
+    v_installed = _parse_version_number(installed.group(1))
+    v_latest = _parse_version_number(latest.group(1))
+
+    if v_installed < v_latest:
+        logger.warning(
+            f"`ssb-nudb-config` package is outdated, installed: {v_installed}, latest: {v_latest}"
+        )

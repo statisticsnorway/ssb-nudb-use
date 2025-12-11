@@ -11,6 +11,7 @@ from nudb_use.nudb_logger import logger
 from nudb_use.paths import get_periods_from_path
 from nudb_use.paths import latest_shared_paths
 from nudb_use.quality import run_quality_suite
+from nudb_use.utils.packages import _check_ssb_nudb_config_version
 from nudb_use.variables import derive
 
 __all__ = [
@@ -26,3 +27,9 @@ __all__ = [
     "settings",
     "update_colnames",
 ]
+
+
+try:
+    _check_ssb_nudb_config_version()
+except Exception as err:
+    logger.warning(f"Unable to validate `ssb-nudb-config` version, message:\n{err}")

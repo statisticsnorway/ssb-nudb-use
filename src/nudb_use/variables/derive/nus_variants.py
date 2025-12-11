@@ -29,7 +29,6 @@ def utd_klassetrinn_lav_nus(df: pd.DataFrame) -> pd.Series:
     # noqa: DAR101
     # noqa: DAR201
     """
-
     utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
     return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[0]
 
@@ -41,7 +40,6 @@ def utd_klassetrinn_hoy_nus(df: pd.DataFrame) -> pd.Series:
     # noqa: DAR101
     # noqa: DAR201
     """
-
     utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
     return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[1]
 

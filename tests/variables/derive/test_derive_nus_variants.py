@@ -1,18 +1,18 @@
-import pandas as pd
-import nudb_use.variables.derive as derive
 import re
 
-from nudb_use.variables.derive.derive_decorator import get_derive_function
+import pandas as pd
+
+import nudb_use.variables.derive as derive
 from nudb_use.nudb_logger import logger
+from nudb_use.variables.derive.derive_decorator import get_derive_function
 
 
-class DerivationFailures(Exception):
-    ...
+class DerivationFailures(Exception): ...
 
 
 def test_derive_nus_variants(avslutta: pd.DataFrame) -> None:
     cols_orig = avslutta.columns
-    failures  = []
+    failures = []
 
     for func_name in derive.__all__:
         if not re.search("_nus$", func_name):
@@ -37,5 +37,6 @@ def test_derive_nus_variants(avslutta: pd.DataFrame) -> None:
         avslutta = avslutta[cols_orig]
 
     if failures:
-        logger.error(f"{len(failures)} derivations failed: \n\t{'\n\t'.join(failures)}")
+        sep = "\n\t"
+        logger.error(f"{len(failures)} derivations failed: \n\t{sep.join(failures)}")
         raise DerivationFailures(f"{len(failures)} derivations failed")
