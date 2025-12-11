@@ -23,6 +23,30 @@ def utd_klassetrinn_lav_hoy_nus(df: pd.DataFrame) -> pd.Series:
 
 
 @wrap_derive
+def utd_klassetrinn_lav_nus(df: pd.DataFrame) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000.
+
+    # noqa: DAR101
+    # noqa: DAR201
+    """
+
+    utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
+    return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[0]
+
+
+@wrap_derive
+def utd_klassetrinn_hoy_nus(df: pd.DataFrame) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000.
+
+    # noqa: DAR101
+    # noqa: DAR201
+    """
+
+    utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
+    return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[1]
+
+
+@wrap_derive
 def vg_kompetanse_nus(df: pd.DataFrame) -> pd.Series:
     """Derive vg_kompetanse_nus from nus2000.
 

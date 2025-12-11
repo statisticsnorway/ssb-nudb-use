@@ -146,7 +146,10 @@ def wrap_derive(
                 "new" if priority == "new" else "old"
             )
 
-            for missing_var in missing:
+            for missing_var in missing.copy():
+                if missing_var not in missing:
+                    continue # missing is mutable, and may change due to derivations
+
                 derive_func = get_derive_function(missing_var)
 
                 if derive_func:
