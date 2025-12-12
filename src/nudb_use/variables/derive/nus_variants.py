@@ -21,6 +21,24 @@ def utd_klassetrinn_lav_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
+def utd_klassetrinn_lav_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
+    utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
+    return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[0]
+
+
+@wrap_derive
+def utd_klassetrinn_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
+    utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
+    return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[1]
+
+
+@wrap_derive
 def vg_kompetanse_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
@@ -108,27 +126,3 @@ def utd_utdanningsprogram_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
 ) -> pd.Series:
     """Derive utd_utdanningsprogram_nus from nus2000."""
     return _map_nus_variant(df, "utd_utdanningsprogram_nus")
-
-
-@wrap_derive
-def utd_isced2011_programmes_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
-    df: pd.DataFrame,
-) -> pd.Series:
-    """Derive utd_isced2011_programmes_nus from nus2000."""
-    return _map_nus_variant(df, "utd_isced2011_programmes_nus")
-
-
-@wrap_derive
-def utd_isced2011_attainment_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
-    df: pd.DataFrame,
-) -> pd.Series:
-    """Derive utd_isced2011_attainment_nus from nus2000."""
-    return _map_nus_variant(df, "utd_isced2011_attainment_nus")
-
-
-@wrap_derive
-def utd_isced2013_fagfelt_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
-    df: pd.DataFrame,
-) -> pd.Series:
-    """Derive utd_isced2013_fagfelt_nus from nus2000."""
-    return _map_nus_variant(df, "utd_isced2013_fagfelt_nus")
