@@ -30,10 +30,20 @@ def klass_variant_search_term_mapping(var_meta: Variable) -> dict[str, str]:
     else:
         search_term: str = search_term_maybe_none
 
-    variant = (
+    version = (
         klass.KlassClassification(klass_codelist)
         .get_version()  # Future development: Could we support "refdate" in the klass package on this to get the version by date?
-        .get_variant(search_term=search_term)
     )
+
+    found_variants = {
+            k: v
+            for k, v in version.variants_simple().items()
+            if v.lower().startswith(search_term.lower())  # klass-package does an "in" here, while we need a startswith because of "Varighet" is defined twice as a variant in nus2000
+        }
+    if len(found_variants) != 1:
+        err_msg = f"When searching for a variant that matches your search, we did not find a single match. If you got multiple matches, be more specific in your search term: {list(found_variants.values())}"
+        raise ValueError(err_msg)
+    
+    variant = version.get_variant(next(iter(found_variants.keys())))
     # Should we log the amount of codes that do not map to a grouping in the variant?
     return variant.to_dict()
