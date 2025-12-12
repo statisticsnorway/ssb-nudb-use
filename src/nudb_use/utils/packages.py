@@ -39,7 +39,8 @@ def move_to_use_deprecate(
         stacklevel: Passed to warnings.warn to point at the caller. Defaults to 2.
 
     Returns:
-        A wrapper callable with the same signature as `func` that emits the warning on use.
+        Callable[P, R]: Wrapper callable with the same signature as `func`
+        that emits the warning on use.
     """
     emitted: bool = False
 

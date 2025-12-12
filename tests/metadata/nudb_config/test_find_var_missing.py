@@ -13,8 +13,9 @@ from nudb_use.metadata.nudb_config.find_var_missing import variables_missing_fro
 
 
 class FakeSettings:
+    """Lightweight settings stand-in for monkeypatching."""
+
     def __init__(self, variables: dict[str, Any]):
-        """Lightweight settings stand-in for monkeypatching."""
         self.variables = variables
 
 

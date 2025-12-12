@@ -53,7 +53,7 @@ def get_klass_codes(
             "If you specify the end, you MUST also specify the start date (or just the start)."
         )
 
-    last_level = sorted(list(code_obj.data["level"].unique()))[-1]
+    last_level = sorted(code_obj.data["level"].unique())[-1]
     filtered_to_last_level = code_obj.data[code_obj.data["level"] == last_level].copy()
 
     return list(filtered_to_last_level["code"].str.strip().unique())

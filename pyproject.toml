@@ -33,11 +33,11 @@ packages = [{ include = "nudb_use", from = "src" }]
 pygments = ">=2.10.0"
 black = { extras = ["jupyter"], version = ">=23.1.0" }
 coverage = { extras = ["toml"], version = ">=6.2" }
-darglint = {version= ">=1.8.1", python = ">=3.10, <4.0"}
 furo = ">=2021.11.12"
 mypy = ">=0.930"
 pre-commit = ">=2.16.0"
 pre-commit-hooks = ">=4.1.0"
+pydoclint = { version = ">=0.8.3" }
 ruff = ">=0.0.284"
 pytest = ">=6.2.5"
 sphinx = ">=6.2.1"
@@ -111,6 +111,7 @@ ignore = [
     "ANN202", # Don't require return type annotation for private functions.
     "ANN401", # Allow type annotation with type Any.
     "D100",   # Supress undocumented-public-module. Only doc of public api required.
+    "D107",   # We are of the opinion that inits dont need a docstring, when the class has one...
     "FBT001", # Allow boolean positional arguments in a function.
     "FBT002", # Allow boolean default positional arguments in a function.
     "E402",   # Supress module-import-not-at-top-of-file, needed in jupyter notebooks.
@@ -141,17 +142,20 @@ classmethod-decorators = ["classmethod", "validator", "root_validator", "pydanti
     "ANN003",  # type annotations don't add value for test functions
     "ANN201",  # type annotations don't add value for test functions
     "ANN204",  # type annotations don't add value for test functions
-    "ANN205",  # type annotations don't add value for test functions
-    "ANN206",  # type annotations don't add value for test functions
-    "D100",    # docstrings are overkill for test functions
-    "D101",
-    "D102",
-    "D103",
-    "S101",    # asserts are encouraged in pytest
+"ANN205",  # type annotations don't add value for test functions
+"ANN206",  # type annotations don't add value for test functions
+"D100",    # docstrings are overkill for test functions
+"D101",
+"D102",
+"D103",
+"S101",    # asserts are encouraged in pytest
 ]
+"src/nudb_use/variables/derive/*.py" = ["RUF100"]  # If we dont have this RUFF strips our inlined noqas for pydoclint
 
-[tool.darglint]
-docstring_style = "google"
+[tool.pydoclint]
+style = "google"
+arg-type-hints-in-docstring = false
+native-mode-noqa-location = "definition"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

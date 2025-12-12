@@ -193,7 +193,8 @@ def get_thresholds_from_config(dataset_name: str) -> dict[str, float]:
         dataset_name: Name of the dataset to retrieve threshold values for.
 
     Returns:
-        dict[str,float]: Dictionary mapping variable names to specified percentage completion threshold values.
+        dict[str, float]: Dictionary mapping variable names to specified
+        percentage completion threshold values.
     """
     thresholds_empty: dict[str, float] = settings.datasets[dataset_name][
         "thresholds_empty"

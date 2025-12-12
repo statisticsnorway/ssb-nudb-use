@@ -14,7 +14,6 @@ from nudb_use.metadata.nudb_config.map_get_dtypes import map_dtype_datadoc
 
 class DummyVar:
     def __init__(self, dtype: str, renamed_from: str | list[str] | None = None):
-        """Initialize the DummyVar with some fields the functions actually use."""
         self.dtype = dtype
         self.renamed_from = renamed_from
 

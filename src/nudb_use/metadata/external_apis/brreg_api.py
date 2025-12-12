@@ -82,7 +82,8 @@ def get_enhet(orgnr: str) -> None | dict[str, str]:
         orgnr: The organisation number to look up.
 
     Returns:
-        dict or None: Information about the main unit or sub-unit, or None if not found.
+        None | dict[str, str]: Information about the main unit or sub-unit, or
+        None if not found.
 
     Raises:
         TypeError: If we get unexpected output from brreg.enhetsregisteret.Client.get_enhet() or
@@ -185,7 +186,7 @@ def flatten(obj: object, prefix: str = "", sep: str = "_") -> dict[str, Any]:
         sep: Separator used between nested keys. Defaults to '_'.
 
     Returns:
-        dict: A flat dictionary with keys representing nested paths.
+        dict[str, Any]: Flat dictionary with keys representing nested paths.
     """
     flat = {}
 

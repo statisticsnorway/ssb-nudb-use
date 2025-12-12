@@ -22,8 +22,8 @@ def filled_value_to_threshold(
         raise_error: When True, raise NudbQualityError if the threshold is not met.
 
     Returns:
-        NudbQualityError: Error describing the shortage when the threshold is not met and `raise_error` is False.
-        None: Returned when the column satisfies the threshold.
+        NudbQualityError | None: Error describing the shortage when the
+        threshold is not met (if `raise_error` is False), otherwise None.
 
     Raises:
         NudbQualityError: If the percentage of matching values is below the threshold while `raise_error` is True.
@@ -51,8 +51,8 @@ def non_empty_to_threshold(
         raise_error: When True, raise NudbQualityError if the threshold is not met.
 
     Returns:
-        NudbQualityError: Error describing the shortage when the threshold is not met and `raise_error` is False.
-        None: Returned when the column satisfies the threshold.
+        NudbQualityError | None: Error describing the shortage when the
+        threshold is not met (if `raise_error` is False), otherwise None.
 
     Raises:
         NudbQualityError: If the percentage of non-empty values is below the threshold while `raise_error` is True.

@@ -15,7 +15,7 @@ def get_toml_field(toml: Mapping[str, Any], field: str) -> object | None:
         field: Field name to retrieve.
 
     Returns:
-        Any: Field value when present, otherwise None.
+        object | None: Field value when present, otherwise None.
     """
     return None if field not in toml.keys() else toml[field]
 

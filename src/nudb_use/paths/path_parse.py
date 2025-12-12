@@ -27,10 +27,10 @@ def get_periods_from_path(
         return_datetime: If True, convert extracted period strings to datetime objects.
 
     Returns:
-        A single period as str or datetime.datetime if one period is found.
-        A tuple of two periods as strings or datetime datetimes if two periods are found.
-        The exact return type depends on the number of period elements found and
-        the value of `return_datetime`.
+        str | datetime.datetime | tuple[str, str] | tuple[datetime.datetime, datetime.datetime]:
+        A single period (as string or datetime) or a tuple of two periods,
+        depending on how many fragments are found and whether datetime
+        conversion is requested.
 
     Raises:
         ValueError: If we cant find a valid period fragment in the path.

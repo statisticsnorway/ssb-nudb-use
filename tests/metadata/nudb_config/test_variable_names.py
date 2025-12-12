@@ -22,7 +22,6 @@ from nudb_use.metadata.nudb_config.variable_names import update_colnames
 
 class FakeSettings(dict[str, Any]):
     def __init__(self, **kwargs: Any) -> None:
-        """Minimal settings stand-in for monkeypatching module state."""
         super().__init__(kwargs)
         self.variables: dict[str, Any] = kwargs.get("variables", {})
         self.datasets: dict[str, Any] = kwargs.get("datasets", {})

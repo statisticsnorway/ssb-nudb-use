@@ -24,7 +24,7 @@ def sort_cols_after_config_order_and_unit(data: pd.DataFrame) -> pd.DataFrame:
         data: Dataframe to sort.
 
     Returns:
-        data: Dataframe with columns reordered by the column and unit order defined in the config.
+        pd.DataFrame: Dataframe with columns reordered by the column and unit order defined in the config.
     """
     return sort_cols_by_unit(sort_cols_after_config_order(data))
 
@@ -82,7 +82,7 @@ def get_cols_in_config(name: str | None) -> list[str]:
         name: Name of a dataset. If None, returns all variable names across datasets.
 
     Returns:
-        list: List of column or variable names defined in settings_use.
+        list[str]: List of column or variable names defined in settings_use.
 
     Raises:
         KeyError: If the provided dataset name is not defined in settings_use.

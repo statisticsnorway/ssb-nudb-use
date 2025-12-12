@@ -14,7 +14,8 @@ def detect_snr_fnr_used(
         snr_fnr: The column to check.
 
     Returns:
-        "snr" | "fnr": Returns a literal string of one of these dependant on what we detected.
+        Literal["snr"] | Literal["fnr"]: Literal string indicating which id
+        was detected.
 
     Raises:
         ValueError: If the lengths dont match any of our expectations.

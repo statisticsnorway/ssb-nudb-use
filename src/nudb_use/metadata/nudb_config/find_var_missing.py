@@ -36,8 +36,8 @@ def find_vars(var_names: Iterable[str]) -> dict[str, VariableMetadata | None]:
         var_names: Iterable of variable identifiers to resolve.
 
     Returns:
-        dict[str, VariableMetadata]: Mapping of requested names to their resolved metadata.
-        Missing entries map to None.
+        dict[str, VariableMetadata | None]: Mapping of requested names to their
+        resolved metadata. Missing entries map to None.
     """
     result: dict[str, VariableMetadata | None] = {}
     for name in var_names:
@@ -100,7 +100,7 @@ def variables_missing_from_config(col_list: Iterable[str]) -> list[str]:
         col_list: An iterable of variable names to check against the settings.
 
     Returns:
-        List of variable names that are not defined in the settings.
-        Returns an empty list if all variables are found.
+        list[str]: Variable names that are not defined in the settings. Returns
+        an empty list if all variables are found.
     """
     return [col for col in col_list if col not in settings.variables.keys()]
