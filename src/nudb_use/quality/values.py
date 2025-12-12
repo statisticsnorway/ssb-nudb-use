@@ -29,8 +29,8 @@ def values_not_in_column(
         raise_error: When True, raise ValueError immediately when matches occur.
 
     Returns:
-        ValueError | None: Error describing the unexpected values, or None when
-        the column is clean.
+        None | ValueError: None when the column is clean, otherwise a ValueError
+        describing the unexpected values.
 
     Raises:
         ValueError: If forbidden values are found and `raise_error` is True.

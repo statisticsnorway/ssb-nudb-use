@@ -13,172 +13,140 @@ def _map_nus_variant(df: pd.DataFrame, varname: str) -> pd.Series:
 
 
 @wrap_derive
-def utd_klassetrinn_lav_hoy_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_klassetrinn_lav_hoy_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_klassetrinn_lav_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
     return _map_nus_variant(df, "utd_klassetrinn_lav_hoy_nus")
 
 
 @wrap_derive
-def utd_klassetrinn_lav_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_klassetrinn_lav_hoy_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_klassetrinn_lav_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame
+    ) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
     utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
     return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[0]
 
 
 @wrap_derive
-def utd_klassetrinn_hoy_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_klassetrinn_lav_hoy_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_klassetrinn_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame
+    ) -> pd.Series:
+    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
     utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
     return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[1]
 
 
 @wrap_derive
-def vg_kompetanse_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive vg_kompetanse_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def vg_kompetanse_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive vg_kompetanse_nus from nus2000."""
     return _map_nus_variant(df, "vg_kompetanse_nus")
 
 
 @wrap_derive
-def vg_kurstrinn_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive vg_kurstrinn_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def vg_kurstrinn_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive vg_kurstrinn_nus from nus2000."""
     return _map_nus_variant(df, "vg_kurstrinn_nus")
 
 
 @wrap_derive
-def fa_erfagskole_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive fa_erfagskole_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def fa_erfagskole_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive fa_erfagskole_nus from nus2000."""
     return (_map_nus_variant(df, "fa_erfagskole_nus") == "10").astype("bool[pyarrow]")
 
 
 @wrap_derive
-def fa_studiepoeng_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive fa_studiepoeng_nus from nus2000.
+def utd_erhistorisk_foreldet_fag_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_historisk_foreldet_fag_nus from nus2000."""
+    return (_map_nus_variant(df, "utd_erhistorisk_foreldet_fag_nus") == "*").astype(
+        "bool[pyarrow]"
+    )
 
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+
+@wrap_derive
+def fa_studiepoeng_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive fa_studiepoeng_nus from nus2000."""
     return _map_nus_variant(df, "fa_studiepoeng_nus")
 
 
 @wrap_derive
-def uh_studiepoeng_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive uh_studiepoeng_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def uh_studiepoeng_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive uh_studiepoeng_nus from nus2000."""
     return _map_nus_variant(df, "uh_studiepoeng_nus")
 
 
 @wrap_derive
-def uh_gradmerke_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive uh_gradmerke_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def uh_gradmerke_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive uh_gradmerke_nus from nus2000."""
     return _map_nus_variant(df, "uh_gradmerke_nus")
 
 
 @wrap_derive
-def uh_gruppering_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive uh_gruppering_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def uh_gruppering_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive uh_gruppering_nus from nus2000."""
     return _map_nus_variant(df, "uh_gruppering_nus")
 
 
 @wrap_derive
-def utd_historisk_foreldet_fag_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_historisk_foreldet_fag_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
-    return _map_nus_variant(df, "utd_historisk_foreldet_fag_nus")
-
-
-@wrap_derive
-def utd_samle_eller_enkeltutd_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_samle_eller_enkeltutd_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_samle_eller_enkeltutd_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_samle_eller_enkeltutd_nus from nus2000."""
     return _map_nus_variant(df, "utd_samle_eller_enkeltutd_nus")
 
 
 @wrap_derive
-def utd_varighet_antall_mnd_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_varighet_antall_mnd_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_varighet_antall_mnd_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_varighet_antall_mnd_nus from nus2000."""
     return _map_nus_variant(df, "utd_varighet_antall_mnd_nus")
 
 
 @wrap_derive
-def utd_utdanningsprogram_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_utdanningsprogram_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_utdanningsprogram_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_utdanningsprogram_nus from nus2000."""
     return _map_nus_variant(df, "utd_utdanningsprogram_nus")
 
 
 @wrap_derive
-def utd_isced2011_programmes_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_isced2011_programmes_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_isced2011_programmes_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_isced2011_programmes_nus from nus2000."""
     return _map_nus_variant(df, "utd_isced2011_programmes_nus")
 
 
 @wrap_derive
-def utd_isced2011_attainment_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_isced2011_attainment_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_isced2011_attainment_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_isced2011_attainment_nus from nus2000."""
     return _map_nus_variant(df, "utd_isced2011_attainment_nus")
 
 
 @wrap_derive
-def utd_isced2013_fagfelt_nus(df: pd.DataFrame) -> pd.Series:
-    """Derive utd_isced2013_fagfelt_nus from nus2000.
-
-    # noqa: DAR101
-    # noqa: DAR201
-    """
+def utd_isced2013_fagfelt_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive utd_isced2013_fagfelt_nus from nus2000."""
     return _map_nus_variant(df, "utd_isced2013_fagfelt_nus")

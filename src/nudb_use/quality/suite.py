@@ -35,7 +35,7 @@ def run_quality_suite(
         **kwargs: Additional keyword arguments forwarded to specific checks.
 
     Returns:
-        list[NudbQualityError]: All collected quality errors, or an empty list
+        Sequence[Exception]: All collected quality errors, or an empty sequence
         when every check passes.
 
     Raises:

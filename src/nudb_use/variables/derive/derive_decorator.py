@@ -18,7 +18,8 @@ def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
         varname: The name of the variable to get the derive function for.
 
     Returns:
-        None | Callable: The derive function, or None if no function was found.
+        Callable[..., pd.DataFrame] | None: The derive function, or None if no
+        function was found.
     """
     if varname not in derive.__all__:
         return None
@@ -103,7 +104,8 @@ def wrap_derive(
         basefunc: Function that derives a single variable from an input dataframe.
 
     Returns:
-        Callable: Wrapped derive function that writes/updates the derived column.
+        Callable[[pd.DataFrame], pd.DataFrame]: Wrapped derive function that
+        writes/updates the derived column.
 
     Raises:
         NudbDerivedFromNotFoundError: No matching entry can be found in the config for the function name.
@@ -193,7 +195,7 @@ def wrap_derive(
                     logger.warning(
                         f"Filling degree for {name} went down by {get_pct_string(fill_pct0 - fill_pct1)} after deriving it againg"
                     )
-                df[name] = newvals
+                df.loc[:, name] = newvals
                 return df
             except Exception as err:
                 logger.warning(
@@ -202,16 +204,8 @@ def wrap_derive(
                 return df
 
     wrapper.__name__ = basefunc.__name__
-    # Strip lines starting with noqa from the docstring:
     docstring = basefunc.__doc__ or ""
-    stripped_doc = "\n".join(
-        [
-            line
-            for line in docstring.split("\n")
-            if not line.strip().startswith("# noqa")
-        ]
-    )
-    wrapper.__doc__ = f"""{stripped_doc}
+    wrapper.__doc__ = f"""{docstring}
 
             Args:
                 df: Dataframe that should contain prerequisites listed in {derived_from}.

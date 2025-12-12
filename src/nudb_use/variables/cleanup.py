@@ -34,7 +34,7 @@ def move_content_from_col_to(
         to_col: Column where information is moved to.
 
     Returns:
-        pd.Dataframe: DataFrame with values filled out.
+        pd.DataFrame: DataFrame with values filled out.
     """
     if from_col in df.columns:
         df[to_col] = df[to_col].fillna(df[from_col])

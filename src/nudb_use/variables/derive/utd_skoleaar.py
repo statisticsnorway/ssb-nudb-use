@@ -8,14 +8,13 @@ PYARROW_STRING: Literal["string[pyarrow]"] = "string[pyarrow]"
 
 
 @wrap_derive
-def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.Series:
+def utd_skoleaar_slutt(  # noqa: DOC101,DOC103,DOC201,DOC203
+    df: pd.DataFrame,
+) -> pd.Series:
     """Derive utd_skoleaar_slutt from utd_skoleaar_start.
 
     Raises:
         ValueError: If the dataset has weirdly formatted utd_skoleaar_start.
-
-    # noqa: DAR101
-    # noqa: DAR201
     """
     # We consider 4-digit strings to be valid, or empty cells
     valid_mask = (
