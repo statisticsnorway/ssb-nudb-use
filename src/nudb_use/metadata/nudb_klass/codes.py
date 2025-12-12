@@ -1,13 +1,10 @@
 """Fetch and validate KLASS classification codes."""
 
-import datetime
 from typing import Any
 from typing import cast
 
-import dateutil.parser
 import klass
 import pandas as pd
-from klass.requests.klass_types import VersionPartType
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
@@ -15,6 +12,12 @@ from nudb_use.exceptions.groups import warn_exception_group
 from nudb_use.metadata.nudb_config.get_variable_info import get_var_metadata
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+
+from .klass_utils import _include_codelist_extras
+from .klass_utils import _outside_codes_handeling
+from .klass_utils import _resolve_date_range
+from .variants import _check_klass_variant_column_id
+from .variants import _check_klass_variant_column_search_term
 
 
 def get_klass_codes(
@@ -201,67 +204,6 @@ def _check_column_against_klass(
     return result
 
 
-def _check_klass_variant_column_id(
-    series: pd.Series, col: str, klass_variant: int
-) -> list[NudbQualityError]:
-    codes = set(
-        x.strip() for x in klass.KlassVariant(variant_id=klass_variant).to_dict().keys()
-    )
-    return _outside_codes_handeling(series=series, codes=codes, col=col)
-
-
-def _check_klass_variant_column_search_term(
-    series: pd.Series,
-    col: str,
-    klass_codelist: int,
-    klass_variant_search_term: str,
-    klass_codelist_from_date: str | None,
-    data_time_start: str | None,
-    data_time_end: str | None,
-) -> list[NudbQualityError]:
-
-    # Lets figure out what our refdate for the version should be
-    refdate: str
-    if klass_codelist_from_date:
-        refdate = klass_codelist_from_date
-    elif data_time_end:
-        refdate = data_time_end
-    elif data_time_start:
-        refdate = data_time_start
-    else:
-        _first_date, refdate = find_earliest_latest_klass_version_date(klass_codelist)
-    refdate_datetime = dateutil.parser.parse(refdate)
-
-    # Go backwards from the future until we find an earlier date
-    classification = klass.KlassClassification(klass_codelist)
-    date_keyed: dict[datetime.datetime, VersionPartType] = {
-        dateutil.parser.parse(version_part["validFrom"]): version_part
-        for version_part in classification.versions
-    }
-    date_keyed_sorted_reversed = {k: date_keyed[k] for k in sorted(date_keyed)[::-1]}
-
-    ver_final: None | VersionPartType = None
-    ver_date: datetime.datetime
-    for ver_date, ver in date_keyed_sorted_reversed.items():
-        if ver_date <= refdate_datetime:
-            ver_final = ver
-            break
-
-    if ver_final is None:
-        raise KeyError(
-            f"Couldnt find a version for classification {klass_codelist}, that matches refdate {refdate}."
-        )
-    ver_id: int = ver_final["version_id"]
-    version = klass.KlassVersion(ver_id)
-    variant = version.get_variant(search_term=klass_variant_search_term)
-    logger.info(
-        f"For `{col}` found a klass-variant with id {variant.variant_id}, dated {variant.validFrom}, with variant-name {variant.name}, based on search-term {klass_variant_search_term}."
-    )
-
-    codes = set(x.strip() for x in variant.to_dict().keys())
-    return _outside_codes_handeling(series=series, codes=codes, col=col)
-
-
 def _check_klass_codelist_codes(
     series: pd.Series,
     col: str,
@@ -283,123 +225,3 @@ def _check_klass_codelist_codes(
     )
     codes = _include_codelist_extras(codes, codelist_extras)
     return _outside_codes_handeling(series=series, codes=set(codes), col=col)
-
-
-def _outside_codes_handeling(
-    series: pd.Series, codes: set[str], col: str
-) -> list[NudbQualityError]:
-    outside_codes = series[(~series.isin(codes)) & (series.notna())]
-    if len(outside_codes):
-        return [
-            NudbQualityError(
-                f"Codes in {col} outside codelist: {outside_codes.unique()}"
-            )
-        ]
-    logger.info(f"Codes from KLASS in {col} OK!")
-    return []
-
-
-def _resolve_date_range(
-    klassid: int,
-    klass_codelist_from_date: object,
-    data_time_start: str | None,
-    data_time_end: str | None,
-) -> tuple[str | None, str | None]:
-    """Pick dates from parameters over metadata, validating type."""
-    metadata_from_date = _ensure_optional_str(klass_codelist_from_date)
-    return _prioritize_dates_from_param_or_config(
-        klassid, metadata_from_date, data_time_start, data_time_end
-    )
-
-
-def _include_codelist_extras(codes: list[str], codelist_extras: object) -> list[str]:
-    """Include extra codes from metadata when provided."""
-    if isinstance(codelist_extras, dict):
-        return codes + list(codelist_extras.keys())
-    return codes
-
-
-def _ensure_optional_str(value: object) -> str | None:
-    """Ensure a metadata value is either str or None."""
-    if isinstance(value, (str, type(None))):
-        return value
-    raise TypeError(
-        f"Dont recognize the datatype of the klass from date from the config: {type(value)}, needs to be str | None"
-    )
-
-
-def _prioritize_dates_from_param_or_config(
-    klassid: int,
-    klass_codelist_from_date: str | None = None,
-    data_time_start: str | None = None,
-    data_time_end: str | None = None,
-) -> tuple[str | None, str | None]:
-
-    # Prioritize sent parameter
-    if data_time_start is not None:
-        from_date: str | None = dateutil.parser.parse(data_time_start).strftime(
-            r"%Y-%m-%d"
-        )
-    else:
-        # We dont want to convert from_date missing to a string 'None' for example
-        if klass_codelist_from_date and not pd.isna(klass_codelist_from_date):
-            if isinstance(klass_codelist_from_date, str):
-                from_date = dateutil.parser.parse(klass_codelist_from_date).strftime(
-                    r"%Y-%m-%d"
-                )
-            else:
-                raise TypeError("Unknown type of from_date here?")
-        else:
-            from_date = None
-
-    # Prioritize sent parameter
-    if data_time_end and not pd.isna(data_time_end):
-        to_date: str | None = dateutil.parser.parse(data_time_end).strftime(r"%Y-%m-%d")
-    # Decided with pph that when we set the start date, we usually want the full range of a codelist... (?)
-    # So if we have a non-None start date, we want a filled stop date, the latest available version.
-    elif from_date is not None and data_time_end is None:
-        first_available_date, to_date = find_earliest_latest_klass_version_date(klassid)
-        if dateutil.parser.parse(first_available_date) > dateutil.parser.parse(
-            from_date
-        ):
-            # Move the from_date to the first available date
-            from_date = first_available_date
-            logger.info(
-                f"The sent from_date was earlier than the first available klass version date, so we changed it to: {from_date}"
-            )
-    else:
-        to_date = None  # This will default to the codelist only being from the specified from date?
-
-    return from_date, to_date
-
-
-def find_earliest_latest_klass_version_date(
-    klass_classification_id: int,
-) -> tuple[str, str]:
-    """Finds the earliest and latest version dates for a KLASS classification.
-
-    Retrieves all versions of a given KLASS classification and identifies the
-    earliest and latest dates when the classification was valid. Used to
-    determine the full historical range of a classification's validity.
-
-    Args:
-        klass_classification_id: The numeric ID of the KLASS classification
-            to query.
-
-    Returns:
-        tuple[str, str]: A `(min_date, max_date)` tuple representing the earliest
-        and latest valid dates for the classification versions.
-    """
-    min_date: str = ""
-    max_date: str = ""
-    for version in klass.KlassClassification(klass_classification_id).versions:
-        valid_from = version["validFrom"]
-        if not min_date:
-            min_date = valid_from
-        else:
-            min_date = sorted([min_date, valid_from])[0]
-        if not max_date:
-            max_date = valid_from
-        else:
-            max_date = sorted([max_date, valid_from])[-1]
-    return min_date, max_date

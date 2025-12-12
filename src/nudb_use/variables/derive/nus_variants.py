@@ -1,6 +1,7 @@
 import pandas as pd
 from nudb_config import settings
 
+from nudb_use.metadata.nudb_klass.correspondence import klass_correspondence_to_mapping
 from nudb_use.metadata.nudb_klass.variants import klass_variant_search_term_mapping
 
 from .derive_decorator import wrap_derive
@@ -10,6 +11,12 @@ def _map_nus_variant(df: pd.DataFrame, varname: str) -> pd.Series:
     """Map `nus2000` through the KLASS variant defined for `varname`."""
     var_meta = settings.variables[varname]
     return df["nus2000"].map(klass_variant_search_term_mapping(var_meta))
+
+
+def _map_nus_correspondence(df: pd.DataFrame, varname: str) -> pd.Series:
+    """Map `nus2000` through the KLASS correspondence defined for `varname`."""
+    var_meta = settings.variables[varname]
+    return df["nus2000"].map(klass_correspondence_to_mapping(var_meta))
 
 
 @wrap_derive
@@ -22,8 +29,8 @@ def utd_klassetrinn_lav_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 @wrap_derive
 def utd_klassetrinn_lav_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
-    df: pd.DataFrame
-    ) -> pd.Series:
+    df: pd.DataFrame,
+) -> pd.Series:
     """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
     utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
     return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[0]
@@ -31,8 +38,8 @@ def utd_klassetrinn_lav_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 @wrap_derive
 def utd_klassetrinn_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
-    df: pd.DataFrame
-    ) -> pd.Series:
+    df: pd.DataFrame,
+) -> pd.Series:
     """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
     utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
     return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[1]
@@ -132,21 +139,21 @@ def utd_utdanningsprogram_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
 def utd_isced2011_programmes_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive utd_isced2011_programmes_nus from nus2000."""
-    return _map_nus_variant(df, "utd_isced2011_programmes_nus")
+    """Derive utd_isced2011_programmes_nus from a correspondence on nus2000 -> ISCED programmes."""
+    return _map_nus_correspondence(df, "utd_isced2011_programmes_nus")
 
 
 @wrap_derive
 def utd_isced2011_attainment_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive utd_isced2011_attainment_nus from nus2000."""
-    return _map_nus_variant(df, "utd_isced2011_attainment_nus")
+    """Derive utd_isced2011_attainment_nus from a correspondence on nus2000 -> ISCED attainment."""
+    return _map_nus_correspondence(df, "utd_isced2011_attainment_nus")
 
 
 @wrap_derive
 def utd_isced2013_fagfelt_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive utd_isced2013_fagfelt_nus from nus2000."""
-    return _map_nus_variant(df, "utd_isced2013_fagfelt_nus")
+    """Derive utd_isced2013_fagfelt_nus from a correspondence on nus2000 -> ISCED fagfelt."""
+    return _map_nus_correspondence(df, "utd_isced2013_fagfelt_nus")
