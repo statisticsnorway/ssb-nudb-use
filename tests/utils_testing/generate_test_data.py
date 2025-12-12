@@ -9,8 +9,8 @@ import pytest
 from nudb_config import settings
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
-from nudb_use.metadata.nudb_klass.codes import _resolve_date_range
 from nudb_use.metadata.nudb_klass.codes import get_klass_codes
+from nudb_use.metadata.nudb_klass.klass_utils import _resolve_date_range
 from nudb_use.nudb_logger import logger
 from tests.utils_testing.mutate_codelist import mutated_extra_codes
 

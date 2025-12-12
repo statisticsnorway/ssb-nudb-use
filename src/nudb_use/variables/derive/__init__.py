@@ -1,14 +1,14 @@
 """Variable-derivation helpers for NUDB pipelines."""
 
+from .nus_correspondences import utd_isced2011_attainment_nus
+from .nus_correspondences import utd_isced2011_programmes_nus
+from .nus_correspondences import utd_isced2013_fagfelt_nus
 from .nus_variants import fa_erfagskole_nus
 from .nus_variants import fa_studiepoeng_nus
 from .nus_variants import uh_gradmerke_nus
 from .nus_variants import uh_gruppering_nus
 from .nus_variants import uh_studiepoeng_nus
 from .nus_variants import utd_erhistorisk_foreldet_fag_nus
-from .nus_variants import utd_isced2011_attainment_nus
-from .nus_variants import utd_isced2011_programmes_nus
-from .nus_variants import utd_isced2013_fagfelt_nus
 from .nus_variants import utd_klassetrinn_hoy_nus
 from .nus_variants import utd_klassetrinn_lav_hoy_nus
 from .nus_variants import utd_klassetrinn_lav_nus

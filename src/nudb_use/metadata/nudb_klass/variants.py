@@ -24,6 +24,7 @@ def klass_variant_search_term_mapping(var_meta: Variable) -> dict[str, str]:
 
     Raises:
         TypeError: If the klass_codelist in the config for the variable is not an int, or klass_variant_search_term is not a str.
+        ValueError: If no variant or multiple variants match the search term.
     """
     klass_codelist_maybe_none: int | None = var_meta.klass_codelist
     if not isinstance(klass_codelist_maybe_none, int):
