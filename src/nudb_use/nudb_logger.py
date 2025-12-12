@@ -80,7 +80,6 @@ class ColoredFormatter(logging.Formatter):
         colors: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> None:
-        """Initialize the formatter with specified format strings."""
         super().__init__(*args, **kwargs)
 
         self.colors = colors if colors else {}
@@ -168,7 +167,6 @@ class LoggerStack:
     """Context manager that adds structured stack labels to log output."""
 
     def __init__(self, label: str | None = None) -> None:
-        """Create a logger stack scope with the provided label."""
         if label is None:
             label = str(STACK_LEVEL + 1)
         self.label = label

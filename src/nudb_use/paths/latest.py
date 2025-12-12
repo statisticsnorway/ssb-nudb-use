@@ -67,8 +67,8 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
             for that dataset is returned.
 
     Returns:
-        list[Path] | Path: Mapping of dataset stems to their newest paths, or a
-        single `Path` when `dataset_name` is supplied.
+        dict[str, Path] | Path: Mapping of dataset stems to their newest paths,
+        or a single `Path` when `dataset_name` is supplied.
     """
     with LoggerStack("Finding all the latest shared paths for NUDB."):
         delt_path = find_delt_path() / "klargjort-data"

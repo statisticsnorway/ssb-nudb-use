@@ -95,8 +95,8 @@ def get_dtypes(
         datetimes_as_string: When True, convert datetime variables to string dtypes.
 
     Returns:
-        dict[str, str]: Mapping of requested variables to dtype strings. Variables
-        not found in config map to None.
+        dict[str, str | None]: Mapping of requested variables to dtype strings.
+        Variables not found in config map to None.
     """
     conf_variables = SETTINGS["variables"]
     renamed = _build_renamed_lookup(conf_variables)
