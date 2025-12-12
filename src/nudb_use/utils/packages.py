@@ -113,5 +113,5 @@ def _check_ssb_nudb_config_version() -> None:
 
     if v_installed < v_latest:
         logger.warning(
-            f"`ssb-nudb-config` package is outdated, installed: {v_installed}, latest: {v_latest}"
+            f"`ssb-nudb-config` is outdated, installed: {v_installed}, latest: {v_latest}."
         )
