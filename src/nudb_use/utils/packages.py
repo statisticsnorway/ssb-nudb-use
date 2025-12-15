@@ -79,7 +79,7 @@ def move_to_use_deprecate(
 
 
 def _parse_version_number(version: str) -> tuple[int, int, int]:
-    nums: list[int, int, int] = [0, 0, 0]
+    nums: list[int] = [0, 0, 0]
     i: int = 0
 
     for char in version:
@@ -88,7 +88,7 @@ def _parse_version_number(version: str) -> tuple[int, int, int]:
         else:
             i += 1
 
-    return tuple(nums)
+    return (nums[0], nums[1], nums[2])  # tuple(nums) f***s with the typechecker
 
 
 def _check_ssb_nudb_config_version() -> None:
