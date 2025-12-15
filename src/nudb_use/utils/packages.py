@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime as dt
 import re
 import subprocess
 import sys
@@ -79,8 +78,8 @@ def move_to_use_deprecate(
     return wrapper
 
 
-def _parse_version_number(version: str) -> dt.date:
-    nums: list[int] = [0, 0, 0]
+def _parse_version_number(version: str) -> tuple[int, int, int]:
+    nums: list[int, int, int] = [0, 0, 0]
     i: int = 0
 
     for char in version:
@@ -89,7 +88,7 @@ def _parse_version_number(version: str) -> dt.date:
         else:
             i += 1
 
-    return dt.date(year=nums[0], month=nums[1], day=nums[2])
+    return tuple(nums)
 
 
 def _check_ssb_nudb_config_version() -> None:
