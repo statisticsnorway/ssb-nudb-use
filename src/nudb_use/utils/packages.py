@@ -79,16 +79,12 @@ def move_to_use_deprecate(
 
 
 def _parse_version_number(version: str) -> tuple[int, int, int]:
-    nums: list[int] = [0, 0, 0]
-    i: int = 0
+    nums: tuple[int, ...] = tuple([int(num) for num in version.strip().split(".")])
 
-    for char in version:
-        if char.isalnum():
-            nums[i] = 10 * nums[i] + int(char)
-        else:
-            i += 1
+    if len(nums) != 3:
+        raise ValueError(f"Unexpected number of numbers in version: {version}")
 
-    return (nums[0], nums[1], nums[2])  # tuple(nums) f***s with the typechecker
+    return nums
 
 
 def _check_ssb_nudb_config_version() -> None:
