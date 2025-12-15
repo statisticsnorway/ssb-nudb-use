@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 import subprocess
+import sys
 import warnings
 from collections.abc import Callable
 from functools import wraps
@@ -93,7 +94,8 @@ def _parse_version_number(version: str) -> dt.date:
 
 def _check_ssb_nudb_config_version() -> None:
     result = subprocess.run(
-        ["pip", "index", "versions", "ssb-nudb-config"], capture_output=True
+        [sys.exectuable, "-m", "pip", "index", "versions", "ssb-nudb-config"],
+        capture_output=True,
     )
     stdout = result.stdout.decode("utf-8")
 
