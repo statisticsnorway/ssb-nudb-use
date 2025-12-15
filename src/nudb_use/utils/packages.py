@@ -94,7 +94,7 @@ def _parse_version_number(version: str) -> dt.date:
 
 def _check_ssb_nudb_config_version() -> None:
     result = subprocess.run(
-        [sys.exectuable, "-m", "pip", "index", "versions", "ssb-nudb-config"],
+        [sys.executable, "-m", "pip", "index", "versions", "ssb-nudb-config"],
         capture_output=True,
     )
     stdout = result.stdout.decode("utf-8")
