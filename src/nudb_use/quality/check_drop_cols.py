@@ -35,7 +35,10 @@ def check_drop_cols_for_valid_cols(
         renamed_list = [
             x
             for y in (
-                var_meta_valid.query("~renamed_from.isna()")["renamed_from"].to_list()
+                var_meta_valid[
+                    (var_meta_valid["renamed_from"].notna())
+                    & (var_meta_valid["renamed_from"].apply(bool))
+                ]["renamed_from"].to_list()
             )
             for x in y
         ]
