@@ -46,7 +46,9 @@ def generate_test_variable(
     renamed_from = metadata.renamed_from
     has_codelist = codelist is not None and codelist != 0
     has_length = length is not None
-    has_rename = renamed_from is not None
+    has_rename = (
+        renamed_from is not None and renamed_from
+    )  # Can be None, or an empty list
 
     codes_final: (
         pd.Series[int]

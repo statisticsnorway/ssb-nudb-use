@@ -8,8 +8,8 @@ from nudb_config import settings
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-UTDANNING_SHARED_EXTERNAL = settings.paths.get(
-    "local_daplalab", "/buckets/shared/utd-nudb/utdanning/"
+UTDANNING_SHARED_EXTERNAL = settings.paths["local_daplalab"].get(
+    "delt_utdanning", "/buckets/shared/utd-nudb/utdanning/"
 )
 UTDANNING_SHARED_LOCAL = "/buckets/delt-utdanning/nudb-data"
 

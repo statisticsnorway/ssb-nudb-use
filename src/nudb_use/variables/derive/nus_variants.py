@@ -54,20 +54,21 @@ def vg_kurstrinn_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     return _map_nus_variant(df, "vg_kurstrinn_nus")
 
 
-@wrap_derive
-def fa_erfagskole_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
-    df: pd.DataFrame,
-) -> pd.Series:
-    """Derive fa_erfagskole_nus from nus2000."""
-    return (_map_nus_variant(df, "fa_erfagskole_nus") == "10").astype("bool[pyarrow]")
+# Until we have discussed this we should not make it easily derivable, might prioritize getting this from archive data
+# @wrap_derive
+# def fa_erfagskole_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+#    df: pd.DataFrame,
+# ) -> pd.Series:
+#    """Derive fa_erfagskole_nus from nus2000."""
+#    return (_map_nus_variant(df, "fa_erfagskole_nus") == "10").astype("bool[pyarrow]")
 
 
 @wrap_derive
-def utd_erhistorisk_foreldet_fag_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+def utd_erforeldet_kode_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive utd_historisk_foreldet_fag_nus from nus2000."""
-    return (_map_nus_variant(df, "utd_erhistorisk_foreldet_fag_nus") == "*").astype(
+    return (_map_nus_variant(df, "utd_erforeldet_kode_nus") == "*").astype(
         "bool[pyarrow]"
     )
 

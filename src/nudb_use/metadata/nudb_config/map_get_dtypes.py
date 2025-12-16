@@ -114,7 +114,7 @@ def _build_renamed_lookup(conf_variables: dict[str, Any]) -> dict[str, str]:
     renamed: dict[str, str] = {}
     for new, meta in conf_variables.items():
         old: list[str] | str | None = meta.renamed_from
-        if old is None:
+        if old is None or old == []:
             continue
         if isinstance(old, str):
             renamed[old] = new

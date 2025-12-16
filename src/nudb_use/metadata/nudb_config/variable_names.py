@@ -157,7 +157,11 @@ def update_colnames(
         if lowercase:
             data.columns = data.columns.str.lower()
 
-        namepairs = get_var_metadata().query("~renamed_from.isna()")["renamed_from"]
+        metadata = get_var_metadata()
+        # Limit metadata to those that are not NA, and not empty lists
+        namepairs = metadata[
+            (metadata["renamed_from"].apply(bool)) & (metadata["renamed_from"].notna())
+        ]["renamed_from"]
 
         renames_completed = {}
         for newname in namepairs.index:
