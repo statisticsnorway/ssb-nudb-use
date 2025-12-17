@@ -6,6 +6,7 @@ from nudb_use.metadata.nudb_config import get_cols2drop
 from nudb_use.metadata.nudb_config import get_cols2keep
 from nudb_use.metadata.nudb_config import get_dtypes
 from nudb_use.metadata.nudb_config import get_var_metadata
+from nudb_use.metadata.nudb_config import look_up_dtype_length_for_dataset
 from nudb_use.metadata.nudb_config import sort_cols_by_unit
 from nudb_use.metadata.nudb_config import update_colnames
 
@@ -16,6 +17,7 @@ __all__ = [
     "get_cols2keep",
     "get_dtypes",
     "get_var_metadata",
+    "look_up_dtype_length_for_dataset",
     "sort_cols_by_unit",
     "update_colnames",
 ]

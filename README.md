@@ -80,6 +80,13 @@ from nudb_use import find_vars
 find_vars(["snr", "sosbak"])
 ```
 
+Find the dtype and length (char-width) of strings using a dataeset name:
+```python
+from nudb_use import look_up_dtype_length_for_dataset
+print(look_up_dtype_length_for_dataset("igang_videregaaende"))
+```
+
+
 If you want to update the column names you have in a pandas dataframe, to the new column names - there's a function for that:
 ```python
 from nudb_use import update_colnames
