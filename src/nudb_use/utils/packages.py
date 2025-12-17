@@ -7,6 +7,7 @@ import warnings
 from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec
+from typing import Self
 from typing import TypeVar
 
 from nudb_use.nudb_logger import logger
@@ -78,18 +79,26 @@ def move_to_use_deprecate(
     return wrapper
 
 
-def _parse_version_number(version: str) -> tuple[int, int, int]:
+class _VersionNumber(tuple):
+    def __new__(cls, numbers: tuple[int, int, int]) -> Self:
+        return super().__new__(cls, numbers)
+
+    def __str__(self) -> str:
+        return ".".join([str(x) for x in self])
+
+
+def _parse_version_number(version: str) -> _VersionNumber:
     nums: tuple[int, ...] = tuple([int(num) for num in version.strip().split(".")])
 
     if len(nums) != 3:
         raise ValueError(f"Unexpected number of numbers in version: {version}")
 
-    return nums
+    return _VersionNumber(nums)
 
 
-def _check_ssb_nudb_config_version() -> None:
+def _check_package_version(package: str) -> None:
     result = subprocess.run(
-        [sys.executable, "-m", "pip", "index", "versions", "ssb-nudb-config"],
+        [sys.executable, "-m", "pip", "index", "versions", package],
         capture_output=True,
     )
     stdout = result.stdout.decode("utf-8")
@@ -99,11 +108,11 @@ def _check_ssb_nudb_config_version() -> None:
     latest = re.search(f"LATEST:\\s+{version_pattern}", stdout)
 
     if not installed:
-        logger.warning("Unable to determine installed version of `ssb-nudb-config`")
+        logger.warning(f"Unable to determine installed version of `{package}`")
         return None
 
     elif not latest:
-        logger.warning("Unable to determine latest version of `ssb-nudb-config`")
+        logger.warning(f"Unable to determine latest version of `{package}`")
         return None
 
     v_installed = _parse_version_number(installed.group(1))
@@ -111,5 +120,12 @@ def _check_ssb_nudb_config_version() -> None:
 
     if v_installed < v_latest:
         logger.warning(
-            f"`ssb-nudb-config` is outdated, installed: {v_installed}, latest: {v_latest}."
+            f"`{package}` is outdated, installed: {v_installed}, latest: {v_latest}."
         )
+
+
+def _try_check_package_version(package: str) -> None:
+    try:
+        _check_package_version(package)
+    except Exception as err:
+        logger.warning(f"Unable to validate `{package}` version!\nMessage: {err}")
