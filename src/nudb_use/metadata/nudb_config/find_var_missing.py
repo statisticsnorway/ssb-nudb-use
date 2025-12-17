@@ -111,13 +111,20 @@ def look_up_dtype_length_for_dataset(dataset_name: str) -> str:
         )
     variables = settings.datasets[dataset_name].variables
     result = ""
+    max_widths = {
+        "name": max([len(name) for name in settings.variables.keys()]),
+        "dtype": max([len(v.dtype) for v in settings.variables.values()]),
+        "length": max([len(str(v.length)) for v in settings.variables.values()]),
+    }
     for var in variables:
-        dtype = settings.variables[var].dtype
-        length = settings.variables[var].length
+        dtype: str = settings.variables[var].dtype
+        length: list[int] = settings.variables[var].length
         if length:
-            result += f"{var}: {dtype=} {length=}\n"
+            result += f"{var:<{max_widths['name']}}: dtype={dtype:<{max_widths['dtype']}} length={length:<{max_widths['length']}}\n"
         else:
-            result += f"{var}: {dtype=}\n"
+            result += (
+                f"{var:<{max_widths['name']}}: dtype={dtype:<{max_widths['dtype']}}\n"
+            )
     return result
 
 

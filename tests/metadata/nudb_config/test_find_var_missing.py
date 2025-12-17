@@ -103,4 +103,7 @@ def test_look_up_dtype_length_for_dataset(monkeypatch: pytest.MonkeyPatch) -> No
 
     result = find_var_module.look_up_dtype_length_for_dataset("dataset")
 
-    assert result == "col1: dtype='DATETIME'\ncol2: dtype='STRING' length=10\n"
+    assert "dtype=DATETIME" in result.split("\n")[0]
+    assert (
+        "dtype=STRING" in result.split("\n")[1] and "length=10" in result.split("\n")[1]
+    )
