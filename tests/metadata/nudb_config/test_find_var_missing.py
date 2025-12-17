@@ -89,3 +89,21 @@ def test_variables_missing_from_config(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     assert variables_missing_from_config(["a", "c"]) == ["c"]
+
+
+def test_look_up_dtype_length_for_dataset(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_settings = SimpleNamespace(
+        datasets={"dataset": SimpleNamespace(variables=["col1", "col2"])},
+        variables={
+            "col1": SimpleNamespace(dtype="DATETIME", length=None),
+            "col2": SimpleNamespace(dtype="STRING", length=10),
+        },
+    )
+    monkeypatch.setattr(find_var_module, "settings", fake_settings)
+
+    result = find_var_module.look_up_dtype_length_for_dataset("dataset")
+
+    assert "dtype=DATETIME" in result.split("\n")[0]
+    assert (
+        "dtype=STRING" in result.split("\n")[1] and "length=10" in result.split("\n")[1]
+    )

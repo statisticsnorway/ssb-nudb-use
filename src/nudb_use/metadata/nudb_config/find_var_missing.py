@@ -93,6 +93,41 @@ def find_var(var_name: str) -> VariableMetadata | None:
     return var_data
 
 
+def look_up_dtype_length_for_dataset(dataset_name: str) -> str:
+    """Make a str of the dtypes and length fields in a dataset from a dataset_name.
+
+    Args:
+        dataset_name: The name of the dataset according to the config.
+
+    Returns:
+        str: A str with line shifts per variable. More pretty if printed in notebooks.
+
+    Raises:
+        KeyError: If the dataset_name does not exist under datasets in the config settings.
+    """
+    if dataset_name not in settings.datasets.keys():
+        raise KeyError(
+            f"Could not find `{dataset_name}` among dataset names, we only have these: {list(settings.datasets.keys())}"
+        )
+    variables = settings.datasets[dataset_name].variables
+    result = ""
+    max_widths = {
+        "name": max([len(name) for name in settings.variables.keys()]),
+        "dtype": max([len(v.dtype) for v in settings.variables.values()]),
+        "length": max([len(str(v.length)) for v in settings.variables.values()]),
+    }
+    for var in variables:
+        dtype: str = settings.variables[var].dtype
+        length: list[int] = settings.variables[var].length
+        if length:
+            result += f"{var:<{max_widths['name']}}: dtype={dtype:<{max_widths['dtype']}} length={length:<{max_widths['length']}}\n"
+        else:
+            result += (
+                f"{var:<{max_widths['name']}}: dtype={dtype:<{max_widths['dtype']}}\n"
+            )
+    return result
+
+
 def variables_missing_from_config(col_list: Iterable[str]) -> list[str]:
     """Identifies variables that are not defined in the settings.
 
