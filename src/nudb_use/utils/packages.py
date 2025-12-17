@@ -79,7 +79,7 @@ def move_to_use_deprecate(
     return wrapper
 
 
-class _VersionNumber(tuple):
+class _VersionNumber(tuple[int, int, int]):
     def __new__(cls, numbers: tuple[int, int, int]) -> Self:
         return super().__new__(cls, numbers)
 
