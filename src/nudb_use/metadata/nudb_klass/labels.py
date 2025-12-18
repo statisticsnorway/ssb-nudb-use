@@ -30,7 +30,9 @@ def get_klass_label_mapping(variable: str) -> dict[str, str] | None:
         return None
 
     if variant:
-        return klass_variant_search_term_mapping(metadata, key="code", value="name")
+        return klass_variant_search_term_mapping(
+            metadata, key="code", value="name", select_level=1
+        )
     else:
         codes = klass.KlassClassification(codelist).get_codes()
         return codes.to_dict(key="code", value="name")
