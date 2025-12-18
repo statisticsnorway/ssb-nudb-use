@@ -2,6 +2,7 @@
 
 from .find_var_missing import find_var
 from .find_var_missing import find_vars
+from .find_var_missing import get_list_of_columns_for_dataset
 from .find_var_missing import look_up_dtype_length_for_dataset
 from .get_variable_info import get_var_metadata
 from .map_get_dtypes import get_dtypes
@@ -19,6 +20,7 @@ __all__ = [
     "get_cols2drop",
     "get_cols2keep",
     "get_dtypes",
+    "get_list_of_columns_for_dataset",
     "get_var_metadata",
     "look_up_dtype_length_for_dataset",
     "sort_cols_after_config_order",

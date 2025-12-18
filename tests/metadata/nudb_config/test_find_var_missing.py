@@ -96,14 +96,18 @@ def test_look_up_dtype_length_for_dataset(monkeypatch: pytest.MonkeyPatch) -> No
         datasets={"dataset": SimpleNamespace(variables=["col1", "col2"])},
         variables={
             "col1": SimpleNamespace(dtype="DATETIME", length=None),
-            "col2": SimpleNamespace(dtype="STRING", length=10),
+            "col2": SimpleNamespace(dtype="STRING", length=[10]),
+            "col3": SimpleNamespace(
+                dtype="STRING", length=None
+            ),  # Allowed length type for string
+            "col4": SimpleNamespace(dtype="STRING", length=[]),  #
         },
     )
     monkeypatch.setattr(find_var_module, "settings", fake_settings)
 
-    result = find_var_module.look_up_dtype_length_for_dataset("dataset")
-
-    assert "dtype=DATETIME" in result.split("\n")[0]
-    assert (
-        "dtype=STRING" in result.split("\n")[1] and "length=10" in result.split("\n")[1]
+    result = find_var_module.look_up_dtype_length_for_dataset(
+        "dataset", display_markdown=False
     )
+
+    assert "DATETIME" in result.split("\n")[2]
+    assert "STRING" in result.split("\n")[3] and "10" in result.split("\n")[3]

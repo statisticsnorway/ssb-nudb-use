@@ -4,6 +4,8 @@ from collections.abc import Iterable
 from typing import Any
 
 import klass
+from IPython.display import Markdown
+from IPython.display import display
 from nudb_config import settings
 
 from nudb_use.nudb_logger import logger
@@ -93,14 +95,14 @@ def find_var(var_name: str) -> VariableMetadata | None:
     return var_data
 
 
-def look_up_dtype_length_for_dataset(dataset_name: str) -> str:
-    """Make a str of the dtypes and length fields in a dataset from a dataset_name.
+def get_list_of_columns_for_dataset(dataset_name: str) -> list[str]:
+    """Get a list of str for the columns we expect to be in a given dataset according to the config.
 
     Args:
         dataset_name: The name of the dataset according to the config.
 
     Returns:
-        str: A str with line shifts per variable. More pretty if printed in notebooks.
+        list[str]: A list of all the column names.
 
     Raises:
         KeyError: If the dataset_name does not exist under datasets in the config settings.
@@ -109,22 +111,60 @@ def look_up_dtype_length_for_dataset(dataset_name: str) -> str:
         raise KeyError(
             f"Could not find `{dataset_name}` among dataset names, we only have these: {list(settings.datasets.keys())}"
         )
-    variables = settings.datasets[dataset_name].variables
+    variables: list[str] = [str(c) for c in settings.datasets[dataset_name].variables]
+    return variables
+
+
+def look_up_dtype_length_for_dataset(
+    dataset_name: str, display_markdown: bool = True
+) -> str | None:
+    """Make a str of the dtypes and length fields in a dataset from a dataset_name.
+
+    Args:
+        dataset_name: The name of the dataset according to the config.
+        display_markdown: If we should display produced str as markdown (works best in notebooks).
+
+    Returns:
+        str | None: A str with line shifts per variable. If display_markdown is True, we return None.
+    """
+    variables = get_list_of_columns_for_dataset(dataset_name)
     result = ""
+    # Only compensate for char widths in produced display-table where variables exist in said dataset
+    want_vars_conf = {k: v for k, v in settings.variables.items() if k in variables}
+    # Column character widths pre-calculated
     max_widths = {
-        "name": max([len(name) for name in settings.variables.keys()]),
-        "dtype": max([len(v.dtype) for v in settings.variables.values()]),
-        "length": max([len(str(v.length)) for v in settings.variables.values()]),
+        "name": max(
+            [len(name) for name in want_vars_conf.keys()] + [len("Variable name")]
+        ),
+        "dtype": max(
+            [len(v.dtype) for v in want_vars_conf.values()] + [len("Datatype")]
+        ),
+        "length": max(
+            [
+                len(str(v.length)) + (2 * (len(v.length) - 1))
+                for v in want_vars_conf.values()
+                if v.length
+            ]
+            + [len("Lengths")]
+        ),
     }
+    # Markdown table header
+    if variables:
+        result += f"| {'Variable name':<{max_widths['name']}}\t| {'Datatype':<{max_widths['dtype']}}\t| {'Lengths':<{max_widths['length']}} |\n"
+        result += f"|{'-'*max_widths['name']}{'-'*6}|{'-'*max_widths['dtype']}{'-'*7}|{'-'*max_widths['length']}{'-'*2}|\n"
+    # Markdown table rows per column
     for var in variables:
-        dtype: str = settings.variables[var].dtype
-        length: list[int] = settings.variables[var].length
-        if length:
-            result += f"{var:<{max_widths['name']}}: dtype={dtype:<{max_widths['dtype']}} length={length:<{max_widths['length']}}\n"
+        dtype: str = want_vars_conf[var].dtype
+        length: list[int] = want_vars_conf[var].length
+        if length:  # Checks both empty list and None
+            length_str: str = ", ".join([str(x) for x in length])
         else:
-            result += (
-                f"{var:<{max_widths['name']}}: dtype={dtype:<{max_widths['dtype']}}\n"
-            )
+            length_str = "NA"
+        result += f"| {var:<{max_widths['name']}}\t| {dtype:<{max_widths['dtype']}}\t| {length_str:<{max_widths['length']}} |\n"
+    # Output
+    if display_markdown:
+        display(Markdown(result))  # type: ignore[no-untyped-call]
+        return None
     return result
 
 
