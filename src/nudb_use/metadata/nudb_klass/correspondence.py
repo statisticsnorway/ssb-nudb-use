@@ -35,8 +35,8 @@ def klass_correspondence_to_mapping(var_meta: Variable) -> dict[str, str | None]
     _first_date, last_date = find_earliest_latest_klass_version_date(klass_codelist)
 
     correspondence = klass.KlassCorrespondence(
-        source_classification_id=klass_codelist,
-        target_classification_id=correspondence_to,
+        source_classification_id=correspondence_to,
+        target_classification_id=klass_codelist,
         from_date=last_date,  # Future development, do we want to pass time down to this function to not always get the latest versions?
         # to_date=?,
     )
