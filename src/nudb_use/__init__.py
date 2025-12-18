@@ -7,6 +7,7 @@ from nudb_config import settings
 from nudb_use.metadata import find_var
 from nudb_use.metadata import find_vars
 from nudb_use.metadata import get_dtypes
+from nudb_use.metadata import get_list_of_columns_for_dataset
 from nudb_use.metadata import update_colnames
 from nudb_use.metadata.nudb_config import look_up_dtype_length_for_dataset
 from nudb_use.nudb_logger import LoggerStack
@@ -23,6 +24,7 @@ __all__ = [
     "find_var",
     "find_vars",
     "get_dtypes",
+    "get_list_of_columns_for_dataset",
     "get_periods_from_path",
     "latest_shared_paths",
     "logger",
