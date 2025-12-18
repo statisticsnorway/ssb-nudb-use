@@ -110,6 +110,4 @@ def test_look_up_dtype_length_for_dataset(monkeypatch: pytest.MonkeyPatch) -> No
     )
 
     assert "DATETIME" in result.split("\n")[2]
-    assert (
-        "STRING" in result.split("\n")[3] and "10" in result.split("\n")[3]
-    )
+    assert "STRING" in result.split("\n")[3] and "10" in result.split("\n")[3]
