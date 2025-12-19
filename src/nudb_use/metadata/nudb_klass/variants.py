@@ -13,11 +13,19 @@ from .klass_utils import _outside_codes_handeling
 from .klass_utils import find_earliest_latest_klass_version_date
 
 
-def klass_variant_search_term_mapping(var_meta: Variable) -> dict[str, str]:
+def klass_variant_search_term_mapping(
+    var_meta: Variable,
+    key: str = "code",
+    value: str = "parentCode",
+    select_level: int | None = None,
+) -> dict[str, str]:
     """Subfunction to get the mapping from klass for the variable.
 
     Args:
         var_meta: The variable metadata from the settings relating to the derived variable.
+        key: key argument passed to 'klass.KlassVariant.to_dict'
+        value: value argument passed to 'klass.KlassVariant.to_dict'
+        select_level: select_level argument passed to 'klass.KlassVariant.to_dict'
 
     Returns:
         dict[str, str]: The mapping dict from klass.
@@ -59,7 +67,16 @@ def klass_variant_search_term_mapping(var_meta: Variable) -> dict[str, str]:
 
     variant = version.get_variant(next(iter(found_variants.keys())))
     # Should we log the amount of codes that do not map to a grouping in the variant?
-    return variant.to_dict()
+
+    data = variant.data
+
+    if select_level is not None:
+        data = data[data["level"].astype("Int64") == select_level]
+
+    keys = data[key]
+    values = data[value]
+
+    return dict(zip(keys, values, strict=True))
 
 
 def _check_klass_variant_column_id(
