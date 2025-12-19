@@ -2,6 +2,7 @@
 
 module = __import__(__name__, fromlist=[""])  # pass nonempty fromlist
 import nudb_use.variables.derive.klass_labels as klass_labels
+from nudb_use.nudb_logger import logger
 
 from .derive_decorator import get_derive_function
 from .klass_labels import __all__ as label_funcs
@@ -47,4 +48,10 @@ __all__ = [
 
 
 for label_func in label_funcs:
-    setattr(module, label_func, getattr(klass_labels, label_func))
+    try:
+        setattr(module, label_func, getattr(klass_labels, label_func))
+        __all__.append(label_func)  # could also just do __all__ += label_funcs
+    except Exception as err:
+        logger.warning(
+            f"Unable to attach '{label_func}' function to 'derive' module!\nMessage: {err}"
+        )
