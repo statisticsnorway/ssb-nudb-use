@@ -1,5 +1,3 @@
-import re
-
 import pandas as pd
 
 import nudb_use.variables.derive as derive
@@ -15,7 +13,7 @@ def test_derive_nus_variants(avslutta: pd.DataFrame) -> None:
     failures = []
 
     for func_name in derive.__all__:
-        if not re.search("_nus$", func_name):
+        if not func_name.endswith("_nus") and not func_name.endswith("_nus_label"):
             continue
 
         logger.info(f"Testing derive function: '{func_name}'...")

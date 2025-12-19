@@ -1,5 +1,10 @@
 """Variable-derivation helpers for NUDB pipelines."""
 
+module = __import__(__name__, fromlist=[""])  # pass nonempty fromlist
+import nudb_use.variables.derive.klass_labels as klass_labels
+
+from .derive_decorator import get_derive_function
+from .klass_labels import __all__ as label_funcs
 from .nus_correspondences import utd_isced2011_attainment_nus
 from .nus_correspondences import utd_isced2011_programmes_nus
 from .nus_correspondences import utd_isced2013_fagfelt_nus
@@ -39,3 +44,7 @@ __all__ = [
     "vg_kompetanse_nus",
     "vg_kurstrinn_nus",
 ]
+
+
+for label_func in label_funcs:
+    setattr(module, label_func, getattr(klass_labels, label_func))
