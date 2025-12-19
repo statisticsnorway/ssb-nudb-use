@@ -11,6 +11,9 @@ module = __import__(__name__, fromlist=[""])  # pass non-empty fromlist
 __all__ = []
 
 
+class MissingLabelMappingError(Exception): ...
+
+
 def _generate_label_function(
     variable_label: str,
 ) -> Callable[[pd.DataFrame], pd.DataFrame] | None:
@@ -19,7 +22,13 @@ def _generate_label_function(
 
     def basefunc(df: pd.DataFrame) -> pd.Series:
         mapping = get_klass_label_mapping(variable)
-        return df[variable].map(mapping)
+
+        if mapping:
+            return df[variable].map(mapping)
+        else:
+            raise MissingLabelMappingError(
+                f"Unable to generate label mapping for '{variable}'"
+            )
 
     basefunc.__doc__ = f"""Derive {variable_label}, with klass labels for {variable}."""
     basefunc.__name__ = variable_label
