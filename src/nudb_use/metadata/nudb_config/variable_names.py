@@ -268,6 +268,7 @@ def _ensure_target_column(df: pd.DataFrame, new_name: str) -> pd.DataFrame:
 def _fill_and_drop_sources(
     df: pd.DataFrame, new_name: str, candidates: list[str]
 ) -> pd.DataFrame:
+    col: str
     for col in [c for c in candidates if c != new_name]:
         if df[col].isna().all():
             logger.debug(
@@ -278,7 +279,7 @@ def _fill_and_drop_sources(
                 f"Found multiple columns that will map to the same, meaning we are doing a fillna into {new_name} from {col}, deleting {col} after."
             )
             df[new_name] = df[new_name].fillna(df[col])
-        del df[col]
+        df = df.drop(columns=[col])
     return df
 
 
