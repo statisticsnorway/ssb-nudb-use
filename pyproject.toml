@@ -1,6 +1,6 @@
 [project]
 name = "ssb-nudb-use"
-version = "2025.12.6"  # Year.Month.Patch - So the last number is not day of month, but patch number within month
+version = "2026.1.0"  # Year.Month.Patch - So the last number is not day of month, but patch number within month
 description = "NUDB Use - is a usage-package for the Norwegian National Education Database cloud-data. Both for data-consumers and data-deliverers"
 authors = [{ name = "Carl F. Corneil", email = "cfc@ssb.no" }, { name = "Kjell Slupphaug", email = "pph@ssb.no" }, { name = "Markus Storeide", email = "rku@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, Education statistics Department (360)" }]
