@@ -1,6 +1,7 @@
 """Validation utilities for ensuring variable schemas match expectations."""
 
 from pathlib import Path
+from typing import Any
 from typing import cast
 
 import klass
@@ -184,26 +185,29 @@ def _build_codelists_from_config(
     col_codelist: dict[str, list[str] | dict[str, str]] = {}
 
     for col in df.columns:
+        variable = variables.get(col)
         logger.debug(col)
         logger.debug(f"col in variables: {col in variables}")
 
-        if col in variables:
-            logger.debug(f"variables[col]:\n{variables[col]}")
+        if variable is not None:
+            logger.debug(f"variables[col]:\n{variable}")
 
-        if col in variables and variables[col]["klass_codelist"]:
-            col_codelist |= _build_codelist_entry(col, variables[col], full_timeline)
-        elif col in variables and variables[col]["klass_variant"]:
+        if variable is None:
+            continue
+
+        meta = _normalize_variable(variable)
+        if meta.get("klass_codelist"):
+            col_codelist |= _build_codelist_entry(col, meta, full_timeline)
+        elif meta.get("klass_variant"):
             col_codelist |= {
-                col: klass.KlassVariant(variables[col]["klass_variant"])
-                .data["code"]
-                .to_list()
+                col: klass.KlassVariant(meta["klass_variant"]).data["code"].to_list()
             }
 
     return col_codelist
 
 
 def _build_codelist_entry(
-    col: str, meta: dict[str, str], full_timeline: bool
+    col: str, meta: dict[str, Any], full_timeline: bool
 ) -> dict[str, list[str]]:
     klass_id = int(meta["klass_codelist"])
     earliest_version_date, latest_version_date = (
@@ -217,6 +221,16 @@ def _build_codelist_entry(
         codes = klass.KlassClassification(klass_id).get_codes()
 
     return {col: list(codes.to_dict().keys())}
+
+
+def _normalize_variable(variable: Any) -> dict[str, Any]:
+    if isinstance(variable, dict):
+        return dict(variable)
+    if hasattr(variable, "model_dump"):
+        return dict(variable.model_dump())
+    if hasattr(variable, "dict"):
+        return dict(variable.dict())
+    return dict(vars(variable))
 
 
 def check_cols_against_klass_codelists(

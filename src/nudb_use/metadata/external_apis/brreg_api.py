@@ -11,8 +11,37 @@ from brreg.enhetsregisteret import Client  # type: ignore
 from brreg.enhetsregisteret import UnderenhetQuery
 from pydantic import BaseModel
 
-from nudb_use import settings
 from nudb_use.nudb_logger import logger
+
+UTD_NACEKODER = [
+    "88.911",
+    "85.100",
+    "85.201",
+    "85.202",
+    "85.203",
+    "85.601",  # Grunnskole
+    "85.310",
+    "85.320",
+    "85.609",  # Videregående
+    "85.510",
+    "85.521",
+    "85.522",
+    "85.529",
+    "85.530",
+    "85.592",
+    "85.593",
+    "85.594",
+    "85.595",
+    "85.596",
+    "85.599",  # Diverse
+    "85.410",  # Fagskole
+    "85.591",  # Folkehøgskoler
+    "85.421",
+    "85.422",
+    "85.423",
+    "85.424",
+    "85.429",  # Uh
+]
 
 
 def download_csv_content_enheter() -> pd.DataFrame:
@@ -49,9 +78,9 @@ def filter_utd_csv_enheter() -> pd.DataFrame:
     logger.info("Filtering brreg-data down to UTD-nacecodes.")
     result: pd.DataFrame = (
         df[
-            df["naeringskode1.kode"].isin(settings.utd_nacekoder)
-            | df["naeringskode2.kode"].isin(settings.utd_nacekoder)
-            | df["naeringskode3.kode"].isin(settings.utd_nacekoder)
+            df["naeringskode1.kode"].isin(UTD_NACEKODER)
+            | df["naeringskode2.kode"].isin(UTD_NACEKODER)
+            | df["naeringskode3.kode"].isin(UTD_NACEKODER)
         ]
         .convert_dtypes()
         .copy()

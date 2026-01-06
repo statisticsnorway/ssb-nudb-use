@@ -34,7 +34,7 @@ def test_download_csv_content_enheter_parses_gzip(
 
 
 def test_filter_utd_csv_enheter(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(brreg_api.settings, "utd_nacekoder", ["85.200"])  # type: ignore[attr-defined]
+    monkeypatch.setattr(brreg_api, "UTD_NACEKODER", ["85.200"])
 
     source_df = pd.DataFrame(
         [

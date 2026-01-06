@@ -111,8 +111,10 @@ def get_list_of_columns_for_dataset(dataset_name: str) -> list[str]:
         raise KeyError(
             f"Could not find `{dataset_name}` among dataset names, we only have these: {list(settings.datasets.keys())}"
         )
-    variables: list[str] = [str(c) for c in settings.datasets[dataset_name].variables]
-    return variables
+    dataset_vars = settings.datasets[dataset_name].variables
+    if not dataset_vars:
+        return []
+    return [str(c) for c in dataset_vars]
 
 
 def look_up_dtype_length_for_dataset(
@@ -155,7 +157,7 @@ def look_up_dtype_length_for_dataset(
     # Markdown table rows per column
     for var in variables:
         dtype: str = want_vars_conf[var].dtype
-        length: list[int] = want_vars_conf[var].length
+        length = want_vars_conf[var].length
         if length:  # Checks both empty list and None
             length_str: str = ", ".join([str(x) for x in length])
         else:
