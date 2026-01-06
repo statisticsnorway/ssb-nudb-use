@@ -39,16 +39,22 @@ def _generate_klass_derive_function(
 
     if not derived_from:
         return None
+    elif len(derived_from) > 1:
+        logger.warning(
+            f"""Don't know which variable to derive {varname} from!\n
+                       as there are multiple options: {derived_from}"""
+        )
+        return None
     elif is_variant:
 
         def basefunc(df: pd.DataFrame) -> pd.Series:
-            return _map_klass_variant(df, variant_of=derived_from, varname=varname)
+            return _map_klass_variant(df, variant_of=derived_from[0], varname=varname)
 
     elif is_correspondence:
 
         def basefunc(df: pd.DataFrame) -> pd.Series:
             return _map_klass_correspondence(
-                df, corresponds_to=derived_from, varname=varname
+                df, corresponds_to=derived_from[0], varname=varname
             )
 
     else:
