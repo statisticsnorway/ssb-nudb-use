@@ -43,12 +43,11 @@ def generate_test_variable(
     length = metadata.length
     dtype = metadata.dtype
 
-    renamed_from = metadata.renamed_from
+    renamed_from = metadata.renamed_from or []
     has_codelist = codelist is not None and codelist != 0
-    has_length = length is not None
-    has_rename = (
-        renamed_from is not None and renamed_from
-    )  # Can be None, or an empty list
+    length_list = length or []
+    has_length = bool(length_list)
+    has_rename = bool(renamed_from)  # Can be empty if unset in config
 
     codes_final: (
         pd.Series[int]
@@ -58,30 +57,32 @@ def generate_test_variable(
         | pd.Series[pd.Timestamp]
     )
     if has_codelist:
+        assert codelist is not None
         # Align generated codes with the same period logic the validator uses
         from_date, to_date = _resolve_date_range(
-            klassid=codelist,
+            klassid=int(codelist),
             klass_codelist_from_date=metadata.klass_codelist_from_date,
             data_time_start=None,
             data_time_end=None,
         )
-        codes_str: pd.Series[str] = pd.Series(
-            get_klass_codes(
-                codelist,
-                data_time_start=from_date,
-                data_time_end=to_date,
-            )
-        ).astype("string[pyarrow]")
+        codes_list = get_klass_codes(
+            int(codelist),
+            data_time_start=from_date,
+            data_time_end=to_date,
+        )
+        codes_str: pd.Series[str] = pd.Series(codes_list).astype("string[pyarrow]")
         cutoff_index = (10 if len(codes_str) > 10 else len(codes_str)) - 1
 
         logger.info(
             f"Generating data for col `{name}` with unique klass-codes: {list(codes_str)[:cutoff_index]}"
         )
         if has_length:
-            wrong_codes = list(codes_str[~codes_str.str.len().isin(length)].unique())
+            wrong_codes = list(
+                codes_str[~codes_str.str.len().isin(length_list)].unique()
+            )
             if len(wrong_codes):
                 raise ValueError(
-                    f"Found codes for column {name} in the klass-codelist {codelist} that do not match char length: {length}. Wrong codes: {wrong_codes}"
+                    f"Found codes for column {name} in the klass-codelist {codelist} that do not match char length: {length_list}. Wrong codes: {wrong_codes}"
                 )
         if add_klass_errors:
             codes_final = pd.concat(
@@ -101,7 +102,7 @@ def generate_test_variable(
                         "string[pyarrow]"
                     )
                     for _i in range(
-                        length[0] if has_length else 2
+                        length_list[0] if has_length else 2
                     ):  # Mange koder fra kodelister er 2 brei?
                         rletters = LETTERS.sample(n=n, random_state=rng, replace=True)
                         codes_final += rletters.reset_index(drop=True)
@@ -124,7 +125,7 @@ def generate_test_variable(
             case _:
                 raise TypeError(f"Unknown dtype: {dtype}!")
 
-    newname: str = renamed_from[0] if has_rename and add_old_cols else name
+    newname: str = renamed_from[0] if add_old_cols and has_rename else name
     pdtype: str = DTYPE_MAPPINGS["pandas"][dtype]
     values: pd.Series = codes_final.sample(n=n, random_state=rng, replace=True).astype(pdtype)  # type: ignore
     values = values.reset_index(drop=True)
@@ -145,6 +146,9 @@ def generate_test_data(
 ) -> pd.DataFrame:
 
     variables = settings.datasets[dataset].variables
+    if not variables:
+        logger.warning(f"No variables configured for dataset '{dataset}'.")
+        return pd.DataFrame()
 
     cols = {}
     for var in variables:

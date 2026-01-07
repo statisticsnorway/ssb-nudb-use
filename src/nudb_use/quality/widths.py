@@ -10,6 +10,12 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 
+def _get_length(var_info: object) -> list[int] | None:
+    if isinstance(var_info, dict):
+        return var_info.get("length")
+    return getattr(var_info, "length", None)
+
+
 def check_column_widths(
     df: pd.DataFrame,
     widths: dict[str, list[int]] | None = None,
@@ -45,9 +51,9 @@ def check_column_widths(
         else:
             logger.info("widths does not match datatype, getting widths from config.")
             widths_def = {
-                col: var_info.length
+                col: length
                 for col, var_info in settings.variables.items()
-                if col in df.columns and "length" in var_info
+                if col in df.columns and (length := _get_length(var_info)) is not None
             }
 
         widths_def_str = str(widths_def).replace(",", ",\n")

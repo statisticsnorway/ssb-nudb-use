@@ -36,7 +36,7 @@ def _generate_label_function(
     return wrap_derive(basefunc)
 
 
-confvars: list[str] = settings.variables.keys()
+confvars: list[str] = list(settings.variables.keys())
 labvars: list[str] = [var for var in confvars if var.endswith("_label")]
 
 for labvar in labvars:

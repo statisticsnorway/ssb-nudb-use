@@ -8,6 +8,7 @@ from nudb_use.metadata import find_var
 from nudb_use.metadata import find_vars
 from nudb_use.metadata import get_dtypes
 from nudb_use.metadata import get_list_of_columns_for_dataset
+from nudb_use.metadata import set_option
 from nudb_use.metadata import update_colnames
 from nudb_use.metadata.nudb_config import look_up_dtype_length_for_dataset
 from nudb_use.nudb_logger import LoggerStack
@@ -30,6 +31,7 @@ __all__ = [
     "logger",
     "look_up_dtype_length_for_dataset",
     "run_quality_suite",
+    "set_option",
     "settings",
     "update_colnames",
 ]
