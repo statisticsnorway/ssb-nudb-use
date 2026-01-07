@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from typing import Any
 from typing import Literal
@@ -134,6 +135,8 @@ def wrap_derive(
     ) -> pd.DataFrame:
 
         with LoggerStack(f"Deriving {name} from {derived_from}..."):
+            logger.debug(f"Source code for {name}:\n{inspect.getsource(basefunc)}")
+
             available = set(df.columns)
             need = set(derived_from)
 
