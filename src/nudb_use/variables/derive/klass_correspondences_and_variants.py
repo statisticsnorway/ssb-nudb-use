@@ -67,9 +67,7 @@ def _generate_klass_derive_function(
     return wrap_derive(basefunc)
 
 
-confvars: list[str] = settings.variables.keys()
-
-for varname in confvars:
+for varname in settings.variables.keys():
     try:
         derivefunc = _generate_klass_derive_function(varname)
 
