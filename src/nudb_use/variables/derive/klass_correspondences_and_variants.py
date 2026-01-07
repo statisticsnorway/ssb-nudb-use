@@ -36,8 +36,9 @@ def _generate_klass_derive_function(
     is_variant = var_meta.klass_variant_search_term
     is_correspondence = var_meta.klass_correspondence_to
     derived_from = var_meta.derived_from
+    is_relevant = (is_variant or is_correspondence) and derived_from
 
-    if not derived_from:
+    if not is_relevant:
         return None
     elif len(derived_from) > 1:
         logger.warning(
@@ -56,9 +57,6 @@ def _generate_klass_derive_function(
             return _map_klass_correspondence(
                 df, corresponds_to=derived_from[0], varname=varname
             )
-
-    else:
-        return None
 
     basefunc.__doc__ = f"""Derive '{varname}' from '{derived_from}'."""
     basefunc.__name__ = varname
