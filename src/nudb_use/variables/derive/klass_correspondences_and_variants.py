@@ -38,7 +38,7 @@ def _generate_klass_derive_function(
     derived_from = var_meta.derived_from
     is_relevant = is_variant or is_correspondence
 
-    if is_relevant or not derived_from:  # need to explicitly use `derived_from` for
+    if not is_relevant or not derived_from:  # need to explicitly use `derived_from` for
         # mypy to understand that it is not None
         # So it is not used in `is_relevant`
         return None
