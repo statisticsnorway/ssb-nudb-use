@@ -36,10 +36,13 @@ def _generate_klass_derive_function(
     is_variant = var_meta.klass_variant_search_term
     is_correspondence = var_meta.klass_correspondence_to
     derived_from = var_meta.derived_from
-    is_relevant = (is_variant or is_correspondence) and derived_from
+    is_relevant = is_variant or is_correspondence
 
-    if not is_relevant:
+    if is_relevant and derived_from:  # need to explicitly use `derived_from` for
+        # mypy to understand that it is not None
+        # So it is not used in `is_relevant`
         return None
+
     elif len(derived_from) > 1:
         logger.warning(
             f"""Don't know which variable to derive {varname} from!\n

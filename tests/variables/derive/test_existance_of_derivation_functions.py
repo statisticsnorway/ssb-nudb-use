@@ -1,13 +1,13 @@
 from nudb_config import settings
-from nudb_config.nudb_logger import logger
 
+from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive import __all__ as derivation_functions
 
 
 class MissingDerivationFunctions(Exception): ...
 
 
-def test_existence_of_derivation_functions():
+def test_existence_of_derivation_functions() -> None:
     confvars = settings.variables.keys()
     missing = []
 

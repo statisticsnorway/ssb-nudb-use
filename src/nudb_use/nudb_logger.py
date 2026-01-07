@@ -218,7 +218,7 @@ def function_logger_context(func: Callable[..., Any]) -> Callable[..., Any]:
     """Function decorator for creating logger stack for a function call."""
     funcname = func.__name__
 
-    def wrapped(*args: Any, **kwargs: Any):
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
         signature = inspect.signature(func)
         params = signature.parameters
 
