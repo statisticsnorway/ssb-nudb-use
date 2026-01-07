@@ -225,7 +225,7 @@ def function_logger_context(func: Callable[..., Any]) -> Callable[..., Any]:
         funcall = funcname + "(" + ", ".join(params) + ")"
 
         with LoggerStack(funcall):
-            logger.debug(f"Source code for basefunc:\n{inspect.getsource(func)}")
+            logger.debug(f"Source code for {funcname}:\n{inspect.getsource(func)}")
             return func(*args, **kwargs)
 
     return wrapped
