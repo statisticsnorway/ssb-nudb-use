@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import copy
+import inspect
 import json
 import logging
 import sys
+from collections.abc import Callable
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -187,7 +189,7 @@ class LoggerStack:
         JSON_FIELDS.append(current_json_field[FIELD_NAME])
 
         ENTERING_STACK = True
-        logger.info(f"ENTERING STACK [{self.label}|{STACK_LEVEL}]")
+        logger.info(f"ENTERING STACK [{self.label}]")
         ENTERING_STACK = False
 
         STACK_LABELS.append(self.label)
@@ -205,11 +207,28 @@ class LoggerStack:
 
         JSON_FIELDS.pop()
         EXITING_STACK = True
-        logger.info(f"EXITING STACK [{self.label}|{STACK_LEVEL}]\n")
+        logger.info(f"EXITING STACK [{self.label}]\n")
 
         EXITING_STACK = False
         STACK_LABELS.pop()
         STACK_LEVEL -= 1
+
+
+def function_logger_context(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Function decorator for creating logger stack for a function call."""
+    funcname = func.__name__
+
+    def wrapped(*args: Any, **kwargs: Any):
+        signature = inspect.signature(func)
+        params = signature.parameters
+
+        funcall = funcname + "(" + ", ".join(params) + ")"
+
+        with LoggerStack(funcall):
+            logger.debug(f"Source code for basefunc:\n{inspect.getsource(func)}")
+            return func(*args, **kwargs)
+
+    return wrapped
 
 
 def _enter_new_logger_stack(label: str | None = None) -> None:
