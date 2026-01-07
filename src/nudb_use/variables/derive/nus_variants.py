@@ -26,4 +26,4 @@ def utd_erforeldet_kode_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive utd_erforeldet_kode_nus from utd_foreldet_kode_nus nus2000."""
-    return (df["utd_erforeldet_kode_nus"] == "*").astype("bool[pyarrow]")
+    return (df["utd_foreldet_kode_nus"] == "*").astype("bool[pyarrow]")
