@@ -220,5 +220,24 @@ def wrap_derive(
     return wrapper
 
 
-def wrap_derive_need_fresh_avslutta(basefunc, duckdb_query):
-    # Step 1. Load fresh (filtered avslutta)
+def wrap_derive_need_fresh_avslutta(basefunc, duckdb_query, filter_masks):
+
+    def subfunc(df):
+        # Step 1: Load fresh (filtered avslutta using duckdb)
+        fresh_avslutta = db.sql(duckdb_query).df()
+
+        # Step 2: Apply filter_masks
+        for filter_mask in filter_masks:
+            fresh_avslutta = get_derive_function(filter_mask)(fresh_avslutta)
+            fresh_avslutta.query(filter_mask)
+
+        # Step 3: Wrap basefunc and run
+        # maybe basefunc.__name__ is fucked? idk
+        basefunc_wrapped = wrap_derive(basefunc)
+        fresh_avslutta = basefunc_wrapped(basefunc)
+
+        # Step 4: Merge
+        # get keys from config, and name of variable we want
+        return df.merge(fresh_avslutta[<subset-by-keys-and-wanted-value>], how = "left", on = <keys>)
+    
+    return subfunc
