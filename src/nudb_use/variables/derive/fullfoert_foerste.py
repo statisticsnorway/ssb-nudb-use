@@ -1,24 +1,43 @@
 import pandas as pd
+from collections.abc import Callable
 
 from nudb_use.nudb_logger import logger
 
-@wrap_derive_keyed
-def gr_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
-    """Derive gr_foerste_fullfoert_dato from the avslutta data.
-    
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Callable, Sequence
+
+from .all_data_helpers import get_source_data, enforce_datetime_s, join_variable_data
+
+
+def gr_foerste_fullfoert_dato(data_to_merge: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Derive gr_foerste_fullfoert_dato from avslutta.
+
+    Args:
+        avslutta: Source dataset containing at least snr, gr_ergrunnskole_fullfort, utd_aktivitet_slutt.
+
     Returns:
-        pd.DataFrame: A dataframe with a join key, and the generated data
+        Dataframe with columns ["snr", "gr_foerste_fullfoert_dato"] suitable for joining.
     """
-    logger.warning("When deriving this variable, it is important that you use all of the data available, not a subset of avslutta for example.")
-    df_to_join: pd.DataFrame = (
-        df[df["gr_ergrunnskole_fullfort"]]
-        .sort_values("utd_aktivitet_slutt")
-        .groupby("snr")
+    variable_name = "gr_foerste_fullfoert_dato"
+    source_data = get_source_data(variable_name, data_to_merge, filter_vars=["gr_ergrunnskole_fullfort"])
+
+    mask = source_data["gr_ergrunnskole_fullfort"].fillna(False).astype(bool)
+
+    df_to_join = (
+        source_data.loc[mask, ["snr", "utd_aktivitet_slutt"]]
+        .sort_values(["snr", "utd_aktivitet_slutt"])
+        .groupby("snr", as_index=False)
         .first()
-        .rename({"utd_aktivitet_slutt": "gr_foerste_fullfoert_dato"})
-        .astype({"gr_foerste_fullfoert_dato": "datetime64[s]"})
-        [["snr", "gr_foerste_fullfoert_dato"]]
-        )
+        .rename(columns={"utd_aktivitet_slutt": variable_name})
+    )
+
+    # Enforce dtype (DuckDB might already give datetime64[ns], but safe to normalize)
+    df_to_join[variable_name] = enforce_datetime_s(df_to_join[variable_name])
+
+    if data_to_merge is not None:
+        return join_variable_data(variable_name, df_to_join, data_to_merge)
     return df_to_join
 
 #@wrap_derive

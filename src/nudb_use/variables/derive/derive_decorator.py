@@ -218,3 +218,7 @@ def wrap_derive(
                 pd.DataFrame: The dataframe with {name} added/updated when all prerequisites are available.
         """
     return wrapper
+
+
+def wrap_derive_need_fresh_avslutta(basefunc, duckdb_query):
+    # Step 1. Load fresh (filtered avslutta)
