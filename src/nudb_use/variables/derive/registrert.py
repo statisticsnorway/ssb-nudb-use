@@ -2,6 +2,17 @@ import pandas as pd
 
 from .derive_decorator import wrap_derive
 
+__all__ = [
+    "gr_ergrunnskole_registering",
+    "uh_erbachelor_registrering",
+    "uh_erhoyereutd_registrering",
+    "uh_ermaster_registrering",
+    "vg_erstudiespess_registrering",
+    "vg_ervgo_registrering",
+    "vg_eryrkesfag_registrering",
+]
+
+
 # Would be nice if these were complete in klass instead
 PRG_RANGES_RANGES: dict[str, list[range]] = {
     "studiespess": [range(1, 2), range(21, 24), range(60, 65)],

@@ -20,6 +20,6 @@ def test_existence_of_derivation_functions() -> None:
 
     if missing:
         n = len(missing)
-        message = f"{n} derived variables in the config are missing derivation functions!\n{confvars}"
+        message = f"{n} derived variables in the config are missing derivation functions!: {missing}"
         logger.error(message)
         raise MissingDerivationFunctions(message)

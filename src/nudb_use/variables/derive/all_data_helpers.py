@@ -1,21 +1,15 @@
-
-import pandas as pd
-import duckdb
-
-from nudb_use.paths.latest import latest_shared_paths
-from nudb_config import settings
-
-
 from __future__ import annotations
 
 import duckdb
 import pandas as pd
+from nudb_config import settings
+
+from nudb_use.paths.latest import latest_shared_paths
 
 
 def get_source_data(
     variable_name: str,
     data_to_merge: pd.DataFrame | None = None,
-    filter_vars: list[str] | None = None
 ) -> pd.DataFrame:
     """Load and prepare source data for deriving a variable.
 
@@ -33,10 +27,9 @@ def get_source_data(
             combinations present in this dataframe.
 
     Returns:
-        A pandas DataFrame containing the unioned (and possibly filtered) source data.
+        pd.DataFrame: A pandas DataFrame containing the unioned (and possibly filtered) source data.
 
     Raises:
-        KeyError: If `variable_name` is not found in settings.
         ValueError: If required config fields are missing or invalid.
         KeyError: If `data_to_merge` is missing required join key columns.
     """
@@ -47,22 +40,29 @@ def get_source_data(
     derived_join_keys = cfg.derived_join_keys
 
     if not derived_from:
-        raise ValueError(f"{variable_name}: settings.variables[{variable_name}].derived_from must be defined")
+        raise ValueError(
+            f"{variable_name}: settings.variables[{variable_name}].derived_from must be defined"
+        )
     if not derived_uses_datasets:
-        raise ValueError(f"{variable_name}: settings.variables[{variable_name}].derived_uses_datasets must be defined")
+        raise ValueError(
+            f"{variable_name}: settings.variables[{variable_name}].derived_uses_datasets must be defined"
+        )
     if not derived_join_keys:
-        raise ValueError(f"{variable_name}: settings.variables[{variable_name}].derived_join_keys must be defined")
+        raise ValueError(
+            f"{variable_name}: settings.variables[{variable_name}].derived_join_keys must be defined"
+        )
 
     # Ensure we always read join keys + all columns required for derivation.
-    cols_to_read = list(dict.fromkeys([*derived_join_keys, *derived_from]))
+    cols_to_read = list(set(dict.fromkeys([*derived_join_keys, *derived_from])))
 
-    dataset_paths = [str(latest_shared_paths(ds_name)) for ds_name in derived_uses_datasets]
+    dataset_paths = [
+        str(latest_shared_paths(ds_name)) for ds_name in derived_uses_datasets
+    ]
 
     # Build a UNION ALL over all datasets, selecting only needed columns.
     select_cols = ", ".join(cols_to_read)
     union_sql = "\nUNION ALL\n".join(
-        f"SELECT {select_cols} FROM read_parquet('{path}')"
-        for path in dataset_paths
+        f"SELECT {select_cols} FROM read_parquet('{path}')" for path in dataset_paths
     )
     con_factory = duckdb.connect
     with con_factory() as con:
@@ -99,8 +99,8 @@ def get_source_data(
         INNER JOIN key_filter AS k
         USING ({using_keys})
         """
-
-        return con.execute(filtered_sql).df()
+        result: pd.DataFrame = con.execute(filtered_sql).df()
+        return result
 
 
 def join_variable_data(
@@ -114,11 +114,9 @@ def join_variable_data(
         variable_name: Name of the variable being derived (used for config lookup).
         df_to_join: Derived data containing at least the join keys and derived columns.
         data_to_merge: Base dataframe to enrich.
-        settings_obj: Settings object containing variable config at
-            `settings_obj.variables[variable_name]`.
 
     Returns:
-        `data_to_merge` with `df_to_join` merged in using a left join on the config keys.
+        pd.DataFrame: `data_to_merge` with `df_to_join` merged in using a left join on the config keys.
 
     Raises:
         ValueError: If derived join keys are missing in config.
@@ -127,7 +125,9 @@ def join_variable_data(
     cfg = settings.variables[variable_name]
     derived_join_keys = cfg.derived_join_keys
     if not derived_join_keys:
-        raise ValueError(f"{variable_name}: settings.variables[{variable_name}].derived_join_keys must be defined")
+        raise ValueError(
+            f"{variable_name}: settings.variables[{variable_name}].derived_join_keys must be defined"
+        )
 
     missing_left = [k for k in derived_join_keys if k not in data_to_merge.columns]
     missing_right = [k for k in derived_join_keys if k not in df_to_join.columns]
@@ -136,7 +136,7 @@ def join_variable_data(
             f"{variable_name}: missing join keys. "
             f"data_to_merge missing: {missing_left}; df_to_join missing: {missing_right}"
         )
-    
+
     return data_to_merge.merge(
         df_to_join,
         on=list(derived_join_keys),
@@ -148,4 +148,3 @@ def join_variable_data(
 def enforce_datetime_s(series: pd.Series) -> pd.Series:
     """Enforce the datetime dtype to datetime64[s]."""
     return pd.to_datetime(series, errors="coerce", unit="s").astype("datetime64[s]")
-

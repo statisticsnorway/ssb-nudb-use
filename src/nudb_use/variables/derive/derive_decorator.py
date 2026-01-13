@@ -1,7 +1,9 @@
 import inspect
 from collections.abc import Callable
-from typing import Any
+from typing import Concatenate
 from typing import Literal
+from typing import ParamSpec
+from typing import Protocol
 
 import pandas as pd
 from nudb_config import settings
@@ -10,6 +12,39 @@ import nudb_use.variables.derive as derive
 from nudb_use.exceptions.exception_classes import NudbDerivedFromNotFoundError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+
+from .all_data_helpers import get_source_data
+from .all_data_helpers import join_variable_data
+
+P = ParamSpec("P")
+
+
+class WrappedDerive(Protocol[P]):
+    """Arg types for the wrap_derive decorator."""
+
+    def __call__(
+        self,
+        df: pd.DataFrame,
+        priority: Literal["old", "new"] = "old",
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> pd.DataFrame:
+        """Typing as a call to the class."""
+        ...
+
+
+class WrappedDeriveJoinAllData(Protocol[P]):
+    """Arg types for the wrap_derive_join_all_data decorator."""
+
+    def __call__(
+        self,
+        df: pd.DataFrame | None = None,
+        priority: Literal["old", "new"] = "old",
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> pd.DataFrame:
+        """Typing as a call to the class."""
+        ...
 
 
 def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
@@ -92,8 +127,8 @@ def fillna_by_priority(
 
 
 def wrap_derive(
-    basefunc: Callable[[pd.DataFrame], pd.Series],
-) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series],
+) -> WrappedDerive[P]:
     """Decorator for derive functions that enforces config metadata and logging.
 
     Notes:
@@ -105,7 +140,7 @@ def wrap_derive(
         basefunc: Function that derives a single variable from an input dataframe.
 
     Returns:
-        Callable[[pd.DataFrame], pd.DataFrame]: Wrapped derive function that
+        WrappedDerive[P]: Wrapped derive function that
         writes/updates the derived column.
 
     Raises:
@@ -130,8 +165,8 @@ def wrap_derive(
     def wrapper(
         df: pd.DataFrame,
         priority: Literal["old", "new"] = "old",
-        *args: Any,
-        **kwargs: Any,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> pd.DataFrame:
 
         with LoggerStack(f"Deriving {name} from {derived_from}..."):
@@ -220,24 +255,46 @@ def wrap_derive(
     return wrapper
 
 
-def wrap_derive_need_fresh_avslutta(basefunc, duckdb_query, filter_masks):
+def wrap_derive_join_all_data(
+    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series],
+) -> WrappedDeriveJoinAllData[P]:
+    """Decorator for derive functions that need specific data as a base, specified in the config.
 
-    def subfunc(df):
-        # Step 1: Load fresh (filtered avslutta using duckdb)
-        fresh_avslutta = db.sql(duckdb_query).df()
+    Args:
+        basefunc: Function that derives a single variable from an input dataframe.
 
-        # Step 2: Apply filter_masks
-        for filter_mask in filter_masks:
-            fresh_avslutta = get_derive_function(filter_mask)(fresh_avslutta)
-            fresh_avslutta.query(filter_mask)
+    Returns:
+        WrappedDeriveJoinAllData[P]: Wrapped derive function that
+        writes/updates the derived column using whole NUDB-datasets.
+    """
+    name = basefunc.__name__
 
-        # Step 3: Wrap basefunc and run
-        # maybe basefunc.__name__ is fucked? idk
-        basefunc_wrapped = wrap_derive(basefunc)
-        fresh_avslutta = basefunc_wrapped(basefunc)
+    def subfunc(
+        df: pd.DataFrame | None = None,
+        priority: Literal["old", "new"] = "old",
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> pd.DataFrame:
+        with LoggerStack("Deriving variable {name}, using whole NUDB-datasets."):
+            source_data = get_source_data(name, df)
 
-        # Step 4: Merge
-        # get keys from config, and name of variable we want
-        return df.merge(fresh_avslutta[<subset-by-keys-and-wanted-value>], how = "left", on = <keys>)
-    
+            basefunc_wrapped = wrap_derive(basefunc)
+            derived_source = basefunc_wrapped(source_data, priority, *args, **kwargs)
+            if df is None:
+                return derived_source
+
+            return join_variable_data(name, derived_source, df)
+
+    subfunc.__name__ = basefunc.__name__
+    docstring = basefunc.__doc__ or ""
+    subfunc.__doc__ = f"""{docstring}
+
+            Args:
+                df: Dataframe that we should merge the variable data onto.
+                priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
+
+            Returns:
+                pd.DataFrame: The dataframe with {name} added/updated.
+        """
+
     return subfunc

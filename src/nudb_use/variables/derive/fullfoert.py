@@ -8,6 +8,17 @@ from .registrert import raise_vg_utdprogram_outside_ranges
 
 FULLFORTKODE = "8"
 
+__all__ = [
+    "gr_ergrunnskole_fullfort",
+    "uh_erbachelor_fullfort",
+    "uh_erdoktorgrad_fullfort",
+    "uh_erhoyskolekandidat_fullfort",
+    "uh_ermaster_fullfort",
+    "vg_erstudiespess_fullfort",
+    "vg_ervgo_fullfort",
+    "vg_eryrkesfag_fullfort",
+]
+
 
 @wrap_derive
 def gr_ergrunnskole_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
