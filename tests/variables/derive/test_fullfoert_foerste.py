@@ -6,13 +6,23 @@ import pandas as pd
 from nudb_use.variables.derive import derive_decorator
 from nudb_use.variables.derive.fullfoert_foerste import first_end_date_per_snr
 from nudb_use.variables.derive.fullfoert_foerste import gr_foerste_fullfoert_dato
-from nudb_use.variables.derive.fullfoert_foerste import uh_bachelor_foerste_fullfoert_dato
-from nudb_use.variables.derive.fullfoert_foerste import uh_doktorgrad_foerste_fullfoert_dato
-from nudb_use.variables.derive.fullfoert_foerste import uh_hoyskolekandidat_foerste_fullfoert_dato
+from nudb_use.variables.derive.fullfoert_foerste import (
+    uh_bachelor_foerste_fullfoert_dato,
+)
+from nudb_use.variables.derive.fullfoert_foerste import (
+    uh_doktorgrad_foerste_fullfoert_dato,
+)
+from nudb_use.variables.derive.fullfoert_foerste import (
+    uh_hoyskolekandidat_foerste_fullfoert_dato,
+)
 from nudb_use.variables.derive.fullfoert_foerste import uh_master_foerste_fullfoert_dato
 from nudb_use.variables.derive.fullfoert_foerste import vg_foerste_fullfoert_dato
-from nudb_use.variables.derive.fullfoert_foerste import vg_studiespess_foerste_fullfoert_dato
-from nudb_use.variables.derive.fullfoert_foerste import vg_yrkesfag_foerste_fullfoert_dato
+from nudb_use.variables.derive.fullfoert_foerste import (
+    vg_studiespess_foerste_fullfoert_dato,
+)
+from nudb_use.variables.derive.fullfoert_foerste import (
+    vg_yrkesfag_foerste_fullfoert_dato,
+)
 
 
 def patch_wrap_join_helpers(monkeypatch: Any) -> None:
@@ -97,16 +107,14 @@ def test_first_end_date_per_snr() -> None:
 
     result = first_end_date_per_snr(df, variable_name="first_end", filter_var="flag")
 
-    expected = pd.to_datetime(
-        [
-            "1970-01-01 00:01:40",
-            "1970-01-01 00:01:40",
-            "1970-01-01 00:00:50",
-            "1970-01-01 00:00:50",
-            pd.NaT,
-        ]
-    ).astype("datetime64[s]")
-    assert result.tolist() == expected.tolist()
+    expected = [
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]
+    assert result.tolist() == expected
     assert str(result.dtype) == "datetime64[s]"
 
 
@@ -136,77 +144,59 @@ def test_fullfoert_foerste_dato_derivations(monkeypatch: Any) -> None:
     master = uh_master_foerste_fullfoert_dato(df)
     doktor = uh_doktorgrad_foerste_fullfoert_dato(df)
 
-    assert gr["gr_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            "1970-01-01 00:01:40",
-            "1970-01-01 00:01:40",
-            "1970-01-01 00:00:50",
-            "1970-01-01 00:00:50",
-            pd.NaT,
-        ]
-    ).tolist()
-    assert vg["vg_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            "1970-01-01 00:03:20",
-            "1970-01-01 00:03:20",
-            "1970-01-01 00:02:30",
-            "1970-01-01 00:02:30",
-            pd.NaT,
-        ]
-    ).tolist()
-    assert studiespess["vg_studiespess_foerste_fullfoert_dato"].tolist() == (
-        pd.to_datetime(
-            [
-                "1970-01-01 00:01:40",
-                "1970-01-01 00:01:40",
-                pd.NaT,
-                pd.NaT,
-                pd.NaT,
-            ]
-        ).tolist()
-    )
-    assert yrkesfag["vg_yrkesfag_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            pd.NaT,
-            pd.NaT,
-            "1970-01-01 00:02:30",
-            "1970-01-01 00:02:30",
-            pd.NaT,
-        ]
-    ).tolist()
-    assert hoy["uh_hoyskolekandidat_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            "1970-01-01 00:03:20",
-            "1970-01-01 00:03:20",
-            pd.NaT,
-            pd.NaT,
-            pd.NaT,
-        ]
-    ).tolist()
-    assert bach["uh_bachelor_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            pd.NaT,
-            pd.NaT,
-            "1970-01-01 00:02:30",
-            "1970-01-01 00:02:30",
-            pd.NaT,
-        ]
-    ).tolist()
-    assert master["uh_master_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            pd.NaT,
-            pd.NaT,
-            pd.NaT,
-            "1970-01-01 00:00:50",
-            pd.NaT,
-        ]
-    ).tolist()
-    assert doktor["uh_doktorgrad_foerste_fullfoert_dato"].tolist() == pd.to_datetime(
-        [
-            pd.NaT,
-            pd.NaT,
-            pd.NaT,
-            pd.NaT,
-            "1970-01-01 00:05:00",
-        ]
-    ).tolist()
+    assert gr["gr_foerste_fullfoert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]
+    assert vg["vg_foerste_fullfoert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.NaT,
+    ]
+    assert studiespess["vg_studiespess_foerste_fullfoert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.NaT,
+        pd.NaT,
+        pd.NaT,
+    ]
+    assert yrkesfag["vg_yrkesfag_foerste_fullfoert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.NaT,
+    ]
+    assert hoy["uh_hoyskolekandidat_foerste_fullfoert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.NaT,
+        pd.NaT,
+        pd.NaT,
+    ]
+    assert bach["uh_bachelor_foerste_fullfoert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.NaT,
+    ]
+    assert master["uh_master_foerste_fullfoert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:00:50"),  # This row is joined back onto snr "b"
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]
+    assert doktor["uh_doktorgrad_foerste_fullfoert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:05:00"),
+    ]

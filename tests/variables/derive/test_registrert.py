@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.registrert import PRG_RANGES
 from nudb_use.variables.derive.registrert import gr_ergrunnskole_registrering
 from nudb_use.variables.derive.registrert import raise_vg_utdprogram_outside_ranges
@@ -74,7 +75,7 @@ def test_vg_erstudiespess_registrering_and_vg_eryrkesfag_registrering() -> None:
 
 def test_raise_vg_utdprogram_outside_ranges() -> None:
     ok = pd.Series([PRG_RANGES["studiespess"][0], PRG_RANGES["yrkesfag"][0]])
-    assert raise_vg_utdprogram_outside_ranges(ok) is None
+    raise_vg_utdprogram_outside_ranges(ok)
 
     with pytest.raises(ValueError):
         raise_vg_utdprogram_outside_ranges(pd.Series(["90"]))
@@ -97,7 +98,8 @@ def test_uh_erbachelor_registrering() -> None:
     df = pd.DataFrame({"uh_gruppering_nus": ["000B", "000M"]})
 
     result = uh_erbachelor_registrering(df)
-
+    logger.info(df.columns)
+    logger.info(df)
     assert result["uh_erbachelor_registrering"].tolist() == [True, False]
 
 

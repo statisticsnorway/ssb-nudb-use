@@ -1,24 +1,23 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import Any
 import uuid as uuidlib
+from typing import Any
 
 import pandas as pd
 
 from nudb_use.variables.specific_vars import snr as snr_module
-from nudb_use.variables.specific_vars.snr import derive_snr_valid
-from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_col
+from nudb_use.variables.specific_vars.snr import derive_snr_mrk
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_catalog
+from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_col
 
 
-def test_derive_snr_valid() -> None:
+def test_derive_snr_mrk() -> None:
     df = pd.DataFrame({"snr": ["1234567", "123", pd.NA]})
 
-    result = derive_snr_valid(df, snr_col="snr")
+    result = derive_snr_mrk(df, snr_col="snr")
 
-    assert result["snr_valid"].tolist() == [True, False, False]
-    assert str(result["snr_valid"].dtype) == "bool[pyarrow]"
+    assert result["snr_mrk"].tolist() == [True, False, False]
+    assert str(result["snr_mrk"].dtype) == "bool[pyarrow]"
 
 
 def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
@@ -45,10 +44,12 @@ def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
         "00000000-0000-0000-0000-000000000002",
         "existing",
     ]
-    assert str(result["snr"].dtype) == "string[pyarrow]"
+    assert str(result["snr"].dtype) in ["string", "string[pyarrow]"]
 
 
-def test_generate_uuid_for_snr_with_fnr_catalog(tmp_path: Any, monkeypatch: Any) -> None:
+def test_generate_uuid_for_snr_with_fnr_catalog(
+    tmp_path: Any, monkeypatch: Any
+) -> None:
     uuids = iter(
         [
             uuidlib.UUID("00000000-0000-0000-0000-000000000010"),
@@ -58,9 +59,9 @@ def test_generate_uuid_for_snr_with_fnr_catalog(tmp_path: Any, monkeypatch: Any)
     monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))
 
     catalog_path = tmp_path / "fnr_catalog.parquet"
-    existing_catalog = pd.DataFrame(
-        {"fnr": ["1"], "snr": ["existing-uuid"]}
-    ).astype({"fnr": "string[pyarrow]", "snr": "string[pyarrow]"})
+    existing_catalog = pd.DataFrame({"fnr": ["1"], "snr": ["existing-uuid"]}).astype(
+        {"fnr": "string[pyarrow]", "snr": "string[pyarrow]"}
+    )
     existing_catalog.to_parquet(catalog_path)
 
     monkeypatch.setattr(

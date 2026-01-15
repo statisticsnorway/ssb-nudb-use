@@ -93,11 +93,11 @@ def test_vg_erstudiespess_fullfort_and_vg_eryrkesfag_fullfort() -> None:
 def test_vg_fullfort_raises_on_invalid_program() -> None:
     df = pd.DataFrame(
         {
-            "nus2000": ["4000"],
+            "nus2000": ["40099"],
             "utd_fullfoertkode": ["8"],
             "vg_kompetanse_nus": ["1"],
             "utd_aktivitet_start": [datetime.datetime(2001, 1, 1)],
-            "vg_utdprogram": ["90"],
+            "vg_utdprogram": ["101"],
         }
     )
 
@@ -108,10 +108,10 @@ def test_vg_fullfort_raises_on_invalid_program() -> None:
 def test_uh_erhoyskolekandidat_fullfort() -> None:
     df = pd.DataFrame(
         {
-            "nus2000": ["6000", "6000", "6000"],
+            "nus2000": ["60099", "60099", "60099"],
             "utd_fullfoertkode": ["8", "8", "8"],
-            "utd_klassetrinn": [15, 15, 17],
-            "uh_gruppering_nus": ["03AB", "01AA", "03AB"],
+            "utd_klassetrinn": [15, 15, 17],  # Last should be false because of kltrinn != 15, 16
+            "uh_gruppering_nus": ["03", "01", "03"],  # 01 should not count
         }
     )
 

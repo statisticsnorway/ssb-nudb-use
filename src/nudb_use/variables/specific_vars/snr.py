@@ -9,17 +9,17 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 
-def derive_snr_valid(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
-    """Derive the column snr_valid from snr-column, True if values in snr_col is notna and has a length of 7.
+def derive_snr_mrk(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
+    """Derive the column snr_mrk from snr-column, True if values in snr_col is notna and has a length of 7.
 
     Args:
-        df: The dataframe to insert/overwrite the snr_valid-column into.
+        df: The dataframe to insert/overwrite the snr_mrk-column into.
         snr_col: The name of the snr-column, if it isnt "snr".
 
     Returns:
-        pd.DataFrame: the dataframe with the added snr_valid column.
+        pd.DataFrame: the dataframe with the added snr_mrk column.
     """
-    df["snr_valid"] = ((df[snr_col].notna()) & (df[snr_col].str.len() == 7)).astype(
+    df["snr_mrk"] = ((df[snr_col].notna()) & (df[snr_col].str.len() == 7)).astype(
         "bool[pyarrow]"
     )
     return df
@@ -52,12 +52,12 @@ def generate_uuid_for_snr_with_fnr_col(
         fnr_uuid_katalog = pd.DataFrame(
             {
                 fnr_col: unique_fnr_missing_snr,
-                "uuid": [str(uuid.uuid4()) for _ in unique_fnr_missing_snr],
+                snr_col: [str(uuid.uuid4()) for _ in unique_fnr_missing_snr],
             }
         )
         amount_na_pre_first_fill = df[snr_col].isna().sum()
         df[snr_col] = df[snr_col].fillna(
-            df.merge(fnr_uuid_katalog, on=fnr_col, how="left", validate="m:1")
+            df.drop(columns=snr_col, errors="ignore").merge(fnr_uuid_katalog, on=fnr_col, how="left", validate="m:1")[snr_col]
         )
 
         amount_na_post_first_fill = df[snr_col].isna().sum()
@@ -76,6 +76,7 @@ def generate_uuid_for_snr_with_fnr_col(
             mask = df[snr_col].isna()
             df.loc[mask, snr_col] = [str(uuid.uuid4()) for _ in range(mask.sum())]
 
+        df[fnr_col] = df[fnr_col].astype("string[pyarrow]")
         df[snr_col] = df[snr_col].astype("string[pyarrow]")
 
         return df
@@ -121,7 +122,7 @@ def generate_uuid_for_snr_with_fnr_catalog(
 
         # Apply the previously generated uuids into the snr_col
         df[snr_col] = df[snr_col].fillna(
-            df.merge(catalog, on=fnr_col, how="left")[snr_col]
+            df[[fnr_col]].merge(catalog, on=fnr_col, how="left")[snr_col]
         )
         snr_missing_pre_generate_mask = df[snr_col].isna()
 
@@ -139,5 +140,8 @@ def generate_uuid_for_snr_with_fnr_catalog(
             .reset_index(drop=True)
         )
         catalog.to_parquet(next_version_path(catalog_path))
+
+        df[fnr_col] = df[fnr_col].astype("string[pyarrow]")
+        df[snr_col] = df[snr_col].astype("string[pyarrow]")
 
         return df

@@ -1,4 +1,5 @@
 import pandas as pd
+from nudb_use.nudb_logger import logger
 
 from .derive_decorator import wrap_derive
 
@@ -116,6 +117,8 @@ def uh_erbachelor_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     bool_mask: pd.Series[bool] = (df["uh_gruppering_nus"].str[3] == "B").astype(
         "bool[pyarrow]"
     )
+    logger.info(type(bool_mask))
+    logger.info(bool_mask)
     return bool_mask
 
 

@@ -6,10 +6,14 @@ import pandas as pd
 from nudb_use.variables.derive import derive_decorator
 from nudb_use.variables.derive.registrert_foerste import first_registered_date_per_snr
 from nudb_use.variables.derive.registrert_foerste import gr_foerste_registrert_dato
-from nudb_use.variables.derive.registrert_foerste import uh_bachelor_foerste_registrert_dato
+from nudb_use.variables.derive.registrert_foerste import (
+    uh_bachelor_foerste_registrert_dato,
+)
 from nudb_use.variables.derive.registrert_foerste import uh_foerste_nus2000
 from nudb_use.variables.derive.registrert_foerste import uh_foerste_registrert_dato
-from nudb_use.variables.derive.registrert_foerste import uh_master_foerste_registrert_dato
+from nudb_use.variables.derive.registrert_foerste import (
+    uh_master_foerste_registrert_dato,
+)
 from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_dato
 
 
@@ -79,10 +83,14 @@ def test_first_registered_date_per_snr() -> None:
         df, variable_name="first_date", filter_var="flag"
     )
 
-    expected = pd.to_datetime(
-        ["1970-01-01 00:01:40", "1970-01-01 00:01:40", "1970-01-01 00:00:50", "1970-01-01 00:00:50", pd.NaT]
-    ).astype("datetime64[s]")
-    assert result.tolist() == expected.tolist()
+    expected = [
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]
+    assert result.tolist() == expected
     assert str(result.dtype) == "datetime64[s]"
 
 
@@ -123,18 +131,38 @@ def test_registrert_foerste_dato_derivations(monkeypatch: Any) -> None:
     bach = uh_bachelor_foerste_registrert_dato(df)
     master = uh_master_foerste_registrert_dato(df)
 
-    assert gr["gr_foerste_registrert_dato"].tolist() == pd.to_datetime(
-        ["1970-01-01 00:01:40", "1970-01-01 00:01:40", "1970-01-01 00:00:50", "1970-01-01 00:00:50", pd.NaT]
-    ).tolist()
-    assert vg["vg_foerste_registrert_dato"].tolist() == pd.to_datetime(
-        ["1970-01-01 00:03:20", "1970-01-01 00:03:20", "1970-01-01 00:02:30", "1970-01-01 00:02:30", pd.NaT]
-    ).tolist()
-    assert uh["uh_foerste_registrert_dato"].tolist() == pd.to_datetime(
-        [pd.NaT, pd.NaT, "1970-01-01 00:00:50", "1970-01-01 00:00:50", pd.NaT]
-    ).tolist()
-    assert bach["uh_bachelor_foerste_registrert_dato"].tolist() == pd.to_datetime(
-        ["1970-01-01 00:03:20", "1970-01-01 00:03:20", pd.NaT, pd.NaT, pd.NaT]
-    ).tolist()
-    assert master["uh_master_foerste_registrert_dato"].tolist() == pd.to_datetime(
-        [pd.NaT, pd.NaT, "1970-01-01 00:00:50", "1970-01-01 00:00:50", pd.NaT]
-    ).tolist()
+    assert gr["gr_foerste_registrert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]
+    assert vg["vg_foerste_registrert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.Timestamp("1970-01-01 00:02:30"),
+        pd.NaT,
+    ]
+    assert uh["uh_foerste_registrert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]
+    assert bach["uh_bachelor_foerste_registrert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.NaT,
+        pd.NaT,
+        pd.NaT,
+    ]
+    assert master["uh_master_foerste_registrert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.NaT,
+    ]

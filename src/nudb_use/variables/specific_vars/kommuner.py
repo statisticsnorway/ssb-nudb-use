@@ -76,13 +76,13 @@ def correct_kommune_single_values(
     """
     with LoggerStack("Correcting kommune-code with known 1:1 mappings."):
         col_temp = df[col_name].copy()
-        weird_ones = (col_temp.str.len() != 4) | (~col_temp.str.isdigit())
+        weird_ones = (col_temp.notna()) & ((col_temp.str.len() != 4) | (~col_temp.str.isdigit().fillna(False).astype("bool[pyarrow]")))
         if weird_ones.any():
             raise ValueError(
-                f"Found some weird kommune-values in {col_name}: {col_temp[weird_ones].unique()} - fix these first?"
+                f"Found some weird kommune-values in {col_name}: {col_temp[weird_ones].unique()} - fix these first? Sentinel-value is `9999` not missing."
             )
-
         missing_val = "9999"
+        col_temp = col_temp.fillna(missing_val)
         mapping = {
             "0300": "0301",
             "2100": "2111",
