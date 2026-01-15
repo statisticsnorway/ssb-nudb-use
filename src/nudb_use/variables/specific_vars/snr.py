@@ -57,7 +57,9 @@ def generate_uuid_for_snr_with_fnr_col(
         )
         amount_na_pre_first_fill = df[snr_col].isna().sum()
         df[snr_col] = df[snr_col].fillna(
-            df.drop(columns=snr_col, errors="ignore").merge(fnr_uuid_katalog, on=fnr_col, how="left", validate="m:1")[snr_col]
+            df.drop(columns=snr_col, errors="ignore").merge(
+                fnr_uuid_katalog, on=fnr_col, how="left", validate="m:1"
+            )[snr_col]
         )
 
         amount_na_post_first_fill = df[snr_col].isna().sum()
@@ -115,9 +117,17 @@ def generate_uuid_for_snr_with_fnr_catalog(
         catalog_path = latest_version_path(Path(fnr_catalog_path))
         if catalog_path.exists():
             catalog = pd.read_parquet(catalog_path)
+            catalog = catalog[catalog[fnr_col].notna()]
         else:
             logger.info(
                 f"Fnr-uuid catalog does not exist, so we are starting with an empty one, and writing to: {fnr_catalog_path}"
+            )
+
+        # Log a warning if there are FNR that are empty, they will not be stored in the catalog
+        len_missing_fnr = df[fnr_col].isna().sum()
+        if len_missing_fnr:
+            logger.warning(
+                f"There are {len_missing_fnr} rows with NA in {fnr_col}, they will not be stored in the catalog. Each row will recieve a unique UUID in {snr_col}."
             )
 
         # Apply the previously generated uuids into the snr_col
@@ -130,9 +140,11 @@ def generate_uuid_for_snr_with_fnr_catalog(
         df = generate_uuid_for_snr_with_fnr_col(df, fnr_col=fnr_col, snr_col=snr_col)
 
         # The new values in the snr_col that weren't filled previously
-        filled_fnr_snr = df[snr_missing_pre_generate_mask & (df[snr_col].notna())][
-            [fnr_col, snr_col]
-        ].drop_duplicates()
+        filled_fnr_snr = df[
+            snr_missing_pre_generate_mask
+            & (df[fnr_col].notna())
+            & (df[snr_col].notna())
+        ][[fnr_col, snr_col]].drop_duplicates()
         # Write updated catalog back to drive with added generated values
         catalog = (
             pd.concat([catalog, filled_fnr_snr])

@@ -90,7 +90,9 @@ def test_vg_erstudiespess_fullfort_and_vg_eryrkesfag_fullfort() -> None:
     assert yrkesfag["vg_eryrkesfag_fullfort"].tolist() == [False, True, False]
 
 
-def test_vg_fullfort_raises_on_invalid_program() -> None:
+def test_vg_fullfort_logs_warning_on_invalid_program(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["40099"],
@@ -100,9 +102,10 @@ def test_vg_fullfort_raises_on_invalid_program() -> None:
             "vg_utdprogram": ["101"],
         }
     )
-
-    with pytest.raises(ValueError):
-        vg_erstudiespess_fullfort(df)
+    # Because of the try in the decorator, this only causes a logged warning
+    vg_erstudiespess_fullfort(df)
+    assert "values outside valid codelist" in caplog.text
+    assert "WARNING" in [rec.levelname for rec in caplog.records]
 
 
 def test_uh_erhoyskolekandidat_fullfort() -> None:
@@ -110,7 +113,11 @@ def test_uh_erhoyskolekandidat_fullfort() -> None:
         {
             "nus2000": ["60099", "60099", "60099"],
             "utd_fullfoertkode": ["8", "8", "8"],
-            "utd_klassetrinn": [15, 15, 17],  # Last should be false because of kltrinn != 15, 16
+            "utd_klassetrinn": [
+                15,
+                15,
+                17,
+            ],  # Last should be false because of kltrinn != 15, 16
             "uh_gruppering_nus": ["03", "01", "03"],  # 01 should not count
         }
     )

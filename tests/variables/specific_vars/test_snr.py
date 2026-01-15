@@ -27,7 +27,7 @@ def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
             uuidlib.UUID("00000000-0000-0000-0000-000000000002"),
         ]
     )
-    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))
+    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))  # type: ignore[attr-defined]
 
     df = pd.DataFrame(
         {
@@ -56,7 +56,7 @@ def test_generate_uuid_for_snr_with_fnr_catalog(
             uuidlib.UUID("00000000-0000-0000-0000-000000000011"),
         ]
     )
-    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))
+    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))  # type: ignore[attr-defined]
 
     catalog_path = tmp_path / "fnr_catalog.parquet"
     existing_catalog = pd.DataFrame({"fnr": ["1"], "snr": ["existing-uuid"]}).astype(
