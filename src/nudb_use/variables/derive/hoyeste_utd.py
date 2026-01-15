@@ -20,9 +20,22 @@ def utd_hoyeste_nus2000(df: pd.DataFrame) -> pd.Series:
     Returns:
         pd.Series: A column suitable for adding as a new column to the df.
     """
+    raise NotImplementedError("This is not finished BU-programming, we need to decide if we should be producing a dataset like F_UTD_DEMOGRAFI or similar.")
+
     variable_name = "utd_hoyeste_nus2000"
 
+    #################################################
+    # QUALIFICATION - rows that are eligible for BU #
+    #################################################
+
+    # We are already in the context of KODE = 0 and RECTYPE != 3, because we only use "avslutta" dataset for this
     completed = df[df["utd_fullfoertkode"] == "8"]
+
+
+
+    #####################
+    # SORTING ALGORITHM #
+    #####################
 
     # Changes startingcode from 9 -> 0, all others get bumped one up
     sorter_col = (completed["nus2000"].str[0].astype("Int64").fillna(9) + 1).astype("string[pyarrow]").str[-1]
@@ -40,7 +53,7 @@ def utd_hoyeste_nus2000(df: pd.DataFrame) -> pd.Series:
     uhgruppe_prio.loc[completed["uh_gruppering_nus"] == "23"] = "1"
     sorter_col += uhgruppe_prio
 
-    # Prio by newer date
+    # Prio by newer date - since our records are all "avslutta" -> the old regdato was created from "sluttd"?
     sorter_col += completed["utd_aktivitet_start"].fillna(completed["utd_aktivitet_slutt"]).dt.strftime(r"%Y%m").astype("string[pyarrow]")
 
     # Full nus2000 into prio
