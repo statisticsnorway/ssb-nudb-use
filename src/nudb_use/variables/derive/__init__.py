@@ -8,11 +8,11 @@ from nudb_use.nudb_logger import logger
 
 from . import fullfoert
 from . import fullfoert_foerste
+from . import hoyeste_utd
 from . import klass_correspondences_and_variants
 from . import klass_labels
 from . import registrert
 from . import registrert_foerste
-from . import hoyeste_utd
 from .derive_decorator import get_derive_function
 
 derive_all_submodules = (

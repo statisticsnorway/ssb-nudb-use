@@ -3,7 +3,7 @@ import pandas as pd
 from .derive_decorator import wrap_derive
 
 __all__ = [
-    "gr_ergrunnskole_registering",
+    "gr_ergrunnskole_registrering",
     "uh_erbachelor_registrering",
     "uh_erhoyereutd_registrering",
     "uh_ermaster_registrering",
@@ -30,10 +30,10 @@ for k, v in PRG_RANGES_RANGES.items():
 
 
 @wrap_derive
-def gr_ergrunnskole_registering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def gr_ergrunnskole_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive gr_ergrunnskole_registering from nus2000 and utland, as a boolean filter for registrations on gr-level."""
+    """Derive gr_ergrunnskole_registrering from nus2000 and utland, as a boolean filter for registrations on gr-level."""
     bool_mask: pd.Series[bool] = (
         (df["nus2000"].str[0] == "2") & (~df["uh_erutland"])
     ).astype("bool[pyarrow]")

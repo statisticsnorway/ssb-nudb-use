@@ -6,9 +6,9 @@ from .all_data_helpers import enforce_datetime_s
 from .derive_decorator import wrap_derive_join_all_data
 
 __all__ = [
-    "uh_foerste_nus2000",
     "gr_foerste_registrert_dato",
     "uh_bachelor_foerste_registrert_dato",
+    "uh_foerste_nus2000",
     "uh_foerste_registrert_dato",
     "uh_master_foerste_registrert_dato",
     "vg_foerste_registrert_dato",
@@ -18,7 +18,7 @@ __all__ = [
 @wrap_derive_join_all_data
 def uh_foerste_nus2000(df: pd.DataFrame) -> pd.Series:
     """Derive the first nus2000 a person has on UH-level.
-    
+
     Args:
         df: Source dataset containing at least snr, nus2000, utd_aktivitet_start.
 
@@ -65,19 +65,18 @@ def first_registered_date_per_snr(
     )[variable_name]
 
 
-
 @wrap_derive_join_all_data
 def gr_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
     """Derive gr_foerste_registrert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, gr_ergrunnskole_registering, utd_aktivitet_start.
+        df: Source dataset containing at least snr, gr_ergrunnskole_registrering, utd_aktivitet_start.
 
     Returns:
         pd.Series: A column suitable for adding as a new column to the df.
     """
     variable_name = "gr_foerste_registrert_dato"
-    filter_var = "gr_ergrunnskole_registering"
+    filter_var = "gr_ergrunnskole_registrering"
     return first_registered_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
