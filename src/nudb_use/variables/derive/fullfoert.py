@@ -2,13 +2,14 @@ import datetime
 
 import pandas as pd
 
-from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
+from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
+from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 
 from .derive_decorator import wrap_derive
 from .registrert import PRG_RANGES
 from .registrert import raise_vg_utdprogram_outside_ranges
 
-BOOL_DTYPE = TYPE_MAPPINGS["pandas"]["BOOL_DTYPE_NAME"]
+BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 FULLFORTKODE = "8"
 
 

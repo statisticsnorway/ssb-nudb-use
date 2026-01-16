@@ -1,21 +1,39 @@
 """Utilities for mapping NUDB variable types to concrete dtype strings."""
 
 from typing import Any
+from typing import Final
+from typing import Literal
+from typing import TypeAlias
+from typing import cast
 
 from nudb_config import settings as SETTINGS
 
 from nudb_use.nudb_logger import logger
 
-# Global variables to refer to names programatically
-# in case we want to change names later
-STRING_DTYPE_NAME = "STRING"
-DATETIME_DTYPE_NAME = "DATETIME"
-INTEGER_DTYPE_NAME = "INTEGER"
-FLOAT_DTYPE_NAME = "FLOAT"
-BOOL_DTYPE_NAME = "BOOLEAN"
-DATETIME_DTYPES = {DATETIME_DTYPE_NAME}
+DTypeName: TypeAlias = Literal["STRING", "DATETIME", "INTEGER", "FLOAT", "BOOLEAN"]
 
-DTYPE_MAPPINGS: dict[str, dict[str, str]] = {
+STRING_DTYPE_NAME: Final[DTypeName] = "STRING"
+DATETIME_DTYPE_NAME: Final[DTypeName] = "DATETIME"
+INTEGER_DTYPE_NAME: Final[DTypeName] = "INTEGER"
+FLOAT_DTYPE_NAME: Final[DTypeName] = "FLOAT"
+BOOL_DTYPE_NAME: Final[DTypeName] = "BOOLEAN"
+
+DATETIME_DTYPES: Final[set[DTypeName]] = {DATETIME_DTYPE_NAME}
+
+PandasDTypeLiteral: TypeAlias = Literal[
+    "datetime64[s]",
+    "string[pyarrow]",
+    "Int64",
+    "Float64",
+    "bool[pyarrow]",
+]
+
+BackendName: TypeAlias = Literal["pandas"]  # add others later when necessary
+
+InnerMap: TypeAlias = dict[DTypeName, PandasDTypeLiteral]
+MappingSpec: TypeAlias = dict[BackendName, InnerMap]
+
+DTYPE_MAPPINGS: Final[MappingSpec] = {
     "pandas": {
         DATETIME_DTYPE_NAME: "datetime64[s]",
         STRING_DTYPE_NAME: "string[pyarrow]",
@@ -27,7 +45,9 @@ DTYPE_MAPPINGS: dict[str, dict[str, str]] = {
 
 
 def get_dtype_from_dict(
-    dtype: str, mapping: dict[str, str], datetimes_as_string: bool = False
+    dtype: str,
+    mapping: dict[str, str] | InnerMap,
+    datetimes_as_string: bool = False,
 ) -> str:
     """Resolve a dtype string through a mapping with optional datetime override.
 
@@ -42,17 +62,20 @@ def get_dtype_from_dict(
     Raises:
         ValueError: If `dtype` is not defined in `mapping`.
     """
-    dtype = (
+    mapping_cast: InnerMap = cast(InnerMap, mapping)
+
+    dtype_upper = (
         dtype.upper()
     )  # Make sure we have the same format as the names in the mapping
-    if dtype not in mapping.keys():
-        raise ValueError(f"Unkown type: {dtype}")
+    if dtype_upper not in mapping_cast:
+        raise ValueError(f"Unkown type: {dtype_upper}")
 
-    result = mapping[dtype]
+    dtype_key = cast(DTypeName, dtype_upper)
+    result = mapping_cast[dtype_key]
     logger.debug(f"First result from mapping: {result}")
 
-    if datetimes_as_string and dtype in DATETIME_DTYPES:
-        result = mapping[STRING_DTYPE_NAME]
+    if datetimes_as_string and dtype_key in DATETIME_DTYPES:
+        result = mapping_cast[STRING_DTYPE_NAME]
         logger.debug(f"Second result from mapping: {result}")
 
     return result
@@ -78,7 +101,8 @@ def map_dtype_datadoc(
         raise KeyError(
             f"Specify an engine in the mapping, or add to the mapping: {DTYPE_MAPPINGS.keys()}"
         )
-    mapping = DTYPE_MAPPINGS[engine]
+    engine_key = cast(BackendName, engine)
+    mapping = DTYPE_MAPPINGS[engine_key]
     return get_dtype_from_dict(
         dtype=dtype, mapping=mapping, datetimes_as_string=datetimes_as_string
     )

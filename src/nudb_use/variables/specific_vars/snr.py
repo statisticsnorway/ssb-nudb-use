@@ -5,11 +5,12 @@ import pandas as pd
 from fagfunksjoner.paths.versions import latest_version_path
 from fagfunksjoner.paths.versions import next_version_path
 
-from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
+from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
+from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-BOOL_DTYPE = TYPE_MAPPINGS["pandas"]["BOOL_DTYPE_NAME"]
+BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 
 
 def derive_snr_mrk(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
