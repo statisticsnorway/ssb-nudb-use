@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-# Would be nice if these were complete in klass instead
+# Would be nice if these were complete in klass instead - the variant on nus is not complete?
 PRG_RANGES_RANGES: dict[str, list[range]] = {
     "studiespess": [range(1, 2), range(21, 24), range(60, 65)],
     "yrkesfag": [
