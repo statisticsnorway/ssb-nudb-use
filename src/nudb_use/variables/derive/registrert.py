@@ -42,10 +42,7 @@ def gr_ergrunnskole_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive gr_ergrunnskole_registrering from nus2000 and utland, as a boolean filter for registrations on gr-level."""
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool],
-        ((df["nus2000"].str[0] == "2") & (~df["uh_erutland"])).astype(BOOL_DTYPE),
-    )
+    bool_mask: pd.Series = ((df["nus2000"].str[0] == "2") & (~df["uh_erutland"])).astype(BOOL_DTYPE)
     return bool_mask
 
 
@@ -54,9 +51,7 @@ def vg_ervgo_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_ervgo_registrering from nus2000, as a boolean filter for registrations on vg-level."""
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool], (df["nus2000"].str[0].isin(["3", "4"]).astype(BOOL_DTYPE))
-    )
+    bool_mask: pd.Series = (df["nus2000"].str[0].isin(["3", "4"]).astype(BOOL_DTYPE))
     return bool_mask
 
 
@@ -86,13 +81,10 @@ def vg_erstudiespess_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 ) -> pd.Series:
     """Derive vg_erstudiespess_registrering from nus2000 and vg_utdprogram, as a boolean filter."""
     raise_vg_utdprogram_outside_ranges(df["vg_utdprogram"])
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool],
-        (
+    bool_mask: pd.Series = (
             (df["nus2000"].str[0].isin(["3", "4"]))
             & (df["vg_utdprogram"].isin(PRG_RANGES["studiespess"]))
-        ).astype(BOOL_DTYPE),
-    )
+        ).astype(BOOL_DTYPE)
     return bool_mask
 
 
@@ -102,13 +94,10 @@ def vg_eryrkesfag_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 ) -> pd.Series:
     """Derive vg_eryrkesfag_registrering from nus2000 and vg_utdprogram, as a boolean filter."""
     raise_vg_utdprogram_outside_ranges(df["vg_utdprogram"])
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool],
-        (
+    bool_mask: pd.Series = (
             (df["nus2000"].str[0].isin(["3", "4"]))
             & (df["vg_utdprogram"].isin(PRG_RANGES["yrkesfag"]))
-        ).astype(BOOL_DTYPE),
-    )
+        ).astype(BOOL_DTYPE)
     return bool_mask
 
 
@@ -117,9 +106,7 @@ def uh_erhoyereutd_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erhoyereutd_registrering from nus2000 as a boolean filter."""
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool], (df["nus2000"].str[0].isin(["6", "7", "8"])).astype(BOOL_DTYPE)
-    )
+    bool_mask: pd.Series =(df["nus2000"].str[0].isin(["6", "7", "8"])).astype(BOOL_DTYPE)
     return bool_mask
 
 
@@ -128,9 +115,7 @@ def uh_erbachelor_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_registrering from nus2000 as a boolean filter."""
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool], (df["uh_gruppering_nus"].str[-1] == "B").astype(BOOL_DTYPE)
-    )
+    bool_mask: pd.Series = (df["uh_gruppering_nus"].str[-1] == "B").astype(BOOL_DTYPE)
     logger.info(type(bool_mask))
     logger.info(bool_mask)
     return bool_mask
@@ -141,7 +126,5 @@ def uh_ermaster_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_registrering from nus2000 as a boolean filter."""
-    bool_mask: pd.Series[bool] = cast(
-        pd.Series[bool], (df["nus2000"].str[0] == "7").astype(BOOL_DTYPE)
-    )
+    bool_mask: pd.Series = (df["nus2000"].str[0] == "7").astype(BOOL_DTYPE)
     return bool_mask
