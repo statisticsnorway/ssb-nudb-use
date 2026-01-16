@@ -1,9 +1,9 @@
 import pandas as pd
 
+from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
 from nudb_use.nudb_logger import logger
 
 from .derive_decorator import wrap_derive
-from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
 
 BOOL_DTYPE = TYPE_MAPPINGS["pandas"]["BOOL_DTYPE_NAME"]
 

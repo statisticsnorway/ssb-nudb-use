@@ -5,11 +5,12 @@ import pandas as pd
 from fagfunksjoner.paths.versions import latest_version_path
 from fagfunksjoner.paths.versions import next_version_path
 
+from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
-from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
 
 BOOL_DTYPE = TYPE_MAPPINGS["pandas"]["BOOL_DTYPE_NAME"]
+
 
 def derive_snr_mrk(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
     """Derive the column snr_mrk from snr-column, True if values in snr_col is notna and has a length of 7.
