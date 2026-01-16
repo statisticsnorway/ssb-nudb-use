@@ -7,10 +7,12 @@ from fagfunksjoner.paths.versions import next_version_path
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
+from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
+STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
 
 
 def derive_snr_mrk(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
@@ -82,8 +84,8 @@ def generate_uuid_for_snr_with_fnr_col(
             mask = df[snr_col].isna()
             df.loc[mask, snr_col] = [str(uuid.uuid4()) for _ in range(mask.sum())]
 
-        df[fnr_col] = df[fnr_col].astype("string[pyarrow]")
-        df[snr_col] = df[snr_col].astype("string[pyarrow]")
+        df[fnr_col] = df[fnr_col].astype(STRING_DTYPE)
+        df[snr_col] = df[snr_col].astype(STRING_DTYPE)
 
         return df
 
@@ -116,7 +118,7 @@ def generate_uuid_for_snr_with_fnr_catalog(
     ):
         # Open existing catalog from path if it exists
         catalog = pd.DataFrame(columns=[fnr_col, snr_col]).astype(
-            {fnr_col: "string[pyarrow]", snr_col: "string[pyarrow]"}
+            {fnr_col: STRING_DTYPE, snr_col: STRING_DTYPE}
         )
         catalog_path = latest_version_path(Path(fnr_catalog_path))
         if catalog_path.exists():
@@ -157,7 +159,7 @@ def generate_uuid_for_snr_with_fnr_catalog(
         )
         catalog.to_parquet(next_version_path(catalog_path))
 
-        df[fnr_col] = df[fnr_col].astype("string[pyarrow]")
-        df[snr_col] = df[snr_col].astype("string[pyarrow]")
+        df[fnr_col] = df[fnr_col].astype(STRING_DTYPE)
+        df[snr_col] = df[snr_col].astype(STRING_DTYPE)
 
         return df
