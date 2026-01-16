@@ -5,8 +5,11 @@ import pandas as pd
 from .derive_decorator import wrap_derive
 from .registrert import PRG_RANGES
 from .registrert import raise_vg_utdprogram_outside_ranges
+from nudb_use.metadata.nudb_config.map_get_dtypes import TYPE_MAPPINGS
 
+BOOL_DTYPE = TYPE_MAPPINGS["pandas"]["BOOL_DTYPE_NAME"]
 FULLFORTKODE = "8"
+
 
 __all__ = [
     "gr_ergrunnskole_fullfort",
@@ -29,7 +32,7 @@ def gr_ergrunnskole_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
         (df["nus2000"].str[0] == "2")
         & (~df["uh_erutland"])
         & (df["utd_fullfoertkode"] == FULLFORTKODE)
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -47,7 +50,7 @@ def vg_ervgo_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
                 < datetime.datetime.strptime("2000-08-01", r"%Y-%m-%d")
             )  # Komp ikke utylt før 2000?
         )
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -59,7 +62,7 @@ def vg_erstudiespess_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
     return (
         vg_ervgo_fullfort(df)["vg_ervgo_fullfort"]
         & (df["vg_utdprogram"].isin(PRG_RANGES["studiespess"]))
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -71,7 +74,7 @@ def vg_eryrkesfag_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
     return (
         vg_ervgo_fullfort(df)["vg_ervgo_fullfort"]
         & (df["vg_utdprogram"].isin(PRG_RANGES["yrkesfag"]))
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -86,7 +89,7 @@ def uh_erhoyskolekandidat_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
         & (
             ~df["uh_gruppering_nus"].isin(["01", "02"])
         )  # Ikke "Forberedende prøver", eller "Lavere nivås utdanning"
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -97,7 +100,7 @@ def uh_erbachelor_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
     return (
         (df["uh_gruppering_nus"].str[3] == "B")
         & (df["utd_fullfoertkode"] == FULLFORTKODE)
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -107,7 +110,7 @@ def uh_ermaster_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
     """Derive uh_ermaster_fullfort from nus2000, utd_fullfoertkode."""
     return (
         (df["nus2000"].str[0] == "7") & (df["utd_fullfoertkode"] == FULLFORTKODE)
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)
 
 
 @wrap_derive
@@ -117,4 +120,4 @@ def uh_erdoktorgrad_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
     """Derive uh_erdoktorgrad_fullfort from nus2000, utd_fullfoertkode."""
     return (
         (df["nus2000"].str[0] == "8") & (df["utd_fullfoertkode"] == FULLFORTKODE)
-    ).astype("bool[pyarrow]")
+    ).astype(BOOL_DTYPE)

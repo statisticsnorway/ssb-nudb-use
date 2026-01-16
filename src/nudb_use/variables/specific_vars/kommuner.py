@@ -47,7 +47,8 @@ def keep_only_valid_kommune_codes(
         kommuner_alle_aar += list({x[:2] + "00" for x in kommuner_alle_aar})
 
         # Det er noen som har "99" etter gyldig fylke, disse byttes til "00"
-        komm_col.loc[komm_col.str[2:] == "99"] = komm_col.str[:2] + "00"
+        komm_col.loc[komm_col.str.endswith("99")] = komm_col.str[:2] + "00"
+        # Om denne oppstod nå, så korrigerer vi den tilbake
         komm_col.loc[komm_col == "9900"] = "9999"
         behold_komm_maske = komm_col.isin(kommuner_alle_aar)
 
