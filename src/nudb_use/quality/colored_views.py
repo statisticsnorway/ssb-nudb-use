@@ -77,7 +77,7 @@ def grade_cell_by_time_col(df: pd.DataFrame, time_col: str) -> Styler:
         Styler: Styled completeness summary for display.
     """
 
-    def na_percent(x: pd.Series[int] | pd.Series[float]) -> str:
+    def na_percent(x: pd.Series) -> str:
         return f"{(100 - 100 * float(x.isna().sum() / len(x))):0.2f}%"
 
     styled: Styler = (
