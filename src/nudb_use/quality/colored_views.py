@@ -33,7 +33,7 @@ def empty_cols_in_time_colored(df: pd.DataFrame, time_col: str) -> Styler:
         Styler: Styled output with red/green highlights.
     """
 
-    def na_ok(x: pd.Series[Any]) -> Literal["NA"] | Literal["OK"]:
+    def na_ok(x: pd.Series) -> Literal["NA"] | Literal["OK"]:
         if x.isna().all():
             return "NA"
         return "OK"
