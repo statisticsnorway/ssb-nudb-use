@@ -163,6 +163,7 @@ def tests(session: Session) -> None:
             "-m",
             "pytest",
             "-o",
+            "-rs",
             "pythonpath=",
             *session.posargs,
         )

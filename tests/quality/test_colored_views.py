@@ -1,7 +1,4 @@
 import pandas as pd
-import pytest
-
-pytest.importorskip("jinja2")  # pandas Styler depends on jinja2
 
 from nudb_use.quality import colored_views
 
