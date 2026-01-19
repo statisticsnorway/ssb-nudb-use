@@ -1,7 +1,6 @@
 """Style helpers that colorize quality summary tables."""
 
 from collections.abc import Callable
-from typing import Any
 from typing import Literal
 
 import pandas as pd
