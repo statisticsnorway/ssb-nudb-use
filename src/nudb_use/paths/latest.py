@@ -87,5 +87,9 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
         # We should probably log what we found as latest files to disk?
 
         if dataset_name and dataset_name in paths_dict:
+            logger.info(
+                f"Found {dataset_name} in the paths_dict, returning single Path."
+            )
             return paths_dict[dataset_name]
+        logger.info(f"Did not find {dataset_name} in the paths_dict, all found paths.")
         return paths_dict
