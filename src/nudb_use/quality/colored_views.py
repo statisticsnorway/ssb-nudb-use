@@ -1,7 +1,6 @@
 """Style helpers that colorize quality summary tables."""
 
 from collections.abc import Callable
-from typing import Any
 from typing import Literal
 
 import pandas as pd
@@ -33,7 +32,7 @@ def empty_cols_in_time_colored(df: pd.DataFrame, time_col: str) -> Styler:
         Styler: Styled output with red/green highlights.
     """
 
-    def na_ok(x: pd.Series[Any]) -> Literal["NA"] | Literal["OK"]:
+    def na_ok(x: pd.Series) -> Literal["NA"] | Literal["OK"]:
         if x.isna().all():
             return "NA"
         return "OK"
@@ -77,7 +76,7 @@ def grade_cell_by_time_col(df: pd.DataFrame, time_col: str) -> Styler:
         Styler: Styled completeness summary for display.
     """
 
-    def na_percent(x: pd.Series[int] | pd.Series[float]) -> str:
+    def na_percent(x: pd.Series) -> str:
         return f"{(100 - 100 * float(x.isna().sum() / len(x))):0.2f}%"
 
     styled: Styler = (
