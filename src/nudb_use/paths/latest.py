@@ -12,15 +12,17 @@ UTDANNING_SHARED_EXTERNAL = settings.paths["local_daplalab"].get(
     "delt_utdanning", "/buckets/shared/utd-nudb/utdanning/"
 )
 UTDANNING_SHARED_LOCAL = "/buckets/delt-utdanning/nudb-data"
+NUDB_PRODUCT = "/buckets/produkt/nudb-data/"
 
-SHARED_PATHS = [
-    UTDANNING_SHARED_EXTERNAL,
-    UTDANNING_SHARED_LOCAL,
+POSSIBLE_PATHS = [
+    Path(UTDANNING_SHARED_EXTERNAL),
+    Path(UTDANNING_SHARED_LOCAL),
+    Path(NUDB_PRODUCT),
 ]
 
 
 def _add_delt_path(path: str | Path) -> None:
-    global SHARED_PATHS
+    global POSSIBLE_PATHS
 
     if not isinstance(path, Path):
         path = Path(path)
@@ -30,16 +32,16 @@ def _add_delt_path(path: str | Path) -> None:
             f"'{path}' is not a directory!"
         )  # OSError might not be the right choice
 
-    SHARED_PATHS.append(path)
+    POSSIBLE_PATHS.append(path)
 
 
 def _get_available_files(filetype: str = ".parquet") -> None:
-    global SHARED_PATHS
+    global POSSIBLE_PATHS
 
     globs = [f"klargjort-data/**/*{filetype}", f"**/*{filetype}"]
     files = []
 
-    for path in SHARED_PATHS:
+    for path in POSSIBLE_PATHS:
         for glob in globs:
             files += list(path.glob(glob))
 
