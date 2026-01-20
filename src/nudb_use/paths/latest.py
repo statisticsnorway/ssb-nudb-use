@@ -13,23 +13,37 @@ UTDANNING_SHARED_EXTERNAL = settings.paths["local_daplalab"].get(
 )
 UTDANNING_SHARED_LOCAL = "/buckets/delt-utdanning/nudb-data"
 
+SHARED_PATHS = [
+    UTDANNING_SHARED_EXTERNAL,
+    UTDANNING_SHARED_LOCAL,
+]
 
-def find_delt_path() -> Path:
-    """Figure out where you might have the shared NUDB-data mounted locally.
 
-    Returns:
-        Path: Path to the shared NUDB data folder.
+def _add_delt_path(path: str | Path) -> None:
+    global SHARED_PATHS
 
-    Raises:
-        OSError: If neither of the expected shared data locations exists.
-    """
-    utdata_path = Path(UTDANNING_SHARED_EXTERNAL) / "nudb-data"
-    if not utdata_path.is_dir():
-        utdata_path = Path(UTDANNING_SHARED_LOCAL)
-    if not utdata_path.is_dir():
-        raise OSError("Cant find the folder for the shared data...")
+    if not isinstance(path, Path):
+        path = Path(path)
 
-    return utdata_path
+    if not path.is_dir():
+        raise OSError(
+            f"'{path}' is not a directory!"
+        )  # OSError might not be the right choice
+
+    SHARED_PATHS.append(path)
+
+
+def _get_available_files(filetype: str = ".parquet") -> None:
+    global SHARED_PATHS
+
+    globs = [f"klargjort-data/**/*{filetype}", f"**/*{filetype}"]
+    files = []
+
+    for path in SHARED_PATHS:
+        for glob in globs:
+            files += list(path.glob(glob))
+
+    return files
 
 
 def filter_out_periods_paths(p: Path) -> str:
@@ -71,12 +85,8 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
         or a single `Path` when `dataset_name` is supplied.
     """
     with LoggerStack("Finding all the latest shared paths for NUDB."):
-        delt_path = find_delt_path() / "klargjort-data"
-
         # Filter to only the last versions of each period
-        latest_parquets = sorted(
-            get_latest_fileversions(list(delt_path.glob("**/*.parquet")))
-        )
+        latest_parquets = sorted(get_latest_fileversions(_get_available_files()))
         logger.info(latest_parquets)
         # Filtering out earlier periods of the same files
 
