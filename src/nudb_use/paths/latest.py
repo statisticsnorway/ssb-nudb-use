@@ -38,7 +38,8 @@ def _add_delt_path(path: str | Path) -> None:
 def _get_available_files(filetype: str = ".parquet") -> None:
     global POSSIBLE_PATHS
 
-    globs = [f"klargjort-data/**/*{filetype}", f"**/*{filetype}"]
+    # For now we'll assume relevant files only exists within klargjort-data/ subdirectories
+    globs = [f"klargjort-data/**/*{filetype}"]  # , f"**/*{filetype}"]
     files = []
 
     for path in POSSIBLE_PATHS:
