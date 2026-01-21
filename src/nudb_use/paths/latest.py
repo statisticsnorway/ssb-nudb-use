@@ -38,8 +38,11 @@ def _add_delt_path(path: str | Path) -> None:
 def _get_available_files(filetype: str = ".parquet") -> list[Path]:
     global POSSIBLE_PATHS
 
-    # For now we'll assume relevant files only exists within klargjort-data/ subdirectories
-    globs = [f"klargjort-data/**/*{filetype}"]  # , f"**/*{filetype}"]
+    # For custom paths we don't know if there is a klargjort-data
+    # directory, so we search in the directory directly as well
+    # We could perhaps rework this logic into _add_delt_path()
+    # and add the /klargjort-data to the paths in POSSIBLE_PATHS
+    globs = [f"klargjort-data/**/*{filetype}", f"**/*{filetype}", f"*.{filetype}"]
     files = []
 
     for path in POSSIBLE_PATHS:
