@@ -35,14 +35,22 @@ def _add_delt_path(path: str | Path) -> None:
     POSSIBLE_PATHS.append(path)
 
 
-def _get_available_files(filetype: str = ".parquet") -> list[Path]:
+def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[Path]:
     global POSSIBLE_PATHS
 
     # For custom paths we don't know if there is a klargjorte-data
     # directory, so we search in the directory directly as well
     # We could perhaps rework this logic into _add_delt_path()
     # and add the /klargjorte-data to the paths in POSSIBLE_PATHS
-    globs = [f"klargjorte-data/**/*{filetype}", f"**/*{filetype}", f"*.{filetype}"]
+    filepattern = f"{filename}*" if filename else "*"
+
+    globs = [
+        f"klargjorte-data/**/{filepattern}.{filetype}",
+        f"**/{filepattern}.{filetype}",
+        f"{filepattern}.{filetype}",
+    ]
+
+    logger.debug(f"globs = {globs}")
     files = []
 
     for path in POSSIBLE_PATHS:
@@ -95,7 +103,9 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
     """
     with LoggerStack("Finding all the latest shared paths for NUDB."):
         # Filter to only the last versions of each period
-        latest_parquets = sorted(get_latest_fileversions(_get_available_files()))
+        latest_parquets = sorted(
+            get_latest_fileversions(_get_available_files(dataset_name))
+        )
         logger.info(latest_parquets)
         # Filtering out earlier periods of the same files
 
