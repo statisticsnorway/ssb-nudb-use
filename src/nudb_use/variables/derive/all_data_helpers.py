@@ -45,8 +45,8 @@ def _get_baselevel_derived_from_variables_single(
 
 
 def _get_baselevel_derived_from_variables(variables: list[str]) -> list[str]:
-    visited = set()
-    baselevel = set()
+    visited: set[str] = set()
+    baselevel: set[str] = set()
 
     for variable in variables:
         baselevel |= _get_baselevel_derived_from_variables_single(
@@ -192,8 +192,17 @@ def join_variable_data(
             f"data_to_merge missing: {missing_left}; df_to_join missing: {missing_right}"
         )
 
+    # Check and handle duplicated merge keys
+    dupes = df_to_join[list(derived_join_keys)].duplicated()
+    if dupes.any():
+        logger.warning(
+            f"Found duplicated merge keys! Showing first 50 rows:\n{df_to_join[dupes].head(50)}"
+        )
+        logger.warning("Picking first valid row for duplicates...")
+        df_to_join = df_to_join[~dupes]
+
     return data_to_merge.merge(
-        df_to_join.drop_duplicates(),
+        df_to_join,
         on=list(derived_join_keys),
         how="left",
         validate="m:1",
