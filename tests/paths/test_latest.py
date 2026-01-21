@@ -5,7 +5,7 @@ from nudb_use.paths import latest
 
 def test_find_file_custom_dir(tmp_path: Path) -> None:
     semipath = tmp_path / "local" / "nudb-data"
-    fullpath = semipath / "klargjort-data"
+    fullpath = semipath / "klargjorte-data"
     fullpath.mkdir(parents=True)
 
     filepath = fullpath / "tmp.parquet"
@@ -25,11 +25,11 @@ def test_filter_out_periods_paths_strips_version_and_period() -> None:
 
 def test_latest_shared_paths_builds_mapping(tmp_path: Path) -> None:
     base = tmp_path / "mount"
-    (base / "klargjort-data").mkdir(parents=True)
+    (base / "klargjorte-data").mkdir(parents=True)
 
     latest._add_delt_path(base)
-    file_a = base / "klargjort-data" / "a_p2021-01-01_v1.parquet"
-    file_b = base / "klargjort-data" / "b_p2021-02-02_v2.parquet"
+    file_a = base / "klargjorte-data" / "a_p2021-01-01_v1.parquet"
+    file_b = base / "klargjorte-data" / "b_p2021-02-02_v2.parquet"
     file_a.write_text("a")
     file_b.write_text("b")
 
