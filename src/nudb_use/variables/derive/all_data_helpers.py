@@ -4,7 +4,56 @@ import duckdb
 import pandas as pd
 from nudb_config import settings
 
+from nudb_use.nudb_logger import function_logger_context
+from nudb_use.nudb_logger import logger
 from nudb_use.paths.latest import latest_shared_paths
+
+
+@function_logger_context(level="debug")
+def _get_baselevel_derived_from_variables_single(
+    variable: str, visited: set[str] | None = None
+) -> set[str]:
+    visited = visited or set()
+
+    logger.debug(f"Visiting {variable}")
+    if variable not in settings.variables.keys():
+        logger.debug(f"{variable} is irrelevant!")
+        return set()
+
+    metadata = settings.variables[variable]
+
+    logger.debug(f"derived_from = {metadata.derived_from}")
+    if not metadata.derived_from:
+        logger.debug(f"{variable} is a baselevel variable!")
+        return set([variable])  # variable is a baselevel variable (i.e., underivable)
+    elif variable in visited:
+        logger.debug(f"{variable} has already been checked out!")
+        return set()
+
+    visit = set(metadata.derived_from) - visited
+    baselevel = set()
+
+    logger.debug(f"{variable} is NOT a baselevel variable! Checking out:\n    {visit}")
+
+    for derived_from in visit:
+        baselevel |= _get_baselevel_derived_from_variables_single(
+            derived_from, visited=visited
+        )
+        visited.add(derived_from)
+
+    return baselevel
+
+
+def _get_baselevel_derived_from_variables(variables: list[str]) -> list[str]:
+    visited = set()
+    baselevel = set()
+
+    for variable in variables:
+        baselevel |= _get_baselevel_derived_from_variables_single(
+            variable, visited=visited
+        )  # visited is mutated in _get_baselevel_derived_from_single
+
+    return list(baselevel)
 
 
 def get_source_data(
@@ -53,11 +102,16 @@ def get_source_data(
         )
 
     # Ensure we always read join keys + all columns required for derivation.
-    cols_to_read = list(set(dict.fromkeys([*derived_join_keys, *derived_from])))
+    baselevel_derived_from = _get_baselevel_derived_from_variables(derived_from)
+    cols_to_read = list(
+        set(dict.fromkeys([*derived_join_keys, *baselevel_derived_from]))
+    )
 
     dataset_paths = [
         str(latest_shared_paths(ds_name)) for ds_name in derived_uses_datasets
     ]
+
+    logger.info(f"Paths used to form `source_data`:\n{dataset_paths}")
 
     # Build a UNION ALL over all datasets, selecting only needed columns.
     select_cols = ", ".join(cols_to_read)
@@ -94,12 +148,13 @@ def get_source_data(
         # Filter source rows to overlap join-key combinations using an INNER JOIN.
         using_keys = ", ".join(derived_join_keys)
         filtered_sql = f"""
-        SELECT u.*
+        SELECT DISTINCT u.*
         FROM ({union_sql}) AS u
         INNER JOIN key_filter AS k
         USING ({using_keys})
         """
         result: pd.DataFrame = con.execute(filtered_sql).df()
+
         return result
 
 
@@ -138,7 +193,7 @@ def join_variable_data(
         )
 
     return data_to_merge.merge(
-        df_to_join,
+        df_to_join.drop_duplicates(),
         on=list(derived_join_keys),
         how="left",
         validate="m:1",

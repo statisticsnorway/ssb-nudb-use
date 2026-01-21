@@ -275,7 +275,7 @@ def wrap_derive_join_all_data(
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
-        with LoggerStack("Deriving variable {name}, using whole NUDB-datasets."):
+        with LoggerStack(f"Deriving variable {name}, using whole NUDB-datasets."):
             source_data = get_source_data(name, df)
 
             basefunc_wrapped = wrap_derive(basefunc)

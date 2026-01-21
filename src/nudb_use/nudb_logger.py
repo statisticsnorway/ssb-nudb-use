@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import functools
 import inspect
 import json
 import logging
@@ -168,10 +169,11 @@ faglogger.setLevel(logging.INFO)
 class LoggerStack:
     """Context manager that adds structured stack labels to log output."""
 
-    def __init__(self, label: str | None = None) -> None:
+    def __init__(self, label: str | None = None, level: str = "info") -> None:
         if label is None:
             label = str(STACK_LEVEL + 1)
         self.label = label
+        self.log_msg = getattr(logger, level)
 
     def __enter__(self) -> LoggerStack:
         """Enter the stack scope and adjust global logging state."""
@@ -189,7 +191,7 @@ class LoggerStack:
         JSON_FIELDS.append(current_json_field[FIELD_NAME])
 
         ENTERING_STACK = True
-        logger.info(f"ENTERING STACK [{self.label}]")
+        self.log_msg(f"ENTERING STACK [{self.label}]")
         ENTERING_STACK = False
 
         STACK_LABELS.append(self.label)
@@ -207,28 +209,48 @@ class LoggerStack:
 
         JSON_FIELDS.pop()
         EXITING_STACK = True
-        logger.info(f"EXITING STACK [{self.label}]\n")
+        self.log_msg(f"EXITING STACK [{self.label}]\n")
 
         EXITING_STACK = False
         STACK_LABELS.pop()
         STACK_LEVEL -= 1
 
 
-def function_logger_context(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Function decorator for creating logger stack for a function call."""
-    funcname = func.__name__
+def function_logger_context(
+    _func: Callable[..., Any] | None = None,
+    *,
+    level: str = "info",
+) -> Callable[..., Any]:
+    """Function decorator for creating logger stack for a function call.
 
-    def wrapped(*args: Any, **kwargs: Any) -> Any:
-        signature = inspect.signature(func)
-        params = signature.parameters
+    Supports:
+        @function_logger_context
+        @function_logger_context()
+        @function_logger_context(level="debug")
+    """
 
-        funcall = funcname + "(" + ", ".join(params) + ")"
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        funcname = func.__name__
 
-        with LoggerStack(funcall):
-            logger.debug(f"Source code for {funcname}:\n{inspect.getsource(func)}")
-            return func(*args, **kwargs)
+        @functools.wraps(func)
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            signature = inspect.signature(func)
+            params = signature.parameters
 
-    return wrapped
+            funcall = funcname + "(" + ", ".join(params) + ")"
+
+            with LoggerStack(funcall, level=level):
+                logger.debug(f"Source code for {funcname}:\n{inspect.getsource(func)}")
+                return func(*args, **kwargs)
+
+        return wrapped
+
+    # If called as @function_logger_context (no parentheses), _func is the function.
+    if _func is not None:
+        return decorator(_func)
+
+    # If called as @function_logger_context(...) (with parentheses), return the real decorator.
+    return decorator
 
 
 def _enter_new_logger_stack(label: str | None = None) -> None:
