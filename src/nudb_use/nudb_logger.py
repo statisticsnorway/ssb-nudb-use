@@ -146,6 +146,7 @@ formatter = ColoredFormatter(
     colors={
         "DEBUG": Fore.CYAN,
         "INFO": Fore.GREEN,
+        "NOTICE": Fore.BLUE,
         "WARNING": Fore.MAGENTA,
         "ERROR": Fore.RED,
         "CRITICAL": Fore.RED + Back.WHITE + Style.BRIGHT,
@@ -159,6 +160,20 @@ logger = logging.getLogger(__name__)
 logger.handlers[:] = []
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+
+# Add a new level to logger
+NOTICE_LEVEL_NUM = 25
+logging.addLevelName(NOTICE_LEVEL_NUM, "NOTICE")
+logging.NOTICE = NOTICE_LEVEL_NUM
+
+
+def notice(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
+    if self.isEnabledFor(NOTICE_LEVEL_NUM):
+        self._log(NOTICE_LEVEL_NUM, message, *args, **kwargs)
+
+
+# logger.notice = notice
+logging.Logger.notice = notice
 
 
 faglogger.handlers[:] = []
@@ -174,10 +189,14 @@ class LoggerStack:
             label = str(STACK_LEVEL + 1)
         self.label = label
         self.log_msg = getattr(logger, level)
+        self.level = getattr(logging, level.upper())
 
     def __enter__(self) -> LoggerStack:
         """Enter the stack scope and adjust global logging state."""
         global STACK_LEVEL, STACK_LABELS, ENTERING_STACK, JSON_FIELDS, ID_COUNTERS
+
+        if self.level < logger.getEffectiveLevel():  # don't register
+            return self
 
         CURRENT_ID_COUNTER = 0
         FIELD_NAME = f"{self.label}-{CURRENT_ID_COUNTER}"
@@ -206,6 +225,9 @@ class LoggerStack:
     ) -> None:
         """Exit the stack scope and clean up state."""
         global STACK_LEVEL, STACK_LABELS, EXITING_STACK, JSON_FIELDS
+
+        if self.level < logger.getEffectiveLevel():  # don't register
+            return None
 
         JSON_FIELDS.pop()
         EXITING_STACK = True

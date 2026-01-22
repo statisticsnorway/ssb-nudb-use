@@ -16,14 +16,14 @@ __all__ = [
 
 
 @wrap_derive_join_all_data
-def uh_foerste_nus2000(df: pd.DataFrame) -> pd.Series:
+def uh_foerste_nus2000(df: pd.DataFrame) -> pd.DataFrame:
     """Derive the first nus2000 a person has on UH-level.
 
     Args:
         df: Source dataset containing at least snr, nus2000, utd_aktivitet_start.
 
     Returns:
-        pd.Series: A column suitable for adding as a new column to the df.
+        pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_foerste_nus2000"
     df_agg = (
@@ -33,14 +33,13 @@ def uh_foerste_nus2000(df: pd.DataFrame) -> pd.Series:
         .first()
         .rename(columns={"nus2000": variable_name})
     )
-    return df.merge(
-        df_agg[["snr", variable_name]], on="snr", how="left", validate="m:1"
-    )[variable_name]
+
+    return df_agg
 
 
 def first_registered_date_per_snr(
     df: pd.DataFrame, variable_name: str, filter_var: str
-) -> pd.Series:
+) -> pd.DataFrame:
     """Create first registered date for each person through snr-column, by aggregating, then merging for original order.
 
     Args:
@@ -49,7 +48,7 @@ def first_registered_date_per_snr(
         filter_var: A boolean column that will be used to filter down to the valid rows.
 
     Returns:
-        pd.Series: The produced date column for the first date a person has done something within the boolean filter.
+        pd.DataFrame: The produced date column for the first date a person has done something within the boolean filter.
     """
     mask = df[filter_var].fillna(False).astype(bool)
     df_agg = (
@@ -60,20 +59,18 @@ def first_registered_date_per_snr(
         .rename(columns={"utd_aktivitet_start": variable_name})
     )
     df_agg[variable_name] = enforce_datetime_s(df_agg[variable_name])
-    return df.merge(
-        df_agg[["snr", variable_name]], on="snr", how="left", validate="m:1"
-    )[variable_name]
+    return df_agg
 
 
 @wrap_derive_join_all_data
-def gr_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
+def gr_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive gr_foerste_registrert_dato from avslutta.
 
     Args:
         df: Source dataset containing at least snr, gr_ergrunnskole_registrering, utd_aktivitet_start.
 
     Returns:
-        pd.Series: A column suitable for adding as a new column to the df.
+        pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "gr_foerste_registrert_dato"
     filter_var = "gr_ergrunnskole_registrering"
@@ -83,14 +80,14 @@ def gr_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
 
 
 @wrap_derive_join_all_data
-def vg_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
+def vg_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive vg_foerste_registrert_dato from avslutta.
 
     Args:
         df: Source dataset containing at least snr, vg_ervgo_registrering, utd_aktivitet_start.
 
     Returns:
-        pd.Series: A column suitable for adding as a new column to the df.
+        pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "vg_foerste_registrert_dato"
     filter_var = "vg_ervgo_registrering"
@@ -100,14 +97,14 @@ def vg_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
 
 
 @wrap_derive_join_all_data
-def uh_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
+def uh_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_foerste_registrert_dato from avslutta.
 
     Args:
         df: Source dataset containing at least snr, uh_erhoyereutd_registrering, utd_aktivitet_start.
 
     Returns:
-        pd.Series: A column suitable for adding as a new column to the df.
+        pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_foerste_registrert_dato"
     filter_var = "uh_erhoyereutd_registrering"
@@ -117,14 +114,14 @@ def uh_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
 
 
 @wrap_derive_join_all_data
-def uh_bachelor_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
+def uh_bachelor_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_bachelor_foerste_registrert_dato from avslutta.
 
     Args:
         df: Source dataset containing at least snr, uh_erbachelor_registrering, utd_aktivitet_start.
 
     Returns:
-        pd.Series: A column suitable for adding as a new column to the df.
+        pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_bachelor_foerste_registrert_dato"
     filter_var = "uh_erbachelor_registrering"
@@ -134,14 +131,14 @@ def uh_bachelor_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
 
 
 @wrap_derive_join_all_data
-def uh_master_foerste_registrert_dato(df: pd.DataFrame) -> pd.Series:
+def uh_master_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_master_foerste_registrert_dato from avslutta.
 
     Args:
         df: Source dataset containing at least snr, uh_ermaster_registrering, utd_aktivitet_start.
 
     Returns:
-        pd.Series: A column suitable for adding as a new column to the df.
+        pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_master_foerste_registrert_dato"
     filter_var = "uh_ermaster_registrering"

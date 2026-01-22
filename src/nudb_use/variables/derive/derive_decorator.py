@@ -127,7 +127,7 @@ def fillna_by_priority(
 
 
 def wrap_derive(
-    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series],
+    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series | pd.DataFrame],
 ) -> WrappedDerive[P]:
     """Decorator for derive functions that enforces config metadata and logging.
 
@@ -216,7 +216,26 @@ def wrap_derive(
                 logger.debug(
                     "All `derived_from` variables are available, running basefunc"
                 )
-                newvals = basefunc(df, *args, **kwargs)
+                result = basefunc(df, *args, **kwargs)
+
+                if isinstance(result, pd.DataFrame):
+                    logger.notice(
+                        "Basefunc returned a dataframe! Ignoring `priority` argument..."
+                    )
+
+                    # clean up
+                    df = result
+                    newvals = df[name]
+                    exists = False
+
+                elif isinstance(result, pd.Series):
+                    newvals = result
+
+                else:
+                    raise TypeError(
+                        f"`basefunc` ({name}) returned an unexpected type: '{type(result)}'"
+                    )
+
                 if exists:
                     newvals_filled = fillna_by_priority(
                         oldvals=oldvals, newvals=newvals, priority=priority_literal
@@ -233,8 +252,10 @@ def wrap_derive(
                     logger.warning(
                         f"Filling degree for {name} went down by {get_pct_string(fill_pct0 - fill_pct1)} after deriving it againg"
                     )
-                df.loc[:, name] = newvals
+
+                df[name] = newvals
                 return df
+
             except Exception as err:
                 logger.warning(
                     f"Derivation of {name} failed, returning data as is!\nMessage: {err}"

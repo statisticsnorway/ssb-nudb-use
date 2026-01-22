@@ -7,6 +7,7 @@ from nudb_config import settings
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.latest import latest_shared_paths
+from nudb_use.variables.checks import pyarrow_columns_from_metadata
 
 
 @function_logger_context(level="debug")
@@ -54,6 +55,17 @@ def _get_baselevel_derived_from_variables(variables: list[str]) -> list[str]:
         )  # visited is mutated in _get_baselevel_derived_from_single
 
     return list(baselevel)
+
+
+def _get_column_aliases(columns: list[str], available: list[str]) -> str:
+    available_set = set(available)
+
+    return ", ".join(
+        [
+            f"NULL AS {column}" if column not in available_set else column
+            for column in columns
+        ]
+    )
 
 
 def get_source_data(
@@ -111,13 +123,24 @@ def get_source_data(
         str(latest_shared_paths(ds_name)) for ds_name in derived_uses_datasets
     ]
 
+    available_cols = [pyarrow_columns_from_metadata(path) for path in dataset_paths]
+
+    col_aliases = [
+        _get_column_aliases(cols_to_read, available) for available in available_cols
+    ]
+
     logger.info(f"Paths used to form `source_data`:\n{dataset_paths}")
 
     # Build a UNION ALL over all datasets, selecting only needed columns.
-    select_cols = ", ".join(cols_to_read)
     union_sql = "\nUNION ALL\n".join(
-        f"SELECT {select_cols} FROM read_parquet('{path}')" for path in dataset_paths
+        [
+            f"SELECT {cols} FROM read_parquet('{path}')"
+            for cols, path in zip(col_aliases, dataset_paths, strict=True)
+        ]
     )
+
+    logger.notice(f"SQL query:\n{union_sql}")
+
     con_factory = duckdb.connect
     with con_factory() as con:
         if data_to_merge is None:
@@ -193,12 +216,22 @@ def join_variable_data(
         )
 
     # Check and handle duplicated merge keys
-    dupes = df_to_join[list(derived_join_keys)].duplicated()
+    dupes = df_to_join.duplicated(subset=list(derived_join_keys))
     if dupes.any():
+        dupes_all = df_to_join.duplicated(subset=list(derived_join_keys), keep=False)
+        df_dup = df_to_join[dupes_all].sort_values(by=list(derived_join_keys))
+
         logger.warning(
-            f"Found duplicated merge keys! Showing first 50 rows:\n{df_to_join[dupes].head(50)}"
+            f"Found duplicated merge keys! Showing first 50 rows:\n{df_dup.head(50)}"
         )
-        logger.warning("Picking first valid row for duplicates...")
+        logger.warning("Keeping first valid row for duplicates...")
+
+        k = dupes.sum()
+        n = df_to_join.shape[0]
+        pct = 100 * k / n
+
+        logger.warning(f"Dropping {k}/{n} rows ({pct:.2f}%)")
+
         df_to_join = df_to_join[~dupes]
 
     return data_to_merge.merge(
