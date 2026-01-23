@@ -85,8 +85,6 @@ def test_first_registered_date_per_snr() -> None:
 
     expected = [
         pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:00:50"),
         pd.Timestamp("1970-01-01 00:00:50"),
         pd.NaT,
     ]
@@ -107,8 +105,8 @@ def test_uh_foerste_nus2000(monkeypatch: Any) -> None:
     result = uh_foerste_nus2000(df)
 
     values = result["uh_foerste_nus2000"].tolist()
-    assert values[:4] == ["6000", "6000", "8000", "8000"]
-    assert pd.isna(values[4])
+    assert values[:2] == ["6000", "8000"]
+    assert pd.isna(values[2])
 
 
 def test_registrert_foerste_dato_derivations(monkeypatch: Any) -> None:

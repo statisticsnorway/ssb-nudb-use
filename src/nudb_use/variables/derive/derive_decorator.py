@@ -302,6 +302,7 @@ def wrap_derive_join_all_data(
             basefunc_wrapped = wrap_derive(basefunc)
             derived_source = basefunc_wrapped(source_data, priority, *args, **kwargs)
             if df is None:
+                logger.notice("data is None, why u do this?")  # type: ignore[attr-defined]
                 return derived_source
 
             return join_variable_data(name, derived_source, df)

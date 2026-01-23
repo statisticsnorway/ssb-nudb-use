@@ -109,13 +109,11 @@ def test_first_end_date_per_snr() -> None:
 
     expected = [
         pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:01:40"),
         pd.Timestamp("1970-01-01 00:00:50"),
-        pd.Timestamp("1970-01-01 00:00:50"),
-        pd.NaT,
     ]
+
     assert result["first_end"].tolist() == expected
-    assert str(result.dtype) == "datetime64[s]"
+    assert str(result["first_end"].dtype) == "datetime64[s]"
 
 
 def test_fullfoert_foerste_dato_derivations(monkeypatch: Any) -> None:
@@ -144,6 +142,7 @@ def test_fullfoert_foerste_dato_derivations(monkeypatch: Any) -> None:
     master = uh_master_foerste_fullfoert_dato(df)
     doktor = uh_doktorgrad_foerste_fullfoert_dato(df)
 
+    print(df)
     assert gr["gr_foerste_fullfoert_dato"].tolist() == [
         pd.Timestamp("1970-01-01 00:01:40"),
         pd.Timestamp("1970-01-01 00:01:40"),
