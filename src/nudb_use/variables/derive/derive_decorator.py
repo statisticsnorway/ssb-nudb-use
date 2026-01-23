@@ -277,7 +277,7 @@ def wrap_derive(
 
 
 def wrap_derive_join_all_data(
-    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series],
+    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.DataFrame],
 ) -> WrappedDeriveJoinAllData[P]:
     """Decorator for derive functions that need specific data as a base, specified in the config.
 
