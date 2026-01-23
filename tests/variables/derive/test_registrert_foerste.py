@@ -90,7 +90,7 @@ def test_first_registered_date_per_snr() -> None:
         pd.Timestamp("1970-01-01 00:00:50"),
         pd.NaT,
     ]
-    assert result.tolist() == expected
+    assert result["first_date"].tolist() == expected
     assert str(result.dtype) == "datetime64[s]"
 
 

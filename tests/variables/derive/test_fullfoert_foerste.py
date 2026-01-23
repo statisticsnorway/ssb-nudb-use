@@ -114,7 +114,7 @@ def test_first_end_date_per_snr() -> None:
         pd.Timestamp("1970-01-01 00:00:50"),
         pd.NaT,
     ]
-    assert result.tolist() == expected
+    assert result["first_end"].tolist() == expected
     assert str(result.dtype) == "datetime64[s]"
 
 

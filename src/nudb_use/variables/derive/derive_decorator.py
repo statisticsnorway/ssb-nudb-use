@@ -219,7 +219,7 @@ def wrap_derive(
                 result = basefunc(df, *args, **kwargs)
 
                 if isinstance(result, pd.DataFrame):
-                    logger.notice(
+                    logger.notice(  # type: ignore[attr-defined]
                         "Basefunc returned a dataframe! Ignoring `priority` argument..."
                     )
 

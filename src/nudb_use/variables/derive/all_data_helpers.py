@@ -139,7 +139,7 @@ def get_source_data(
         ]
     )
 
-    logger.notice(f"SQL query:\n{union_sql}")
+    logger.notice(f"SQL query:\n{union_sql}")  # type: ignore[attr-defined]
 
     con_factory = duckdb.connect
     with con_factory() as con:

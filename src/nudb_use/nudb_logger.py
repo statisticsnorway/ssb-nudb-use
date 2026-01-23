@@ -164,7 +164,7 @@ logger.setLevel(logging.INFO)
 # Add a new level to logger
 NOTICE_LEVEL_NUM = 25
 logging.addLevelName(NOTICE_LEVEL_NUM, "NOTICE")
-logging.NOTICE = NOTICE_LEVEL_NUM
+logging.NOTICE = NOTICE_LEVEL_NUM  # type: ignore[attr-defined]
 
 
 def notice(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
@@ -173,7 +173,7 @@ def notice(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> Non
 
 
 # logger.notice = notice
-logging.Logger.notice = notice
+logging.Logger.notice = notice  # type: ignore[attr-defined]
 
 
 faglogger.handlers[:] = []
