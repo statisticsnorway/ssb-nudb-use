@@ -169,7 +169,7 @@ logging.NOTICE = NOTICE_LEVEL_NUM
 
 def notice(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
     if self.isEnabledFor(NOTICE_LEVEL_NUM):
-        self._log(NOTICE_LEVEL_NUM, message, *args, **kwargs)
+        self._log(NOTICE_LEVEL_NUM, message, args, **kwargs)
 
 
 # logger.notice = notice
