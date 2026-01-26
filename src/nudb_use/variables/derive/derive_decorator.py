@@ -12,9 +12,8 @@ import nudb_use.variables.derive as derive
 from nudb_use.exceptions.exception_classes import NudbDerivedFromNotFoundError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
-
-from .all_data_helpers import get_source_data
-from .all_data_helpers import join_variable_data
+from nudb_use.variables.derive.all_data_helpers import get_source_data
+from nudb_use.variables.derive.all_data_helpers import join_variable_data
 
 P = ParamSpec("P")
 
@@ -302,7 +301,7 @@ def wrap_derive_join_all_data(
             basefunc_wrapped = wrap_derive(basefunc)
             derived_source = basefunc_wrapped(source_data, priority, *args, **kwargs)
             if df is None:
-                logger.notice("data is None, why u do this?")  # type: ignore[attr-defined]
+                logger.warning("data is None, why u do this?")  # type: ignore[attr-defined]
                 return derived_source
 
             return join_variable_data(name, derived_source, df)

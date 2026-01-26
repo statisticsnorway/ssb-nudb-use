@@ -202,6 +202,7 @@ def join_variable_data(
     """
     cfg = settings.variables[variable_name]
     derived_join_keys = cfg.derived_join_keys
+
     if not derived_join_keys:
         raise ValueError(
             f"{variable_name}: settings.variables[{variable_name}].derived_join_keys must be defined"
@@ -234,7 +235,6 @@ def join_variable_data(
 
         df_to_join = df_to_join[~dupes]
 
-    logger.notice("Joining variable onto data...")  # type: ignore[attr-defined]
     return data_to_merge.merge(
         df_to_join,
         on=list(derived_join_keys),
