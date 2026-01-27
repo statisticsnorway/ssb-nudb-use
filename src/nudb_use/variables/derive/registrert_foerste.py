@@ -111,13 +111,13 @@ def uh_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_foerste_registrert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, uh_erhoyereutd_registrering, utd_aktivitet_start.
+        df: Source dataset containing at least snr, uh_erhoeyereutd_registrering, utd_aktivitet_start.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_foerste_registrert_dato"
-    filter_var = "uh_erhoyereutd_registrering"
+    filter_var = "uh_erhoeyereutd_registrering"
     return first_registered_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )

@@ -100,28 +100,20 @@ def _derive_columns_to_check(
     errors: list[Exception],
 ) -> list[str]:
     if dataset_name is None and check_for is None:
-        errors.append(
-            ValueError(
-                f"""
+        errors.append(ValueError(f"""
                 `check_column_presence()` needs either `check_for` or `name`.
                 `name` can be one of the following:
                     {datasets}
-            """
-            )
-        )
+            """))
         return []
 
     if check_for is None:
         if dataset_name not in datasets:
-            errors.append(
-                KeyError(
-                    f"""
+            errors.append(KeyError(f"""
                     `name` must be one of the following:
                         {datasets}
                     got '{dataset_name}'
-                """
-                )
-            )
+                """))
             return []
         return cast(list[str], settings["datasets"][dataset_name]["variables"])
 

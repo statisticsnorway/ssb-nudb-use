@@ -11,7 +11,7 @@ BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 __all__ = [
     "gr_ergrunnskole_registrering",
     "uh_erbachelor_registrering",
-    "uh_erhoyereutd_registrering",
+    "uh_erhoeyereutd_registrering",
     "uh_ermaster_registrering",
     "vg_erstudiespess_registrering",
     "vg_ervgo_registrering",
@@ -102,10 +102,10 @@ def vg_eryrkesfag_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_erhoyereutd_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_erhoeyereutd_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive uh_erhoyereutd_registrering from nus2000 as a boolean filter."""
+    """Derive uh_erhoeyereutd_registrering from nus2000 as a boolean filter."""
     bool_mask: pd.Series = (df["nus2000"].str[0].isin(["6", "7", "8"])).astype(
         BOOL_DTYPE
     )

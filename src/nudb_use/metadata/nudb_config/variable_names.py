@@ -92,13 +92,11 @@ def get_cols_in_config(name: str | None) -> list[str]:
     else:
         datasets = list(settings_use["datasets"].keys())
         if name not in datasets:
-            raise KeyError(
-                f"""
+            raise KeyError(f"""
                 `name` must be one of the following:
                     {datasets}
                 got '{name}'
-            """
-            )
+            """)
 
         cols_in_config = list(settings_use["datasets"][name]["variables"])
 

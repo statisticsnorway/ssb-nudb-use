@@ -6,7 +6,7 @@ from nudb_use.variables.derive.registrert import PRG_RANGES
 from nudb_use.variables.derive.registrert import gr_ergrunnskole_registrering
 from nudb_use.variables.derive.registrert import raise_vg_utdprogram_outside_ranges
 from nudb_use.variables.derive.registrert import uh_erbachelor_registrering
-from nudb_use.variables.derive.registrert import uh_erhoyereutd_registrering
+from nudb_use.variables.derive.registrert import uh_erhoeyereutd_registrering
 from nudb_use.variables.derive.registrert import uh_ermaster_registrering
 from nudb_use.variables.derive.registrert import vg_erstudiespess_registrering
 from nudb_use.variables.derive.registrert import vg_ervgo_registrering
@@ -81,12 +81,12 @@ def test_raise_vg_utdprogram_outside_ranges() -> None:
         raise_vg_utdprogram_outside_ranges(pd.Series(["90"]))
 
 
-def test_uh_erhoyereutd_registrering() -> None:
+def test_uh_erhoeyereutd_registrering() -> None:
     df = pd.DataFrame({"nus2000": ["6000", "7000", "8000", "5000"]})
 
-    result = uh_erhoyereutd_registrering(df)
+    result = uh_erhoeyereutd_registrering(df)
 
-    assert result["uh_erhoyereutd_registrering"].tolist() == [
+    assert result["uh_erhoeyereutd_registrering"].tolist() == [
         True,
         True,
         True,
