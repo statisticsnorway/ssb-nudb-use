@@ -18,10 +18,10 @@ nudb\_use.variables.derive.nus\_variants module
    :show-inheritance:
    :undoc-members:
 
-nudb\_use.variables.derive.uh\_univ\_eller\_hogskole module
+nudb\_use.variables.derive.uh\_univ\_eller\_hoegskole module
 -----------------------------------------------------------
 
-.. automodule:: nudb_use.variables.derive.uh_univ_eller_hogskole
+.. automodule:: nudb_use.variables.derive.uh_univ_eller_hoegskole
    :members:
    :show-inheritance:
    :undoc-members:

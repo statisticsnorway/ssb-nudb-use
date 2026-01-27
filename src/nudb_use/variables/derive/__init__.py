@@ -8,7 +8,7 @@ from nudb_use.nudb_logger import logger
 
 from . import fullfoert
 from . import fullfoert_foerste
-from . import hoyeste_utd
+from . import hoeyeste_utd
 from . import klass_correspondences_and_variants
 from . import klass_labels
 from . import registrert
@@ -22,19 +22,19 @@ derive_all_submodules = (
     registrert,
     klass_correspondences_and_variants,
     klass_labels,
-    hoyeste_utd,
+    hoeyeste_utd,
 )
 
 from .nus_variants import utd_erforeldet_kode_nus
-from .nus_variants import utd_klassetrinn_hoy_nus
+from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
-from .uh_univ_eller_hogskole import uh_univ_eller_hogskole
+from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
 from .utd_skoleaar import utd_skoleaar_slutt
 
 __all__ = [
-    "uh_univ_eller_hogskole",
+    "uh_univ_eller_hoegskole",
     "utd_erforeldet_kode_nus",
-    "utd_klassetrinn_hoy_nus",
+    "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
 ]

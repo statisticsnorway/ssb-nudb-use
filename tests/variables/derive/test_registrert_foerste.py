@@ -1,9 +1,9 @@
-from types import SimpleNamespace
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from nudb_use.variables.derive import derive_decorator
+import nudb_use
 from nudb_use.variables.derive.registrert_foerste import first_registered_date_per_snr
 from nudb_use.variables.derive.registrert_foerste import gr_foerste_registrert_dato
 from nudb_use.variables.derive.registrert_foerste import (
@@ -17,57 +17,111 @@ from nudb_use.variables.derive.registrert_foerste import (
 from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_dato
 
 
-def patch_wrap_join_helpers(monkeypatch: Any) -> None:
-    monkeypatch.setattr(derive_decorator, "get_source_data", lambda _name, df: df)
-    monkeypatch.setattr(
-        derive_decorator, "join_variable_data", lambda _name, derived, _df: derived
+def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
+
+    basepath = tmp_path / "local" / "nudb-data"
+    nudbpath = basepath / "klargjorte-data"
+    nudbpath.mkdir(parents=True)
+
+    igang = pd.DataFrame(
+        {
+            "snr": ["a", "a", "b", "b", "c", "a", "a", "b", "b", "c"],
+            "utd_aktivitet_start": [
+                pd.Timestamp("1970-01-01 00:01:40"),
+                pd.Timestamp("1970-01-01 00:03:40"),
+                pd.Timestamp("1970-01-01 00:07:40"),
+                pd.Timestamp("1970-01-01 00:00:30"),
+                pd.Timestamp("1970-01-01 00:01:30"),
+                pd.Timestamp("1970-01-01 00:01:40"),
+                pd.Timestamp("1970-01-01 00:00:40"),
+                pd.Timestamp("1970-01-01 00:07:40"),
+                pd.Timestamp("1970-01-01 00:00:30"),
+                pd.Timestamp("1970-01-01 00:01:30"),
+            ],
+            "nus2000": [
+                "20000",
+                "20000",
+                "20000",
+                "40000",
+                "40000",
+                "636102",
+                "753106",
+                "636102",
+                "80000",
+                "40000",
+            ],
+            "uh_erutland": [
+                True,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+            ],
+        }
+    ).astype(
+        {
+            "snr": "string[pyarrow]",
+            "utd_aktivitet_start": "datetime64[s]",
+            "nus2000": "string[pyarrow]",
+            "uh_erutland": "bool[pyarrow]",
+        }
     )
-    monkeypatch.setattr(
-        derive_decorator,
-        "settings",
-        SimpleNamespace(
-            variables={
-                "uh_foerste_nus2000": SimpleNamespace(
-                    derived_from=["snr", "nus2000", "utd_aktivitet_start"]
-                ),
-                "gr_foerste_registrert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "gr_ergrunnskole_registrering",
-                        "utd_aktivitet_start",
-                    ]
-                ),
-                "vg_foerste_registrert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "vg_ervgo_registrering",
-                        "utd_aktivitet_start",
-                    ]
-                ),
-                "uh_foerste_registrert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_erhoyereutd_registrering",
-                        "utd_aktivitet_start",
-                    ]
-                ),
-                "uh_bachelor_foerste_registrert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_erbachelor_registrering",
-                        "utd_aktivitet_start",
-                    ]
-                ),
-                "uh_master_foerste_registrert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_ermaster_registrering",
-                        "utd_aktivitet_start",
-                    ]
-                ),
-            }
-        ),
+
+    avslutta = pd.DataFrame(
+        {
+            "snr": ["a", "a", "b", "b", "c"],
+            "utd_aktivitet_slutt": [
+                pd.Timestamp("1970-01-01 00:00:10"),
+                pd.Timestamp("1970-01-01 00:00:15"),
+                pd.Timestamp("1971-01-01 00:07:40"),
+                pd.Timestamp("1970-01-01 00:00:20"),
+                pd.Timestamp("1971-01-01 00:01:30"),
+            ],
+            "nus2000": ["20001", "20001", "20001", "753106", "40001"],
+            "uh_erutland": [True, False, False, False, False],
+        }
+    ).astype(
+        {
+            "snr": "string[pyarrow]",
+            "utd_aktivitet_slutt": "datetime64[s]",
+            "nus2000": "string[pyarrow]",
+            "uh_erutland": "bool[pyarrow]",
+        }
     )
+
+    eksamen = pd.DataFrame(
+        {
+            "snr": pd.Series(["a", "a", "b", "b", "c"], dtype="string[pyarrow]"),
+            "utd_eksamen_dato": [
+                pd.Timestamp("1971-01-01 00:01:45"),
+                pd.Timestamp("1971-01-01 00:03:45"),
+                pd.Timestamp("1971-01-01 00:07:45"),
+                pd.Timestamp("1971-01-01 00:00:35"),
+                pd.Timestamp("1971-01-01 00:01:35"),
+            ],
+            "nus2000": ["20002", "20002", "20002", "10002", "40002"],
+            "uh_erutland": [True, False, False, False, False],
+        }
+    ).astype(
+        {
+            "snr": "string[pyarrow]",
+            "utd_eksamen_dato": "datetime64[s]",
+            "nus2000": "string[pyarrow]",
+            "uh_erutland": "bool[pyarrow]",
+        }
+    )
+
+    igang.to_parquet(nudbpath / "igang_p1970_p1971_v1.parquet")
+    avslutta.to_parquet(nudbpath / "avslutta_p1970_p1971_v1.parquet")
+    eksamen.to_parquet(nudbpath / "eksamen_p1970_p1971_v1.parquet")
+
+    # legg inn i config at alle registreringer trenger flere (potensielt) dato-kolonner
+    monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
 
 
 def test_first_registered_date_per_snr() -> None:
@@ -85,44 +139,30 @@ def test_first_registered_date_per_snr() -> None:
 
     expected = [
         pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:01:40"),
         pd.Timestamp("1970-01-01 00:00:50"),
-        pd.Timestamp("1970-01-01 00:00:50"),
-        pd.NaT,
     ]
-    assert result.tolist() == expected
-    assert str(result.dtype) == "datetime64[s]"
+    assert result["first_date"].tolist() == expected
+    assert str(result["first_date"].dtype) == "datetime64[s]"
 
 
-def test_uh_foerste_nus2000(monkeypatch: Any) -> None:
-    patch_wrap_join_helpers(monkeypatch)
+def test_uh_foerste_nus2000(tmp_path: Path, monkeypatch: Any) -> None:
+    patch_wrap_join_helpers(tmp_path, monkeypatch)
     df = pd.DataFrame(
-        {
-            "snr": ["a", "a", "b", "b", "c"],
-            "nus2000": ["6000", "5000", "7000", "8000", "4000"],
-            "utd_aktivitet_start": [200, 100, 300, 100, 50],
-        }
+        {"snr": pd.Series(["a", "a", "b", "b", "c"], dtype="string[pyarrow]")}
     )
 
     result = uh_foerste_nus2000(df)
 
     values = result["uh_foerste_nus2000"].tolist()
-    assert values[:4] == ["6000", "6000", "8000", "8000"]
+
+    assert values[:4] == ["753106", "753106", "753106", "753106"]
     assert pd.isna(values[4])
 
 
-def test_registrert_foerste_dato_derivations(monkeypatch: Any) -> None:
-    patch_wrap_join_helpers(monkeypatch)
+def test_registrert_foerste_dato_derivations(tmp_path: Path, monkeypatch: Any) -> None:
+    patch_wrap_join_helpers(tmp_path, monkeypatch)
     df = pd.DataFrame(
-        {
-            "snr": ["a", "a", "b", "b", "c"],
-            "utd_aktivitet_start": [100, 200, 150, 50, 300],
-            "gr_ergrunnskole_registrering": [True, False, False, True, False],
-            "vg_ervgo_registrering": [False, True, True, False, False],
-            "uh_erhoyereutd_registrering": [False, False, True, True, False],
-            "uh_erbachelor_registrering": [False, True, False, False, False],
-            "uh_ermaster_registrering": [False, False, False, True, False],
-        }
+        {"snr": pd.Series(["a", "a", "b", "b", "c"], dtype="string[pyarrow]")}
     )
 
     gr = gr_foerste_registrert_dato(df)
@@ -132,37 +172,37 @@ def test_registrert_foerste_dato_derivations(monkeypatch: Any) -> None:
     master = uh_master_foerste_registrert_dato(df)
 
     assert gr["gr_foerste_registrert_dato"].tolist() == [
-        pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:00:50"),
-        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:15"),
+        pd.Timestamp("1970-01-01 00:00:15"),
+        pd.Timestamp("1970-01-01 00:07:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
         pd.NaT,
     ]
     assert vg["vg_foerste_registrert_dato"].tolist() == [
-        pd.Timestamp("1970-01-01 00:03:20"),
-        pd.Timestamp("1970-01-01 00:03:20"),
-        pd.Timestamp("1970-01-01 00:02:30"),
-        pd.Timestamp("1970-01-01 00:02:30"),
         pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:00:30"),
+        pd.Timestamp("1970-01-01 00:00:30"),
+        pd.Timestamp("1970-01-01 00:01:30"),
     ]
     assert uh["uh_foerste_registrert_dato"].tolist() == [
-        pd.NaT,
-        pd.NaT,
-        pd.Timestamp("1970-01-01 00:00:50"),
-        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:40"),
+        pd.Timestamp("1970-01-01 00:00:40"),
+        pd.Timestamp("1970-01-01 00:00:20"),
+        pd.Timestamp("1970-01-01 00:00:20"),
         pd.NaT,
     ]
     assert bach["uh_bachelor_foerste_registrert_dato"].tolist() == [
-        pd.Timestamp("1970-01-01 00:03:20"),
-        pd.Timestamp("1970-01-01 00:03:20"),
-        pd.NaT,
-        pd.NaT,
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
         pd.NaT,
     ]
     assert master["uh_master_foerste_registrert_dato"].tolist() == [
-        pd.NaT,
-        pd.NaT,
-        pd.Timestamp("1970-01-01 00:00:50"),
-        pd.Timestamp("1970-01-01 00:00:50"),
+        pd.Timestamp("1970-01-01 00:00:40"),
+        pd.Timestamp("1970-01-01 00:00:40"),
+        pd.Timestamp("1970-01-01 00:00:20"),
+        pd.Timestamp("1970-01-01 00:00:20"),
         pd.NaT,
     ]

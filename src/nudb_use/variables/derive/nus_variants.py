@@ -7,18 +7,18 @@ from .derive_decorator import wrap_derive
 def utd_klassetrinn_lav_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
-    utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
-    return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[0]
+    """Derive utd_klassetrinn_lav_hoey_nus from nus2000."""
+    utd_klassetrinn_lav_hoey_nus: pd.Series = df["utd_klassetrinn_lav_hoey_nus"]
+    return utd_klassetrinn_lav_hoey_nus.str.split("-", n=1, expand=True)[0]
 
 
 @wrap_derive
-def utd_klassetrinn_hoy_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
+def utd_klassetrinn_hoey_nus(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive utd_klassetrinn_lav_hoy_nus from nus2000."""
-    utd_klassetrinn_lav_hoy_nus: pd.Series = df["utd_klassetrinn_lav_hoy_nus"]
-    return utd_klassetrinn_lav_hoy_nus.str.split("-", n=1, expand=True)[1]
+    """Derive utd_klassetrinn_lav_hoey_nus from nus2000."""
+    utd_klassetrinn_lav_hoey_nus: pd.Series = df["utd_klassetrinn_lav_hoey_nus"]
+    return utd_klassetrinn_lav_hoey_nus.str.split("-", n=1, expand=True)[1]
 
 
 @wrap_derive

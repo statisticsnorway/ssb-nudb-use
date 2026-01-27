@@ -3,18 +3,18 @@ import datetime
 import pandas as pd
 import pytest
 
-from nudb_use.variables.derive.fullfoert import gr_ergrunnskole_fullfort
-from nudb_use.variables.derive.fullfoert import uh_erbachelor_fullfort
-from nudb_use.variables.derive.fullfoert import uh_erdoktorgrad_fullfort
-from nudb_use.variables.derive.fullfoert import uh_erhoyskolekandidat_fullfort
-from nudb_use.variables.derive.fullfoert import uh_ermaster_fullfort
-from nudb_use.variables.derive.fullfoert import vg_erstudiespess_fullfort
-from nudb_use.variables.derive.fullfoert import vg_ervgo_fullfort
-from nudb_use.variables.derive.fullfoert import vg_eryrkesfag_fullfort
+from nudb_use.variables.derive.fullfoert import gr_ergrunnskole_fullfoert
+from nudb_use.variables.derive.fullfoert import uh_erbachelor_fullfoert
+from nudb_use.variables.derive.fullfoert import uh_erdoktorgrad_fullfoert
+from nudb_use.variables.derive.fullfoert import uh_erhoeyskolekandidat_fullfoert
+from nudb_use.variables.derive.fullfoert import uh_ermaster_fullfoert
+from nudb_use.variables.derive.fullfoert import vg_erstudiespess_fullfoert
+from nudb_use.variables.derive.fullfoert import vg_ervgo_fullfoert
+from nudb_use.variables.derive.fullfoert import vg_eryrkesfag_fullfoert
 from nudb_use.variables.derive.registrert import PRG_RANGES
 
 
-def test_gr_ergrunnskole_fullfort() -> None:
+def test_gr_ergrunnskole_fullfoert() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["2000", "2000", "3000", "2000"],
@@ -23,28 +23,28 @@ def test_gr_ergrunnskole_fullfort() -> None:
         }
     )
 
-    result = gr_ergrunnskole_fullfort(df)
+    result = gr_ergrunnskole_fullfoert(df)
 
-    assert result["gr_ergrunnskole_fullfort"].tolist() == [True, False, False, False]
-    assert str(result["gr_ergrunnskole_fullfort"].dtype) == "bool[pyarrow]"
+    assert result["gr_ergrunnskole_fullfoert"].tolist() == [True, False, False, False]
+    assert str(result["gr_ergrunnskole_fullfoert"].dtype) == "bool[pyarrow]"
 
 
-def test_gr_ergrunnskole_fullfort_priority_old() -> None:
+def test_gr_ergrunnskole_fullfoert_priority_old() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["2000", "2000"],
             "uh_erutland": [False, False],
             "utd_fullfoertkode": ["9", "8"],
-            "gr_ergrunnskole_fullfort": [True, pd.NA],
+            "gr_ergrunnskole_fullfoert": [True, pd.NA],
         }
     )
 
-    result = gr_ergrunnskole_fullfort(df)
+    result = gr_ergrunnskole_fullfoert(df)
 
-    assert result["gr_ergrunnskole_fullfort"].tolist() == [True, True]
+    assert result["gr_ergrunnskole_fullfoert"].tolist() == [True, True]
 
 
-def test_vg_ervgo_fullfort() -> None:
+def test_vg_ervgo_fullfoert() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["4000", "5000", "5000", "3000"],
@@ -59,12 +59,12 @@ def test_vg_ervgo_fullfort() -> None:
         }
     )
 
-    result = vg_ervgo_fullfort(df)
+    result = vg_ervgo_fullfoert(df)
 
-    assert result["vg_ervgo_fullfort"].tolist() == [True, True, False, False]
+    assert result["vg_ervgo_fullfoert"].tolist() == [True, True, False, False]
 
 
-def test_vg_erstudiespess_fullfort_and_vg_eryrkesfag_fullfort() -> None:
+def test_vg_erstudiespess_fullfoert_and_vg_eryrkesfag_fullfoert() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["4000", "5000", "4000"],
@@ -83,14 +83,14 @@ def test_vg_erstudiespess_fullfort_and_vg_eryrkesfag_fullfort() -> None:
         }
     )
 
-    studiespess = vg_erstudiespess_fullfort(df)
-    yrkesfag = vg_eryrkesfag_fullfort(df)
+    studiespess = vg_erstudiespess_fullfoert(df)
+    yrkesfag = vg_eryrkesfag_fullfoert(df)
 
-    assert studiespess["vg_erstudiespess_fullfort"].tolist() == [True, False, False]
-    assert yrkesfag["vg_eryrkesfag_fullfort"].tolist() == [False, True, False]
+    assert studiespess["vg_erstudiespess_fullfoert"].tolist() == [True, False, False]
+    assert yrkesfag["vg_eryrkesfag_fullfoert"].tolist() == [False, True, False]
 
 
-def test_vg_fullfort_logs_warning_on_invalid_program(
+def test_vg_fullfoert_logs_warning_on_invalid_program(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     df = pd.DataFrame(
@@ -103,12 +103,12 @@ def test_vg_fullfort_logs_warning_on_invalid_program(
         }
     )
     # Because of the try in the decorator, this only causes a logged warning
-    vg_erstudiespess_fullfort(df)
+    vg_erstudiespess_fullfoert(df)
     assert "values outside valid codelist" in caplog.text
     assert "WARNING" in [rec.levelname for rec in caplog.records]
 
 
-def test_uh_erhoyskolekandidat_fullfort() -> None:
+def test_uh_erhoeyskolekandidat_fullfoert() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["60099", "60099", "60099"],
@@ -122,29 +122,29 @@ def test_uh_erhoyskolekandidat_fullfort() -> None:
         }
     )
 
-    result = uh_erhoyskolekandidat_fullfort(df)
+    result = uh_erhoeyskolekandidat_fullfoert(df)
 
-    assert result["uh_erhoyskolekandidat_fullfort"].tolist() == [
+    assert result["uh_erhoeyskolekandidat_fullfoert"].tolist() == [
         True,
         False,
         False,
     ]
 
 
-def test_uh_erbachelor_fullfort() -> None:
+def test_uh_erbachelor_fullfoert() -> None:
     df = pd.DataFrame(
         {
-            "uh_gruppering_nus": ["000B", "000M"],
+            "nus2000": ["636102", "736104"],
             "utd_fullfoertkode": ["8", "8"],
         }
     )
 
-    result = uh_erbachelor_fullfort(df)
+    result = uh_erbachelor_fullfoert(df)
 
-    assert result["uh_erbachelor_fullfort"].tolist() == [True, False]
+    assert result["uh_erbachelor_fullfoert"].tolist() == [True, False]
 
 
-def test_uh_ermaster_and_uh_erdoktorgrad_fullfort() -> None:
+def test_uh_ermaster_and_uh_erdoktorgrad_fullfoert() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["7000", "8000", "7000"],
@@ -152,8 +152,8 @@ def test_uh_ermaster_and_uh_erdoktorgrad_fullfort() -> None:
         }
     )
 
-    master = uh_ermaster_fullfort(df)
-    doktorgrad = uh_erdoktorgrad_fullfort(df)
+    master = uh_ermaster_fullfoert(df)
+    doktorgrad = uh_erdoktorgrad_fullfoert(df)
 
-    assert master["uh_ermaster_fullfort"].tolist() == [True, False, False]
-    assert doktorgrad["uh_erdoktorgrad_fullfort"].tolist() == [False, True, False]
+    assert master["uh_ermaster_fullfoert"].tolist() == [True, False, False]
+    assert doktorgrad["uh_erdoktorgrad_fullfoert"].tolist() == [False, True, False]

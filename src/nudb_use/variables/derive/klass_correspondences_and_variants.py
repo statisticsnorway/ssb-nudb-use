@@ -44,10 +44,8 @@ def _generate_klass_derive_function(
         return None
 
     elif len(derived_from) > 1:
-        logger.warning(
-            f"""Don't know which variable to derive {varname} from!\n
-                       as there are multiple options: {derived_from}"""
-        )
+        logger.warning(f"""Don't know which variable to derive {varname} from!\n
+                       as there are multiple options: {derived_from}""")
         return None
     elif is_variant:
 

@@ -4,10 +4,10 @@ from .derive_decorator import wrap_derive
 
 
 @wrap_derive
-def uh_univ_eller_hogskole(
+def uh_univ_eller_hoegskole(
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive `uh_univ_eller_hogskole` from `utd_utdanningstype` and `utd_datakilde`.
+    """Derive `uh_univ_eller_hoegskole` from `utd_utdanningstype` and `utd_datakilde`.
 
     # noqa: DAR101
     # noqa: DAR201
@@ -46,6 +46,6 @@ def uh_univ_eller_hogskole(
     univ = df["utd_utdanningstype"].astype("string[pyarrow]").map(initial_mapping)
     kilde = df["utd_datakilde"]
 
-    univ[kilde.isin(("41", "48"))] = "2"  # 41 = FS-Høgskoler, 48 = Lånekassedata
+    univ[kilde.isin(("41", "48"))] = "2"  # 41 FS-Høgskoler, 48 Lånekassedata
 
     return univ.astype("string[pyarrow]")
