@@ -98,10 +98,9 @@ def uh_erhoeyskolekandidat_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 def uh_erbachelor_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive uh_erbachelor_fullfoert from uh_gruppering_nus, utd_fullfoertkode."""
+    """Derive uh_erbachelor_fullfoert from uh_gradmerke_nus."""
     return (
-        (df["uh_gruppering_nus"].str[3] == "B")
-        & (df["utd_fullfoertkode"] == FULLFOERTKODE)
+        (df["uh_gradmerke_nus"] == "B") & (df["utd_fullfoertkode"] == FULLFOERTKODE)
     ).astype(BOOL_DTYPE)
 
 

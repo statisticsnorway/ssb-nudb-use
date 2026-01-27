@@ -51,6 +51,12 @@ def first_registered_date_per_snr(
         pd.DataFrame: The produced date column for the first date a person has done something within the boolean filter.
     """
     mask = df[filter_var].fillna(False).astype(bool)
+
+    from nudb_use.nudb_logger import logger
+
+    logger.notice("right (pre aggregation)\n")
+    logger.notice(df)
+
     df_agg = (
         df.loc[mask, ["snr", "utd_aktivitet_start"]]
         .sort_values(["snr", "utd_aktivitet_start"])
@@ -58,6 +64,10 @@ def first_registered_date_per_snr(
         .first()
         .rename(columns={"utd_aktivitet_start": variable_name})
     )
+
+    logger.notice("right (after aggregation)\n")
+    logger.notice(df_agg)
+
     df_agg[variable_name] = enforce_datetime_s(df_agg[variable_name])
     return df_agg
 

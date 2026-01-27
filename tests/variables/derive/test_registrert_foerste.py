@@ -7,7 +7,12 @@ import pandas as pd
 import nudb_use
 from nudb_use.variables.derive.registrert_foerste import first_registered_date_per_snr
 from nudb_use.variables.derive.registrert_foerste import gr_foerste_registrert_dato
+from nudb_use.variables.derive.registrert_foerste import (
+    uh_bachelor_foerste_registrert_dato,
+)
 from nudb_use.variables.derive.registrert_foerste import uh_foerste_nus2000
+from nudb_use.variables.derive.registrert_foerste import uh_foerste_registrert_dato
+from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_dato
 
 
 def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
@@ -35,13 +40,13 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
                 "20000",
                 "20000",
                 "20000",
-                "10000",
                 "40000",
-                "60000",
-                "70000",
-                "60000",
+                "40000",
+                "636102",
+                "753106",
+                "636102",
                 "80000",
-                "50000",
+                "40000",
             ],
             "uh_erutland": [
                 True,
@@ -120,6 +125,14 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
         "eksamen",
     ]
     new_settings.variables.uh_foerste_nus2000.derived_join_keys = ["snr"]
+    new_settings.variables.uh_erbachelor_registrering.derived_from = [
+        "nus2000",
+        "uh_gradmerke_nus",
+    ]
+    new_settings.variables.uh_erbachelor_fullfort.derived_from = [
+        "utd_fullfortkode",
+        "uh_gradmerke_nus",
+    ]
 
     monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
     monkeypatch.setattr(nudb_config, "settings", new_settings)
@@ -156,7 +169,7 @@ def test_uh_foerste_nus2000(tmp_path: Path, monkeypatch: Any) -> None:
 
     values = result["uh_foerste_nus2000"].tolist()
 
-    assert values[:4] == ["70000", "70000", "80000", "80000"]
+    assert values[:4] == ["753106", "753106", "80000", "80000"]
     assert pd.isna(values[4])
 
 
@@ -167,42 +180,43 @@ def test_registrert_foerste_dato_derivations(tmp_path: Path, monkeypatch: Any) -
     )
 
     gr = gr_foerste_registrert_dato(df)
-    # vg = vg_foerste_registrert_dato(df)
-    # uh = uh_foerste_registrert_dato(df)
-    # bach = uh_bachelor_foerste_registrert_dato(df)
+    vg = vg_foerste_registrert_dato(df)
+    uh = uh_foerste_registrert_dato(df)
+    bach = uh_bachelor_foerste_registrert_dato(df)
     # master = uh_master_foerste_registrert_dato(df)
 
     from nudb_use.nudb_logger import logger
 
-    logger.critical(gr)
+    logger.critical(bach)
+
     assert gr["gr_foerste_registrert_dato"].tolist() == [
-        pd.Timestamp("1970-01-01 00:01:40"),
-        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:03:40"),
+        pd.Timestamp("1970-01-01 00:03:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
+        pd.NaT,
+    ]
+    assert vg["vg_foerste_registrert_dato"].tolist() == [
+        pd.NaT,
+        pd.NaT,
+        pd.Timestamp("1970-01-01 00:00:30"),
+        pd.Timestamp("1970-01-01 00:00:30"),
+        pd.Timestamp("1970-01-01 00:01:30"),
+    ]
+    assert uh["uh_foerste_registrert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:00:40"),
+        pd.Timestamp("1970-01-01 00:00:40"),
         pd.Timestamp("1970-01-01 00:00:30"),
         pd.Timestamp("1970-01-01 00:00:30"),
         pd.NaT,
     ]
-    # assert vg["vg_foerste_registrert_dato"].tolist() == [
-    #     pd.Timestamp("1970-01-01 00:03:20"),
-    #     pd.Timestamp("1970-01-01 00:03:20"),
-    #     pd.Timestamp("1970-01-01 00:02:30"),
-    #     pd.Timestamp("1970-01-01 00:02:30"),
-    #     pd.NaT,
-    # ]
-    # assert uh["uh_foerste_registrert_dato"].tolist() == [
-    #     pd.NaT,
-    #     pd.NaT,
-    #     pd.Timestamp("1970-01-01 00:00:50"),
-    #     pd.Timestamp("1970-01-01 00:00:50"),
-    #     pd.NaT,
-    # ]
-    # assert bach["uh_bachelor_foerste_registrert_dato"].tolist() == [
-    #     pd.Timestamp("1970-01-01 00:03:20"),
-    #     pd.Timestamp("1970-01-01 00:03:20"),
-    #     pd.NaT,
-    #     pd.NaT,
-    #     pd.NaT,
-    # ]
+    assert bach["uh_bachelor_foerste_registrert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.NaT,
+        pd.NaT,
+        pd.NaT,
+    ]
     # assert master["uh_master_foerste_registrert_dato"].tolist() == [
     #     pd.NaT,
     #     pd.NaT,
