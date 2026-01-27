@@ -66,8 +66,8 @@ def first_registered_date_per_snr(
     """
     mask = df[filter_var].fillna(False).astype(bool)
 
-    logger.notice("right (pre fillna)\n")
-    logger.notice(df)
+    logger.debug("right (pre fillna)\n")
+    logger.debug(df)
 
     if "utd_aktivitet_slutt" in df.columns:
         df["utd_aktivitet_start"] = df["utd_aktivitet_start"].fillna(
@@ -79,8 +79,8 @@ def first_registered_date_per_snr(
             df["uh_eksamen_dato"]
         )
 
-    logger.notice("right (pre aggregation)\n")
-    logger.notice(df)
+    logger.debug("right (pre aggregation)\n")
+    logger.debug(df)
 
     df_agg = (
         df.loc[mask, ["snr", "utd_aktivitet_start"]]
@@ -90,8 +90,8 @@ def first_registered_date_per_snr(
         .rename(columns={"utd_aktivitet_start": variable_name})
     )
 
-    logger.notice("right (after aggregation)\n")
-    logger.notice(df_agg)
+    logger.debug("right (after aggregation)\n")
+    logger.debug(df_agg)
 
     df_agg[variable_name] = enforce_datetime_s(df_agg[variable_name])
     return df_agg

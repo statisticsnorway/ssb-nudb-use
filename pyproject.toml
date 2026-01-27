@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dynamic = ["classifiers"]
 dependencies = [
     "ssb-klass-python >=1.0.4",
-    "pandas <=2.3.3",
+    "pandas >=2.2.0,<3",
     "ssb-fagfunksjoner >=1.1.2; python_version >= '3.11' and python_version < '4.0'",
     "pydantic >=2.12.4",
     "brreg >=1.3.0",
@@ -51,6 +51,8 @@ xdoctest = { extras = ["colors"], version = ">=0.15.10" }
 myst-parser = { version = ">=0.16.1" }
 deptry = {version=">=0.23.0", python = ">=3.10, <4.0"}
 colorama = ">=0.4.6"
+pandas-stubs = "^2.2.0.0"
+types-python-dateutil = ">=2.8.19.14"
 
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"
