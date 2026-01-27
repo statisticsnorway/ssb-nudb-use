@@ -172,7 +172,6 @@ def notice(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> Non
         self._log(NOTICE_LEVEL_NUM, message, args, **kwargs)
 
 
-# logger.notice = notice
 logging.Logger.notice = notice  # type: ignore[attr-defined]
 
 

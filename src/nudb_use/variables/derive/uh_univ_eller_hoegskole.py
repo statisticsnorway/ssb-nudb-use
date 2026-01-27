@@ -46,6 +46,6 @@ def uh_univ_eller_hoegskole(
     univ = df["utd_utdanningstype"].astype("string[pyarrow]").map(initial_mapping)
     kilde = df["utd_datakilde"]
 
-    univ[kilde.isin(("41", "48"))] = "2"  # 41 = FS-Høgskoler, 48 = Lånekassedata
+    univ[kilde.isin(("41", "48"))] = "2"  # 41 FS-Høgskoler, 48 Lånekassedata
 
     return univ.astype("string[pyarrow]")
