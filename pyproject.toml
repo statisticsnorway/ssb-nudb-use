@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dynamic = ["classifiers"]
 dependencies = [
     "ssb-klass-python >=1.0.4",
-    "pandas >=2.3.3",
+    "pandas <=2.3.3",
     "ssb-fagfunksjoner >=1.1.2; python_version >= '3.11' and python_version < '4.0'",
     "pydantic >=2.12.4",
     "brreg >=1.3.0",
