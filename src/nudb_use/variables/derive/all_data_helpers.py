@@ -26,7 +26,7 @@ def _get_baselevel_derived_from_variables_single(
     logger.debug(f"derived_from = {metadata.derived_from}")
     if not metadata.derived_from:
         logger.debug(f"{variable} is a baselevel variable!")
-        return set([variable])  # variable is a baselevel variable (i.e., underivable)
+        return {variable,}  # variable is a baselevel variable (i.e., underivable)
     elif variable in visited:
         logger.debug(f"{variable} has already been checked out!")
         return set()
