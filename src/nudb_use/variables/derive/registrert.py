@@ -21,11 +21,15 @@ __all__ = [
 
 # Would be nice if these were complete in klass instead - the variant on nus is not complete?
 PRG_RANGES_RANGES: dict[str, list[range]] = {
-    "studiespess": [range(1, 2), range(21, 24), range(60, 65)],
+    "studiespess": [
+        range(1, 2),  # this is not a mistake -> [1, 2) -> [1]
+        range(21, 24),
+        range(60, 65),
+    ],
     "yrkesfag": [
         range(3, 20),
         range(30, 43),
-        range(50, 51),
+        range(50, 51),  # this is not a mistake -> [50, 51) -> [50]
         range(70, 84),
         range(98, 100),
     ],

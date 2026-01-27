@@ -70,21 +70,21 @@ def _get_column_aliases(columns: list[str], available: list[str]) -> str:
 
 def get_source_data(
     variable_name: str,
-    data_to_merge: pd.DataFrame | None = None,
+    df_left: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Load and prepare source data for deriving a variable.
 
     This function reads one or more parquet datasets defined in config, selects only
     the columns needed for derivation, unions all datasets, and (optionally) filters
-    rows down to only those whose join-key values overlap with `data_to_merge`.
+    rows down to only those whose join-key values overlap with `df_left`.
 
     Filtering is performed inside DuckDB by registering a temporary in-memory
-    key table derived from `data_to_merge[derived_join_keys]` and performing an
+    key table derived from `df_left[derived_join_keys]` and performing an
     INNER JOIN on the derived join keys.
 
     Args:
         variable_name: Name of the variable being derived (used for config lookup).
-        data_to_merge: If provided, limits source rows to those matching the join-key
+        df_left: If provided, limits source rows to those matching the join-key
             combinations present in this dataframe.
 
     Returns:
@@ -92,7 +92,7 @@ def get_source_data(
 
     Raises:
         ValueError: If required config fields are missing or invalid.
-        KeyError: If `data_to_merge` is missing required join key columns.
+        KeyError: If `df_left` is missing required join key columns.
     """
     cfg = settings.variables[variable_name]
 
@@ -143,20 +143,20 @@ def get_source_data(
 
     con_factory = duckdb.connect
     with con_factory() as con:
-        if data_to_merge is None:
+        if df_left is None:
             return con.execute(union_sql).df()
 
-        # Validate presence of join keys in data_to_merge
-        missing = [k for k in derived_join_keys if k not in data_to_merge.columns]
+        # Validate presence of join keys in df_left
+        missing = [k for k in derived_join_keys if k not in df_left.columns]
         if missing:
             raise KeyError(
-                f"{variable_name}: data_to_merge is missing join keys {missing}. "
+                f"{variable_name}: df_left is missing join keys {missing}. "
                 f"Expected columns: {list(derived_join_keys)}"
             )
 
         # Build a distinct key table from the incoming data, dropping rows where any join key is NA.
         key_df = (
-            data_to_merge.loc[:, list(derived_join_keys)]
+            df_left.loc[:, list(derived_join_keys)]
             .dropna(subset=list(derived_join_keys), how="any")
             .drop_duplicates()
             .reset_index(drop=True)
@@ -183,44 +183,60 @@ def get_source_data(
 
 def join_variable_data(
     variable_name: str,
-    df_to_join: pd.DataFrame,
-    data_to_merge: pd.DataFrame,
+    df_right: pd.DataFrame,
+    df_left: pd.DataFrame,
 ) -> pd.DataFrame:
     """Left-join a derived variable dataframe onto an input dataframe using config keys.
 
     Args:
         variable_name: Name of the variable being derived (used for config lookup).
-        df_to_join: Derived data containing at least the join keys and derived columns.
-        data_to_merge: Base dataframe to enrich.
+        df_right: Derived data containing at least the join keys and derived columns.
+        df_left: Base dataframe to enrich.
 
     Returns:
-        pd.DataFrame: `data_to_merge` with `df_to_join` merged in using a left join on the config keys.
+        pd.DataFrame: `df_left` with `df_right` merged in using a left join on the config keys.
 
     Raises:
         ValueError: If derived join keys are missing in config.
         KeyError: If either dataframe is missing required join key columns.
     """
     cfg = settings.variables[variable_name]
-    derived_join_keys = cfg.derived_join_keys
+    derived_join_keys = list(cfg.derived_join_keys)  # necessary to call list()?
 
     if not derived_join_keys:
         raise ValueError(
             f"{variable_name}: settings.variables[{variable_name}].derived_join_keys must be defined"
         )
 
-    missing_left = [k for k in derived_join_keys if k not in data_to_merge.columns]
-    missing_right = [k for k in derived_join_keys if k not in df_to_join.columns]
+    missing_left = [k for k in derived_join_keys if k not in df_left.columns]
+    missing_right = [k for k in derived_join_keys if k not in df_right.columns]
     if missing_left or missing_right:
         raise KeyError(
             f"{variable_name}: missing join keys. "
-            f"data_to_merge missing: {missing_left}; df_to_join missing: {missing_right}"
+            f"df_left missing: {missing_left}; df_right missing: {missing_right}"
         )
 
+    if variable_name not in df_right.columns:
+        raise KeyError(f"Missing '{variable_name}' in `df_right`!")
+
+    # Remove (possibly) conflicting variables which aren't keys or the variable
+    # which we wan't to add to df_left
+    df_right = df_right[[*derived_join_keys, variable_name]]
+
+    # For now we just remove the values in variable_name if it exists in
+    # df_left. In the future we should consider doing a fillna. For now
+    # we just log a warning
+    if variable_name in df_left:
+        logger.warning(
+            f"{variable_name} already exists in the dataset! Replacing existing values!"
+        )
+        df_left = df_left.drop(columns=variable_name)
+
     # Check and handle duplicated merge keys
-    dupes = df_to_join.duplicated(subset=list(derived_join_keys))
+    dupes = df_right.duplicated(subset=derived_join_keys)
     if dupes.any():
-        dupes_all = df_to_join.duplicated(subset=list(derived_join_keys), keep=False)
-        df_dup = df_to_join[dupes_all].sort_values(by=list(derived_join_keys))
+        dupes_all = df_right.duplicated(subset=derived_join_keys, keep=False)
+        df_dup = df_right[dupes_all].sort_values(by=derived_join_keys)
 
         logger.warning(
             f"Found duplicated merge keys! Showing first 50 rows:\n{df_dup.head(50)}"
@@ -228,16 +244,16 @@ def join_variable_data(
         logger.warning("Keeping first valid row for duplicates...")
 
         k = dupes.sum()
-        n = df_to_join.shape[0]
+        n = df_right.shape[0]
         pct = 100 * k / n
 
         logger.warning(f"Dropping {k}/{n} rows ({pct:.2f}%)")
 
-        df_to_join = df_to_join[~dupes]
+        df_right = df_right[~dupes]
 
-    return data_to_merge.merge(
-        df_to_join,
-        on=list(derived_join_keys),
+    return df_left.merge(
+        df_right,
+        on=derived_join_keys,
         how="left",
         validate="m:1",
     )

@@ -304,7 +304,11 @@ def wrap_derive_join_all_data(
                 logger.warning("data is None, why u do this?")  # type: ignore[attr-defined]
                 return derived_source
 
-            return join_variable_data(name, derived_source, df)
+            try:
+                return join_variable_data(name, derived_source, df)
+            except Exception:
+                logger.warning(f"Unable to join {name} onto data! Returning as is...")
+                return df
 
     subfunc.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from nudb_use.nudb_logger import logger
+
 from .all_data_helpers import enforce_datetime_s
 from .derive_decorator import wrap_derive_join_all_data
 
@@ -26,6 +28,18 @@ def uh_foerste_nus2000(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_foerste_nus2000"
+
+    # we prioritize true utd_aktivitet_start values first, but if unavailable
+    # we use the other columns. For now we just keep the dates as is, but
+    # maybe we should impute? E.g., if its utd_aktivitet_slutt in the spring
+    # semester, it might make sense to make the utd_aktivitet_start value be
+    # in the fall semester?
+    df["utd_aktivitet_start"] = (
+        df["utd_aktivitet_start"]
+        .fillna(df["utd_aktivitet_slutt"])
+        .fillna(df["uh_eksamen_dato"])
+    )
+
     df_agg = (
         df[df["nus2000"].str[0].isin(["6", "7", "8"])]
         .sort_values(["utd_aktivitet_start"])
@@ -52,7 +66,18 @@ def first_registered_date_per_snr(
     """
     mask = df[filter_var].fillna(False).astype(bool)
 
-    from nudb_use.nudb_logger import logger
+    logger.notice("right (pre fillna)\n")
+    logger.notice(df)
+
+    if "utd_aktivitet_slutt" in df.columns:
+        df["utd_aktivitet_start"] = df["utd_aktivitet_start"].fillna(
+            df["utd_aktivitet_slutt"]
+        )
+
+    if "uh_eksamen_dato" in df.columns:
+        df["utd_aktivitet_start"] = df["utd_aktivitet_start"].fillna(
+            df["uh_eksamen_dato"]
+        )
 
     logger.notice("right (pre aggregation)\n")
     logger.notice(df)
