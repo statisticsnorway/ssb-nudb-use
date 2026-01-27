@@ -95,9 +95,7 @@ def test_uh_erhoeyereutd_registrering() -> None:
 
 
 def test_uh_erbachelor_registrering() -> None:
-    df = pd.DataFrame(
-        {"nus2000": ["60000", "610000"], "uh_gruppering_nus": ["000B", "000M"]}
-    )
+    df = pd.DataFrame({"nus2000": ["636102", "736104"]})
 
     result = uh_erbachelor_registrering(df)
     logger.info(df.columns)
