@@ -86,7 +86,7 @@ def uh_erhoyskolekandidat_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
     """Derive vg_eryrkesfag_fullfort from nus2000, vg_utdprogram, utd_fullfoertkode, vg_kompetanse_nus and utd_aktivitet_start."""
     return (
         (df["nus2000"].str[0] == "6")
-        & (df["utd_fullfoertkode"] == FULLFORTKODE)
+        & (df["utd_fullfoertkode"] == FULLFORTKODE) / u
         & (df["utd_klassetrinn"].astype("Int64").isin([15, 16]))
         & (
             ~df["uh_gruppering_nus"].isin(["01", "02"])
@@ -100,8 +100,7 @@ def uh_erbachelor_fullfort(  # noqa: DOC101,DOC103,DOC201,DOC203
 ) -> pd.Series:
     """Derive uh_erbachelor_fullfort from uh_gruppering_nus, utd_fullfoertkode."""
     return (
-        (df["uh_gruppering_nus"].str[3] == "B")
-        & (df["utd_fullfoertkode"] == FULLFORTKODE)
+        (df["uh_gradmernve_nus"] == "B") & (df["utd_fullfoertkode"] == FULLFORTKODE)
     ).astype(BOOL_DTYPE)
 
 

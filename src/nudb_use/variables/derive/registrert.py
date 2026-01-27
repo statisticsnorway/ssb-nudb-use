@@ -117,7 +117,7 @@ def uh_erbachelor_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_registrering from nus2000 as a boolean filter."""
-    bool_mask: pd.Series = (df["uh_gruppering_nus"].str[-1] == "B").astype(BOOL_DTYPE)
+    bool_mask: pd.Series = (df["uh_gradmerke_nus"] == "B").astype(BOOL_DTYPE)
     logger.info(type(bool_mask))
     logger.info(bool_mask)
     return bool_mask
