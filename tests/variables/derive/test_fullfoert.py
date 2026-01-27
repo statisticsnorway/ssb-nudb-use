@@ -134,7 +134,7 @@ def test_uh_erhoeyskolekandidat_fullfoert() -> None:
 def test_uh_erbachelor_fullfoert() -> None:
     df = pd.DataFrame(
         {
-            "uh_gruppering_nus": ["000B", "000M"],
+            "nus2000": ["636102", "736104"],
             "utd_fullfoertkode": ["8", "8"],
         }
     )

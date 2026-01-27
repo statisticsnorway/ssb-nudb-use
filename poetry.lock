@@ -4847,14 +4847,14 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.1.8"
+version = "2026.1.9"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "ssb_nudb_config-2026.1.8-py3-none-any.whl", hash = "sha256:f063512462418077ee71f615a8e9a368a11146b018c37ea8b7253ac1f606d64d"},
-    {file = "ssb_nudb_config-2026.1.8.tar.gz", hash = "sha256:ab4db7c401528ca85ce288a35def1532fc52fd130d4ed8c46cd545747e16020a"},
+    {file = "ssb_nudb_config-2026.1.9-py3-none-any.whl", hash = "sha256:b9fa0033a892a619952d3cae9c574a0393685d334af0674d11df2a066fbe2928"},
+    {file = "ssb_nudb_config-2026.1.9.tar.gz", hash = "sha256:cdd325b92e0c1f31e3bdff050306590515a6d7a3805e09536b9d5b8b83956cb1"},
 ]
 
 [package.dependencies]
