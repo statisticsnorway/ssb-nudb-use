@@ -7,9 +7,9 @@ import pandas as pd
 import nudb_use
 from nudb_use.variables.derive.registrert_foerste import first_registered_date_per_snr
 from nudb_use.variables.derive.registrert_foerste import gr_foerste_registrert_dato
-from nudb_use.variables.derive.registrert_foerste import (
-    uh_bachelor_foerste_registrert_dato,
-)
+from nudb_use.variables.derive.registrert_foerste import uh_bachelor_foerste_registrert_dato
+from nudb_use.variables.derive.registrert_foerste import uh_master_foerste_registrert_dato
+
 from nudb_use.variables.derive.registrert_foerste import uh_foerste_nus2000
 from nudb_use.variables.derive.registrert_foerste import uh_foerste_registrert_dato
 from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_dato
@@ -124,16 +124,7 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
         "avslutta",
         "eksamen",
     ]
-    new_settings.variables.uh_foerste_nus2000.derived_join_keys = ["snr"]
-    new_settings.variables.uh_erbachelor_registrering.derived_from = [
-        "nus2000",
-        "uh_gradmerke_nus",
-    ]
-    new_settings.variables.uh_erbachelor_fullfort.derived_from = [
-        "utd_fullfortkode",
-        "uh_gradmerke_nus",
-    ]
-
+    # legg inn i config at alle registreringer trenger flere (potensielt) dato-kolonner
     monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
     monkeypatch.setattr(nudb_config, "settings", new_settings)
 
@@ -183,7 +174,7 @@ def test_registrert_foerste_dato_derivations(tmp_path: Path, monkeypatch: Any) -
     vg = vg_foerste_registrert_dato(df)
     uh = uh_foerste_registrert_dato(df)
     bach = uh_bachelor_foerste_registrert_dato(df)
-    # master = uh_master_foerste_registrert_dato(df)
+    master = uh_master_foerste_registrert_dato(df)
 
     from nudb_use.nudb_logger import logger
 
@@ -211,16 +202,16 @@ def test_registrert_foerste_dato_derivations(tmp_path: Path, monkeypatch: Any) -
         pd.NaT,
     ]
     assert bach["uh_bachelor_foerste_registrert_dato"].tolist() == [
-        pd.Timestamp("1970-01-01 00:03:20"),
-        pd.Timestamp("1970-01-01 00:03:20"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:01:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
+        pd.Timestamp("1970-01-01 00:07:40"),
+        pd.NaT,
+    ]
+    assert master["uh_master_foerste_registrert_dato"].tolist() == [
+        pd.Timestamp("1970-01-01 00:00:40"),
+        pd.Timestamp("1970-01-01 00:00:40"),
         pd.NaT,
         pd.NaT,
         pd.NaT,
     ]
-    # assert master["uh_master_foerste_registrert_dato"].tolist() == [
-    #     pd.NaT,
-    #     pd.NaT,
-    #     pd.Timestamp("1970-01-01 00:00:50"),
-    #     pd.Timestamp("1970-01-01 00:00:50"),
-    #     pd.NaT,
-    # ]

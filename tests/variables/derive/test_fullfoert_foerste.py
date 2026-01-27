@@ -25,75 +25,127 @@ from nudb_use.variables.derive.fullfoert_foerste import (
 )
 
 
-def patch_wrap_join_helpers(monkeypatch: Any) -> None:
-    monkeypatch.setattr(derive_decorator, "get_source_data", lambda _name, df: df)
-    monkeypatch.setattr(
-        derive_decorator, "join_variable_data", lambda _name, derived, _df: derived
+def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
+
+    basepath = tmp_path / "local" / "nudb-data"
+    nudbpath = basepath / "klargjorte-data"
+    nudbpath.mkdir(parents=True)
+
+    igang = pd.DataFrame(
+        {
+            "snr": ["a", "a", "b", "b", "c", "a", "a", "b", "b", "c"],
+            "utd_aktivitet_start": [
+                pd.Timestamp("1970-01-01 00:01:40"),
+                pd.Timestamp("1970-01-01 00:03:40"),
+                pd.Timestamp("1970-01-01 00:07:40"),
+                pd.Timestamp("1970-01-01 00:00:30"),
+                pd.Timestamp("1970-01-01 00:01:30"),
+                pd.Timestamp("1970-01-01 00:01:40"),
+                pd.Timestamp("1970-01-01 00:00:40"),
+                pd.Timestamp("1970-01-01 00:07:40"),
+                pd.Timestamp("1970-01-01 00:00:30"),
+                pd.Timestamp("1970-01-01 00:01:30"),
+            ],
+            "nus2000": [
+                "20000",
+                "20000",
+                "20000",
+                "40000",
+                "40000",
+                "636102",
+                "753106",
+                "636102",
+                "80000",
+                "40000",
+            ],
+            "uh_erutland": [
+                True,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+            ],
+        }
+    ).astype(
+        {
+            "snr": "string[pyarrow]",
+            "utd_aktivitet_start": "datetime64[s]",
+            "nus2000": "string[pyarrow]",
+            "uh_erutland": "bool[pyarrow]",
+        }
     )
-    monkeypatch.setattr(
-        derive_decorator,
-        "settings",
-        SimpleNamespace(
-            variables={
-                "gr_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "gr_ergrunnskole_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "vg_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "vg_ervgo_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "vg_studiespess_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "vg_erstudiespess_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "vg_yrkesfag_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "vg_eryrkesfag_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "uh_hoeyskolekandidat_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_erhoeyskolekandidat_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "uh_bachelor_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_erbachelor_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "uh_master_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_ermaster_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-                "uh_doktorgrad_foerste_fullfoert_dato": SimpleNamespace(
-                    derived_from=[
-                        "snr",
-                        "uh_erdoktorgrad_fullfoert",
-                        "utd_aktivitet_slutt",
-                    ]
-                ),
-            }
-        ),
+
+    avslutta = pd.DataFrame(
+        {
+            "snr": ["a", "a", "b", "b", "c"],
+            "utd_aktivitet_slutt": [
+                pd.Timestamp("1971-01-01 00:01:40"),
+                pd.Timestamp("1971-01-01 00:03:40"),
+                pd.Timestamp("1971-01-01 00:07:40"),
+                pd.Timestamp("1971-01-01 00:00:30"),
+                pd.Timestamp("1971-01-01 00:01:30"),
+            ],
+            "nus2000": ["20001", "20001", "20001", "10001", "40001"],
+            "uh_erutland": [True, False, False, False, False],
+        }
+    ).astype(
+        {
+            "snr": "string[pyarrow]",
+            "utd_aktivitet_slutt": "datetime64[s]",
+            "nus2000": "string[pyarrow]",
+            "uh_erutland": "bool[pyarrow]",
+        }
     )
+
+    eksamen = pd.DataFrame(
+        {
+            "snr": pd.Series(["a", "a", "b", "b", "c"], dtype="string[pyarrow]"),
+            "utd_eksamen_dato": [
+                pd.Timestamp("1971-01-01 00:01:45"),
+                pd.Timestamp("1971-01-01 00:03:45"),
+                pd.Timestamp("1971-01-01 00:07:45"),
+                pd.Timestamp("1971-01-01 00:00:35"),
+                pd.Timestamp("1971-01-01 00:01:35"),
+            ],
+            "nus2000": ["20002", "20002", "20002", "10002", "40002"],
+            "uh_erutland": [True, False, False, False, False],
+        }
+    ).astype(
+        {
+            "snr": "string[pyarrow]",
+            "utd_eksamen_dato": "datetime64[s]",
+            "nus2000": "string[pyarrow]",
+            "uh_erutland": "bool[pyarrow]",
+        }
+    )
+
+    igang.to_parquet(nudbpath / "igang_p1970_p1971_v1.parquet")
+    avslutta.to_parquet(nudbpath / "avslutta_p1970_p1971_v1.parquet")
+    eksamen.to_parquet(nudbpath / "eksamen_p1970_p1971_v1.parquet")
+
+    new_settings = nudb_config.settings.model_copy()
+    new_settings.variables.uh_foerste_nus2000.derived_uses_datasets = [
+        "igang",
+        "avslutta",
+        "eksamen",
+    ]
+    new_settings.variables.uh_foerste_nus2000.derived_join_keys = ["snr"]
+    new_settings.variables.uh_erbachelor_registrering.derived_from = [
+        "nus2000",
+        "uh_gradmerke_nus",
+    ]
+    new_settings.variables.uh_erbachelor_fullfoert.derived_from = [
+        "utd_fullfortkode",
+        "uh_gradmerke_nus",
+    ]
+
+    monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
+
 
 
 def test_first_end_date_per_snr() -> None:
