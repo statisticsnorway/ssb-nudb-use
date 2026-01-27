@@ -13,7 +13,7 @@ from nudb_use.variables.derive.fullfoert_foerste import (
     uh_doktorgrad_foerste_fullfoert_dato,
 )
 from nudb_use.variables.derive.fullfoert_foerste import (
-    uh_hoyskolekandidat_foerste_fullfoert_dato,
+    uh_hoeyskolekandidat_foerste_fullfoert_dato,
 )
 from nudb_use.variables.derive.fullfoert_foerste import uh_master_foerste_fullfoert_dato
 from nudb_use.variables.derive.fullfoert_foerste import vg_foerste_fullfoert_dato
@@ -38,56 +38,56 @@ def patch_wrap_join_helpers(monkeypatch: Any) -> None:
                 "gr_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "gr_ergrunnskole_fullfort",
+                        "gr_ergrunnskole_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
                 "vg_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "vg_ervgo_fullfort",
+                        "vg_ervgo_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
                 "vg_studiespess_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "vg_erstudiespess_fullfort",
+                        "vg_erstudiespess_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
                 "vg_yrkesfag_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "vg_eryrkesfag_fullfort",
+                        "vg_eryrkesfag_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
-                "uh_hoyskolekandidat_foerste_fullfoert_dato": SimpleNamespace(
+                "uh_hoeyskolekandidat_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "uh_erhoyskolekandidat_fullfort",
+                        "uh_erhoeyskolekandidat_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
                 "uh_bachelor_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "uh_erbachelor_fullfort",
+                        "uh_erbachelor_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
                 "uh_master_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "uh_ermaster_fullfort",
+                        "uh_ermaster_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
                 "uh_doktorgrad_foerste_fullfoert_dato": SimpleNamespace(
                     derived_from=[
                         "snr",
-                        "uh_erdoktorgrad_fullfort",
+                        "uh_erdoktorgrad_fullfoert",
                         "utd_aktivitet_slutt",
                     ]
                 ),
@@ -122,14 +122,14 @@ def test_fullfoert_foerste_dato_derivations(monkeypatch: Any) -> None:
         {
             "snr": ["a", "a", "b", "b", "c"],
             "utd_aktivitet_slutt": [100, 200, 150, 50, 300],
-            "gr_ergrunnskole_fullfort": [True, False, False, True, False],
-            "vg_ervgo_fullfort": [False, True, True, False, False],
-            "vg_erstudiespess_fullfort": [True, False, False, False, False],
-            "vg_eryrkesfag_fullfort": [False, False, True, False, False],
-            "uh_erhoyskolekandidat_fullfort": [False, True, False, False, False],
-            "uh_erbachelor_fullfort": [False, False, True, False, False],
-            "uh_ermaster_fullfort": [False, False, False, True, False],
-            "uh_erdoktorgrad_fullfort": [False, False, False, False, True],
+            "gr_ergrunnskole_fullfoert": [True, False, False, True, False],
+            "vg_ervgo_fullfoert": [False, True, True, False, False],
+            "vg_erstudiespess_fullfoert": [True, False, False, False, False],
+            "vg_eryrkesfag_fullfoert": [False, False, True, False, False],
+            "uh_erhoeyskolekandidat_fullfoert": [False, True, False, False, False],
+            "uh_erbachelor_fullfoert": [False, False, True, False, False],
+            "uh_ermaster_fullfoert": [False, False, False, True, False],
+            "uh_erdoktorgrad_fullfoert": [False, False, False, False, True],
         }
     )
 
@@ -137,7 +137,7 @@ def test_fullfoert_foerste_dato_derivations(monkeypatch: Any) -> None:
     vg = vg_foerste_fullfoert_dato(df)
     studiespess = vg_studiespess_foerste_fullfoert_dato(df)
     yrkesfag = vg_yrkesfag_foerste_fullfoert_dato(df)
-    hoy = uh_hoyskolekandidat_foerste_fullfoert_dato(df)
+    hoey = uh_hoeyskolekandidat_foerste_fullfoert_dato(df)
     bach = uh_bachelor_foerste_fullfoert_dato(df)
     master = uh_master_foerste_fullfoert_dato(df)
     doktor = uh_doktorgrad_foerste_fullfoert_dato(df)
@@ -171,7 +171,7 @@ def test_fullfoert_foerste_dato_derivations(monkeypatch: Any) -> None:
         pd.Timestamp("1970-01-01 00:02:30"),
         pd.NaT,
     ]
-    assert hoy["uh_hoyskolekandidat_foerste_fullfoert_dato"].tolist() == [
+    assert hoey["uh_hoeyskolekandidat_foerste_fullfoert_dato"].tolist() == [
         pd.Timestamp("1970-01-01 00:03:20"),
         pd.Timestamp("1970-01-01 00:03:20"),
         pd.NaT,

@@ -4,10 +4,10 @@ from .derive_decorator import wrap_derive
 
 
 @wrap_derive
-def uh_univ_eller_hogskole(
+def uh_univ_eller_hoegskole(
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive `uh_univ_eller_hogskole` from `utd_utdanningstype` and `utd_datakilde`.
+    """Derive `uh_univ_eller_hoegskole` from `utd_utdanningstype` and `utd_datakilde`.
 
     # noqa: DAR101
     # noqa: DAR201

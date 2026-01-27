@@ -9,7 +9,7 @@ __all__ = [
     "gr_foerste_fullfoert_dato",
     "uh_bachelor_foerste_fullfoert_dato",
     "uh_doktorgrad_foerste_fullfoert_dato",
-    "uh_hoyskolekandidat_foerste_fullfoert_dato",
+    "uh_hoeyskolekandidat_foerste_fullfoert_dato",
     "uh_master_foerste_fullfoert_dato",
     "vg_foerste_fullfoert_dato",
     "vg_studiespess_foerste_fullfoert_dato",
@@ -48,13 +48,13 @@ def gr_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive gr_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, gr_ergrunnskole_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, gr_ergrunnskole_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "gr_foerste_fullfoert_dato"
-    filter_var = "gr_ergrunnskole_fullfort"
+    filter_var = "gr_ergrunnskole_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
@@ -65,13 +65,13 @@ def vg_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive vg_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, vg_ervgo_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, vg_ervgo_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "vg_foerste_fullfoert_dato"
-    filter_var = "vg_ervgo_fullfort"
+    filter_var = "vg_ervgo_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
@@ -82,13 +82,13 @@ def vg_studiespess_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive vg_studiespess_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, vg_erstudiespess_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, vg_erstudiespess_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "vg_studiespess_foerste_fullfoert_dato"
-    filter_var = "vg_erstudiespess_fullfort"
+    filter_var = "vg_erstudiespess_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
@@ -99,30 +99,30 @@ def vg_yrkesfag_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive vg_yrkesfag_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, vg_eryrkesfag_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, vg_eryrkesfag_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "vg_yrkesfag_foerste_fullfoert_dato"
-    filter_var = "vg_eryrkesfag_fullfort"
+    filter_var = "vg_eryrkesfag_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
 
 
 @wrap_derive_join_all_data
-def uh_hoyskolekandidat_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
-    """Derive uh_hoyskolekandidat_foerste_fullfoert_dato from avslutta.
+def uh_hoeyskolekandidat_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive uh_hoeyskolekandidat_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, uh_erhoyskolekandidat_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, uh_erhoeyskolekandidat_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
-    variable_name = "uh_hoyskolekandidat_foerste_fullfoert_dato"
-    filter_var = "uh_erhoyskolekandidat_fullfort"
+    variable_name = "uh_hoeyskolekandidat_foerste_fullfoert_dato"
+    filter_var = "uh_erhoeyskolekandidat_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
@@ -133,13 +133,13 @@ def uh_bachelor_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_bachelor_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, uh_erbachelor_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, uh_erbachelor_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_bachelor_foerste_fullfoert_dato"
-    filter_var = "uh_erbachelor_fullfort"
+    filter_var = "uh_erbachelor_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
@@ -150,13 +150,13 @@ def uh_master_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_master_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, uh_ermaster_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, uh_ermaster_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_master_foerste_fullfoert_dato"
-    filter_var = "uh_ermaster_fullfort"
+    filter_var = "uh_ermaster_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
@@ -167,13 +167,13 @@ def uh_doktorgrad_foerste_fullfoert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """Derive uh_doktorgrad_foerste_fullfoert_dato from avslutta.
 
     Args:
-        df: Source dataset containing at least snr, uh_erdoktorgrad_fullfort, utd_aktivitet_slutt.
+        df: Source dataset containing at least snr, uh_erdoktorgrad_fullfoert, utd_aktivitet_slutt.
 
     Returns:
         pd.DataFrame: A column suitable for adding as a new column to the df.
     """
     variable_name = "uh_doktorgrad_foerste_fullfoert_dato"
-    filter_var = "uh_erdoktorgrad_fullfort"
+    filter_var = "uh_erdoktorgrad_fullfoert"
     return first_end_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )
