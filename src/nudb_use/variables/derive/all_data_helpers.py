@@ -201,7 +201,7 @@ def join_variable_data(
         KeyError: If either dataframe is missing required join key columns.
     """
     cfg = settings.variables[variable_name]
-    derived_join_keys = list(cfg.derived_join_keys)  # necessary to call list()?
+    derived_join_keys = list(cfg.derived_join_keys or [])
 
     if not derived_join_keys:
         raise ValueError(
