@@ -7,8 +7,12 @@ from typing import Any
 
 import pandas as pd
 import requests
-from brreg.enhetsregisteret import Client  # type: ignore
+from brreg.enhetsregisteret import Client
+from brreg.enhetsregisteret import Cursor
+from brreg.enhetsregisteret import Page
+from brreg.enhetsregisteret import Underenhet
 from brreg.enhetsregisteret import UnderenhetQuery
+from brreg.enhetsregisteret import Enhet
 from pydantic import BaseModel
 
 from nudb_use.nudb_logger import logger
@@ -113,25 +117,18 @@ def get_enhet(orgnr: str) -> None | dict[str, str]:
     Returns:
         None | dict[str, str]: Information about the main unit or sub-unit, or
         None if not found.
-
-    Raises:
-        TypeError: If we get unexpected output from brreg.enhetsregisteret.Client.get_enhet() or
-                   brreg.enhetsregisteret.Client.get_underenhet()
     """
     orgnr_clean = "".join([c for c in orgnr if c.isdigit()])
     with Client() as client:
-        result_untyped = client.get_enhet(orgnr_clean)
+        result: Enhet | Underenhet | None = client.get_enhet(orgnr_clean)
 
-        if result_untyped is None:
-            result_untyped = client.get_underenhet(orgnr_clean)
+        if result is None:
+            result = client.get_underenhet(orgnr_clean)
 
-    # breg is not typed, so we have to do some manual checking, to make mypy happy
-    if result_untyped is None:
+    if result is None:
         return None
-    elif isinstance(result_untyped, dict):
-        return {k: str(v) for k, v in result_untyped.items()}
-    else:
-        raise TypeError("Unexpected dtype for output from `get_enhet/get_underenhet`")
+
+    return {k: str(v) for k, v in result.model_dump().items()}
 
 
 def search_nace(naces: list[str]) -> pd.DataFrame:
@@ -158,7 +155,7 @@ def search_nace(naces: list[str]) -> pd.DataFrame:
         sok = UnderenhetQuery()
         sok.naeringskode = [nacekode]
         with Client() as client:
-            search = client.search_enhet(sok)
+            search = client.search_underenhet(sok)
 
         total_pages = _extract_total_pages(search, nacekode)
         if total_pages == 0:
@@ -181,28 +178,32 @@ def _validate_nace_codes(naces: list[str]) -> None:
             )
 
 
-def _extract_total_pages(search: Any, nacekode: str) -> int:
+def _extract_total_pages(
+    search: Cursor[Underenhet, UnderenhetQuery], nacekode: str
+) -> int:
     """Read total page count from the first page of a search."""
-    for elem in search.get_page(0):
-        if elem[0] == "total_pages":
-            total_pages = int(elem[1])
-            logger.info(f"Total pages for nacekode {nacekode}: {total_pages}")
-            logger.debug(elem)
-            return total_pages
-    logger.warning(f"No total_pages found for nacekode {nacekode}")
-    return 0
+    first_page: Page[Underenhet] | None = search.get_page(0)
+    if first_page is None:
+        logger.warning(f"No first page found for nacekode {nacekode}")
+        return 0
+
+    total_pages = int(first_page.total_pages)
+    logger.info(f"Total pages for nacekode {nacekode}: {total_pages}")
+    logger.debug(first_page)
+    return total_pages
 
 
-def _collect_search_results(search: Any, total_pages: int) -> list[pd.DataFrame]:
+def _collect_search_results(
+    search: Cursor[Underenhet, UnderenhetQuery], total_pages: int
+) -> list[pd.DataFrame]:
     """Collect flattened search items from all pages."""
     results: list[pd.DataFrame] = []
     for page_num in range(total_pages):
-        for elem in search.get_page(page_num):
-            if elem[0] != "items":
-                continue
-            for item in elem[1:]:
-                for enhet in item:
-                    results.append(pd.DataFrame([flatten(enhet)]))
+        page = search.get_page(page_num)
+        if page is None:
+            continue
+        for enhet in page.items:
+            results.append(pd.DataFrame([flatten(enhet)]))
     return results
 
 
