@@ -83,7 +83,7 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
                 "8",
                 "8",
             ],
-            "uh_erutland": [
+            "utd_erutland": [
                 True,
                 False,
                 False,
@@ -121,7 +121,7 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
             "utd_aktivitet_slutt": "datetime64[s]",
             "nus2000": "string[pyarrow]",
             "utd_fullfoertkode": "string[pyarrow]",
-            "uh_erutland": "bool[pyarrow]",
+            "utd_erutland": "bool[pyarrow]",
         }
     )
 

@@ -29,10 +29,10 @@ __all__ = [
 def gr_ergrunnskole_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
     df: pd.DataFrame,
 ) -> pd.Series:
-    """Derive gr_ergrunnskole_fullfoert from nus2000, utd_fullfoertkode, uh_erutland."""
+    """Derive gr_ergrunnskole_fullfoert from nus2000, utd_fullfoertkode, utd_erutland."""
     return (
         (df["nus2000"].str[0] == "2")
-        & (~df["uh_erutland"])
+        & (~df["utd_erutland"])
         & (df["utd_fullfoertkode"] == FULLFOERTKODE)
     ).astype(BOOL_DTYPE)
 

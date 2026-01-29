@@ -45,7 +45,7 @@ def gr_ergrunnskole_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 ) -> pd.Series:
     """Derive gr_ergrunnskole_registrering from nus2000 and utland, as a boolean filter for registrations on gr-level."""
     bool_mask: pd.Series = (
-        (df["nus2000"].str[0] == "2") & (~df["uh_erutland"])
+        (df["nus2000"].str[0] == "2") & (~df["utd_erutland"])
     ).astype(BOOL_DTYPE)
     return bool_mask
 

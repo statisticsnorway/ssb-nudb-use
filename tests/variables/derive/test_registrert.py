@@ -15,7 +15,7 @@ from nudb_use.variables.derive.registrert import vg_eryrkesfag_registrering
 
 def test_gr_ergrunnskole_registrering() -> None:
     df = pd.DataFrame(
-        {"nus2000": ["2000", "2000", "3000"], "uh_erutland": [False, True, False]}
+        {"nus2000": ["2000", "2000", "3000"], "utd_erutland": [False, True, False]}
     )
 
     result = gr_ergrunnskole_registrering(df)
@@ -28,7 +28,7 @@ def test_gr_ergrunnskole_registrering_priority_old() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["2000", "2000"],
-            "uh_erutland": [False, False],
+            "utd_erutland": [False, False],
             "gr_ergrunnskole_registrering": [False, pd.NA],
         }
     )
