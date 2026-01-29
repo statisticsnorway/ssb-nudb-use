@@ -1,5 +1,4 @@
 import gzip
-from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -81,6 +80,13 @@ def test_orgnr_is_underenhet(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_enhet_prefers_enhet_over_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[str, str]] = []
 
+    class FakeEnhet:
+        def __init__(self, **data: object) -> None:
+            self._data = data
+
+        def model_dump(self) -> dict[str, object]:
+            return self._data
+
     class FakeClient:
         def __enter__(self) -> "FakeClient":
             return self
@@ -89,9 +95,14 @@ def test_get_enhet_prefers_enhet_over_fallback(monkeypatch: pytest.MonkeyPatch) 
             return None
 
         @staticmethod
-        def get_enhet(orgnr: str) -> dict[str, object]:
+        def get_enhet(orgnr: str) -> FakeEnhet:
             calls.append(("enhet", orgnr))
-            return {"orgnr": orgnr, "count": 2}
+            return FakeEnhet(orgnr=orgnr, count=2)
+
+        @staticmethod
+        def get_underenhet(orgnr: str) -> FakeEnhet:
+            calls.append(("underenhet", orgnr))
+            return FakeEnhet(orgnr=orgnr, name="Fallback")
 
     monkeypatch.setattr(brreg_api, "Client", FakeClient)
 
@@ -102,6 +113,13 @@ def test_get_enhet_prefers_enhet_over_fallback(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_get_enhet_falls_back_to_underenhet(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeUnderenhet:
+        def __init__(self, **data: object) -> None:
+            self._data = data
+
+        def model_dump(self) -> dict[str, object]:
+            return self._data
+
     class FakeClient:
         def __enter__(self) -> "FakeClient":
             return self
@@ -114,8 +132,8 @@ def test_get_enhet_falls_back_to_underenhet(monkeypatch: pytest.MonkeyPatch) -> 
             return None
 
         @staticmethod
-        def get_underenhet(orgnr: str) -> dict[str, object]:
-            return {"orgnr": orgnr, "name": "Backup AS"}
+        def get_underenhet(orgnr: str) -> FakeUnderenhet:
+            return FakeUnderenhet(orgnr=orgnr, name="Backup AS")
 
     monkeypatch.setattr(brreg_api, "Client", FakeClient)
 
@@ -143,47 +161,26 @@ def test_get_enhet_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     assert brreg_api.get_enhet("11 222") is None
 
 
-def test_get_enhet_raises_on_unknown_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FakeClient:
-        def __enter__(self) -> "FakeClient":
-            return self
-
-        def __exit__(self, *args: object) -> None:
-            return None
-
-        @staticmethod
-        def get_enhet(orgnr: str) -> list[str]:
-            return ["unexpected"]
-
-        @staticmethod
-        def get_underenhet(orgnr: str) -> None:
-            return None
-
-    monkeypatch.setattr(brreg_api, "Client", FakeClient)
-
-
 def test_search_nace_requires_dot() -> None:
     with pytest.raises(ValueError):
         brreg_api.search_nace(["8510"])
 
 
 def test_search_nace_builds_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakePage:
+        def __init__(self, items: list[dict[str, object]], total_pages: int) -> None:
+            self.items = items
+            self.total_pages = total_pages
+
     class FakeSearch:
         def __init__(self) -> None:
-            self.pages = {
-                0: [
-                    ("total_pages", 1),
-                    (
-                        "items",
-                        [
-                            {"orgnr": "1", "name": {"value": "One AS"}},
-                            {"orgnr": "2", "tags": [1, 2]},
-                        ],
-                    ),
-                ]
-            }
+            items: list[dict[str, object]] = [
+                {"orgnr": "1", "name": {"value": "One AS"}},
+                {"orgnr": "2", "tags": [1, 2]},
+            ]
+            self.pages = {0: FakePage(items, total_pages=1)}
 
-        def get_page(self, page: int) -> list[tuple[str, object]]:
+        def get_page(self, page: int) -> FakePage:
             return self.pages[page]
 
     class FakeClient:
@@ -194,13 +191,12 @@ def test_search_nace_builds_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
             return None
 
         @staticmethod
-        def search_enhet(query: SimpleNamespace) -> FakeSearch:
+        def search_underenhet(query: "DummyQuery") -> FakeSearch:
             assert query.naeringskode == ["85.510"]
             return FakeSearch()
 
-    class DummyQuery(SimpleNamespace):
+    class DummyQuery:
         def __init__(self) -> None:
-            super().__init__()
             self.naeringskode: list[str] = []
 
     monkeypatch.setattr(brreg_api, "Client", FakeClient)

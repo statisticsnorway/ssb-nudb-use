@@ -9,10 +9,10 @@ import pandas as pd
 import requests
 from brreg.enhetsregisteret import Client
 from brreg.enhetsregisteret import Cursor
+from brreg.enhetsregisteret import Enhet
 from brreg.enhetsregisteret import Page
 from brreg.enhetsregisteret import Underenhet
 from brreg.enhetsregisteret import UnderenhetQuery
-from brreg.enhetsregisteret import Enhet
 from pydantic import BaseModel
 
 from nudb_use.nudb_logger import logger
