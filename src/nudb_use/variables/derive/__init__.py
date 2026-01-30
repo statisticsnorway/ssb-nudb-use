@@ -36,7 +36,6 @@ from .utd_skoleaar import utd_skoleaar_slutt
 __all__ = [
     "uh_univ_eller_hoegskole",
     "utd_erforeldet_kode_nus",
-    "utd_erutland",
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
