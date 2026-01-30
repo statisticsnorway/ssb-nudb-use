@@ -2,6 +2,12 @@ import gzip
 
 import pandas as pd
 import pytest
+from brreg.enhetsregisteret import Cursor
+from brreg.enhetsregisteret import Enhet
+from brreg.enhetsregisteret import Organisasjonsform
+from brreg.enhetsregisteret import Page
+from brreg.enhetsregisteret import Underenhet
+from brreg.enhetsregisteret import UnderenhetQuery
 from pydantic import BaseModel
 
 from nudb_use.metadata.external_apis import brreg_api
@@ -80,12 +86,10 @@ def test_orgnr_is_underenhet(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_enhet_prefers_enhet_over_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[str, str]] = []
 
-    class FakeEnhet:
-        def __init__(self, **data: object) -> None:
-            self._data = data
-
-        def model_dump(self) -> dict[str, object]:
-            return self._data
+    organisasjonsform = Organisasjonsform(
+        kode="AS",
+        beskrivelse="Aksjeselskap",
+    )
 
     class FakeClient:
         def __enter__(self) -> "FakeClient":
@@ -95,30 +99,38 @@ def test_get_enhet_prefers_enhet_over_fallback(monkeypatch: pytest.MonkeyPatch) 
             return None
 
         @staticmethod
-        def get_enhet(orgnr: str) -> FakeEnhet:
+        def get_enhet(orgnr: str) -> Enhet:
             calls.append(("enhet", orgnr))
-            return FakeEnhet(orgnr=orgnr, count=2)
+            return Enhet(
+                organisasjonsnummer=orgnr,
+                navn="Test AS",
+                organisasjonsform=organisasjonsform,
+            )
 
         @staticmethod
-        def get_underenhet(orgnr: str) -> FakeEnhet:
+        def get_underenhet(orgnr: str) -> Underenhet:
             calls.append(("underenhet", orgnr))
-            return FakeEnhet(orgnr=orgnr, name="Fallback")
+            return Underenhet(
+                organisasjonsnummer=orgnr,
+                navn="Fallback",
+                organisasjonsform=organisasjonsform,
+            )
 
     monkeypatch.setattr(brreg_api, "Client", FakeClient)
 
-    result = brreg_api.get_enhet(" 99 123 ")
+    result = brreg_api.get_enhet(" 99 123 0000 ")
 
-    assert result == {"orgnr": "99123", "count": "2"}
-    assert ("underenhet", "99123") not in calls
+    assert result is not None
+    assert result["organisasjonsnummer"] == "991230000"
+    assert result["navn"] == "Test AS"
+    assert ("underenhet", "991230000") not in calls
 
 
 def test_get_enhet_falls_back_to_underenhet(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FakeUnderenhet:
-        def __init__(self, **data: object) -> None:
-            self._data = data
-
-        def model_dump(self) -> dict[str, object]:
-            return self._data
+    organisasjonsform = Organisasjonsform(
+        kode="AS",
+        beskrivelse="Aksjeselskap",
+    )
 
     class FakeClient:
         def __enter__(self) -> "FakeClient":
@@ -132,12 +144,19 @@ def test_get_enhet_falls_back_to_underenhet(monkeypatch: pytest.MonkeyPatch) -> 
             return None
 
         @staticmethod
-        def get_underenhet(orgnr: str) -> FakeUnderenhet:
-            return FakeUnderenhet(orgnr=orgnr, name="Backup AS")
+        def get_underenhet(orgnr: str) -> Underenhet:
+            return Underenhet(
+                organisasjonsnummer=orgnr,
+                navn="Backup AS",
+                organisasjonsform=organisasjonsform,
+            )
 
     monkeypatch.setattr(brreg_api, "Client", FakeClient)
 
-    assert brreg_api.get_enhet("00 777") == {"orgnr": "00777", "name": "Backup AS"}
+    result = brreg_api.get_enhet("00 777 0000")
+    assert result is not None
+    assert result["organisasjonsnummer"] == "007770000"
+    assert result["navn"] == "Backup AS"
 
 
 def test_get_enhet_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -167,21 +186,10 @@ def test_search_nace_requires_dot() -> None:
 
 
 def test_search_nace_builds_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FakePage:
-        def __init__(self, items: list[dict[str, object]], total_pages: int) -> None:
-            self.items = items
-            self.total_pages = total_pages
-
-    class FakeSearch:
-        def __init__(self) -> None:
-            items: list[dict[str, object]] = [
-                {"orgnr": "1", "name": {"value": "One AS"}},
-                {"orgnr": "2", "tags": [1, 2]},
-            ]
-            self.pages = {0: FakePage(items, total_pages=1)}
-
-        def get_page(self, page: int) -> FakePage:
-            return self.pages[page]
+    organisasjonsform = Organisasjonsform(
+        kode="AS",
+        beskrivelse="Aksjeselskap",
+    )
 
     class FakeClient:
         def __enter__(self) -> "FakeClient":
@@ -191,22 +199,52 @@ def test_search_nace_builds_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
             return None
 
         @staticmethod
-        def search_underenhet(query: "DummyQuery") -> FakeSearch:
+        def search_underenhet(
+            query: UnderenhetQuery,
+        ) -> Cursor[Underenhet, UnderenhetQuery]:
             assert query.naeringskode == ["85.510"]
-            return FakeSearch()
-
-    class DummyQuery:
-        def __init__(self) -> None:
-            self.naeringskode: list[str] = []
+            items = [
+                Underenhet.model_construct(
+                    organisasjonsnummer="123456789",
+                    navn="One AS",
+                    organisasjonsform=organisasjonsform,
+                    frivillig_mva_registrert_beskrivelser=["one", "two"],
+                ),
+                Underenhet.model_construct(
+                    organisasjonsnummer="987654321",
+                    navn="Two AS",
+                    organisasjonsform=organisasjonsform,
+                ),
+            ]
+            page = Page[Underenhet].model_construct(
+                items=items,
+                page_size=2,
+                page_number=0,
+                total_elements=2,
+                total_pages=1,
+            )
+            search = Cursor(
+                operation=lambda _: (_ for _ in ()).throw(
+                    AssertionError("Unexpected pagination")
+                ),
+                query=query,
+                page=page,
+            )
+            return search
 
     monkeypatch.setattr(brreg_api, "Client", FakeClient)
-    monkeypatch.setattr(brreg_api, "UnderenhetQuery", DummyQuery)
 
     df = brreg_api.search_nace(["85.510"])
 
-    assert set(df["orgnr"]) == {"1", "2"}
-    assert df.loc[df["orgnr"] == "1", "name_value"].iat[0] == "One AS"
-    assert df.loc[df["orgnr"] == "2", "tags"].iat[0] == "1 - 2"
+    assert set(df["organisasjonsnummer"]) == {"123456789", "987654321"}
+    assert df.loc[df["organisasjonsnummer"] == "123456789", "navn"].iat[0] == "One AS"
+    assert (
+        df.loc[
+            df["organisasjonsnummer"] == "123456789",
+            "frivillig_mva_registrert_beskrivelser",
+        ].iat[0]
+        == "one - two"
+    )
 
 
 def test_flatten_handles_pydantic_model() -> None:
