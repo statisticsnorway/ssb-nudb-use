@@ -18,7 +18,7 @@ def test_gr_ergrunnskole_fullfoert() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["2000", "2000", "3000", "2000"],
-            "uh_erutland": [False, True, False, False],
+            "utd_erutland": [False, True, False, False],
             "utd_fullfoertkode": ["8", "8", "8", "9"],
         }
     )
@@ -33,7 +33,7 @@ def test_gr_ergrunnskole_fullfoert_priority_old() -> None:
     df = pd.DataFrame(
         {
             "nus2000": ["2000", "2000"],
-            "uh_erutland": [False, False],
+            "utd_erutland": [False, False],
             "utd_fullfoertkode": ["9", "8"],
             "gr_ergrunnskole_fullfoert": [True, pd.NA],
         }

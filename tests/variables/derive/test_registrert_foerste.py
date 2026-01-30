@@ -50,17 +50,17 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
                 "80000",
                 "40000",
             ],
-            "uh_erutland": [
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
+            "utd_skolekom": [
+                "2580",
+                "0301",
+                "0301",
+                "0301",
+                "0301",
+                "0301",
+                "0301",
+                "0301",
+                "0301",
+                "0301",
             ],
         }
     ).astype(
@@ -68,7 +68,7 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
             "snr": "string[pyarrow]",
             "utd_aktivitet_start": "datetime64[s]",
             "nus2000": "string[pyarrow]",
-            "uh_erutland": "bool[pyarrow]",
+            "utd_skolekom": "string[pyarrow]",
         }
     )
 
@@ -83,14 +83,14 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
                 pd.Timestamp("1971-01-01 00:01:30"),
             ],
             "nus2000": ["20001", "20001", "20001", "753106", "40001"],
-            "uh_erutland": [True, False, False, False, False],
+            "utd_skolekom": ["2580", "0301", "0301", "0301", "0301"],
         }
     ).astype(
         {
             "snr": "string[pyarrow]",
             "utd_aktivitet_slutt": "datetime64[s]",
             "nus2000": "string[pyarrow]",
-            "uh_erutland": "bool[pyarrow]",
+            "utd_skolekom": "string[pyarrow]",
         }
     )
 
@@ -105,14 +105,14 @@ def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
                 pd.Timestamp("1971-01-01 00:01:35"),
             ],
             "nus2000": ["20002", "20002", "20002", "10002", "40002"],
-            "uh_erutland": [True, False, False, False, False],
+            "utd_skolekom": ["2580", "0301", "0301", "0301", "0301"],
         }
     ).astype(
         {
             "snr": "string[pyarrow]",
             "utd_eksamen_dato": "datetime64[s]",
             "nus2000": "string[pyarrow]",
-            "uh_erutland": "bool[pyarrow]",
+            "utd_skolekom": "string[pyarrow]",
         }
     )
 

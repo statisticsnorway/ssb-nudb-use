@@ -11,6 +11,7 @@ from . import fullfoert_foerste
 from . import hoeyeste_utd
 from . import klass_correspondences_and_variants
 from . import klass_labels
+from . import land
 from . import registrert
 from . import registrert_foerste
 from .derive_decorator import get_derive_function
@@ -23,6 +24,7 @@ derive_all_submodules = (
     klass_correspondences_and_variants,
     klass_labels,
     hoeyeste_utd,
+    land,
 )
 
 from .nus_variants import utd_erforeldet_kode_nus
