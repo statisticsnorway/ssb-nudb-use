@@ -6,8 +6,6 @@ from nudb_config import settings
 
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
-from nudb_use.paths.latest import latest_shared_paths
-from nudb_use.variables.checks import pyarrow_columns_from_metadata
 
 
 @function_logger_context(level="debug")
@@ -70,6 +68,11 @@ def _get_column_aliases(columns: list[str], available: list[str]) -> str:
     )
 
 
+
+
+
+
+
 def get_source_data(
     variable_name: str,
     df_left: pd.DataFrame | None = None,
@@ -122,10 +125,12 @@ def get_source_data(
     )
 
     dataset_paths = [
-        str(latest_shared_paths(ds_name)) for ds_name in derived_uses_datasets
+        get_path_dataset_name(ds_name)) for ds_name in derived_uses_datasets
     ]
 
-    available_cols = [pyarrow_columns_from_metadata(path) for path in dataset_paths]
+    available_cols = [
+        pyarrow_columns_from_metadata(path) for path in dataset_paths
+    ]
 
     col_aliases = [
         _get_column_aliases(cols_to_read, available) for available in available_cols
