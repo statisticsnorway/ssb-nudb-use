@@ -4,6 +4,7 @@ import duckdb
 import pandas as pd
 from nudb_config import settings
 
+from nudb_use.datasets import NudbDataSet
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
 
@@ -68,11 +69,6 @@ def _get_column_aliases(columns: list[str], available: list[str]) -> str:
     )
 
 
-
-
-
-
-
 def get_source_data(
     variable_name: str,
     df_left: pd.DataFrame | None = None,
@@ -124,25 +120,23 @@ def get_source_data(
         set(dict.fromkeys([*derived_join_keys, *baselevel_derived_from]))
     )
 
-    dataset_paths = [
-        get_path_dataset_name(ds_name)) for ds_name in derived_uses_datasets
-    ]
+    datasets = [NudbDataSet(ds_name) for ds_name in derived_uses_datasets]
 
-    available_cols = [
-        pyarrow_columns_from_metadata(path) for path in dataset_paths
-    ]
+    aliases = [dataset.alias for dataset in datasets]
+
+    available_cols = [dataset._available_cols() for dataset in datasets]
 
     col_aliases = [
         _get_column_aliases(cols_to_read, available) for available in available_cols
     ]
 
-    logger.info(f"Paths used to form `source_data`:\n{dataset_paths}")
+    logger.info(f"datasets used to form `source_data`:\n{datasets}")
 
     # Build a UNION ALL over all datasets, selecting only needed columns.
     union_sql = "\nUNION ALL\n".join(
         [
-            f"SELECT {cols} FROM read_parquet('{path}')"
-            for cols, path in zip(col_aliases, dataset_paths, strict=True)
+            f"SELECT {cols} FROM {alias}"
+            for cols, alias in zip(col_aliases, aliases, strict=True)
         ]
     )
 
