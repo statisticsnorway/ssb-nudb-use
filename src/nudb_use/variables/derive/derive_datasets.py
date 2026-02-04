@@ -15,7 +15,7 @@ def _get_path_dataset_name(dataset: str) -> str | None:
     return str(latest_shared_paths(dataset)) if is_native else None
 
 
-class NudbDataSet:
+class NudbDataset:
 
     def __init__(self, name: str, cols: None, initfunc: None | Callable = None):
         is_native: bool = name in NATIVE_NUDB_DATASETS

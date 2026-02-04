@@ -41,7 +41,7 @@ def _dataset_in_database(name: str, alias: str) -> bool:
     return alias in list(existing.astype("string[pyarrow]"))
 
 
-class NudbDataSet:
+class NudbDataset:
 
     def __init__(self, name: str, attach_on_init: bool = True):
         name = name.lower()

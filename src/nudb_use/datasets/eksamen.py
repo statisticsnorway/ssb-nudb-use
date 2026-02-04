@@ -1,5 +1,5 @@
 def init_eksamen_aggregated(connection):
-    from nudb_use.datasets.nudb_datasets import NudbDataSet
+    from nudb_use.datasets.nudb_datasets import NudbDataset
 
     # We have to review this logic a bit
     # this is quite a naive approach
@@ -19,7 +19,7 @@ def init_eksamen_aggregated(connection):
             MAX(uh_eksamen_karakter), -- maybe wrong
             SUM(uh_eksamen_studpoeng)
         FROM
-            {NudbDataSet("eksamen").alias}
+            {NudbDataset("eksamen").alias}
         GROUP BY
             snr,
             nus2000,
