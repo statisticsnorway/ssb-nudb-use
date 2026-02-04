@@ -10,25 +10,19 @@ from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+from nudb_use.utils.packages import move_to_use_deprecate
+
+# Moved function
+from nudb_use.variables.derive.person_idents import snr_mrk as _snr_mrk
+
+derive_snr_mrk = move_to_use_deprecate(
+    _snr_mrk,
+    old_path="nudb_use.variables.specific_vars.snr",
+    new_path="nudb_use.variables.derive.person_idents",
+)
 
 BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
-
-
-def derive_snr_mrk(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
-    """Derive the column snr_mrk from snr-column, True if values in snr_col is notna and has a length of 7.
-
-    Args:
-        df: The dataframe to insert/overwrite the snr_mrk-column into.
-        snr_col: The name of the snr-column, if it isnt "snr".
-
-    Returns:
-        pd.DataFrame: the dataframe with the added snr_mrk column.
-    """
-    df["snr_mrk"] = ((df[snr_col].notna()) & (df[snr_col].str.len() == 7)).astype(
-        BOOL_DTYPE
-    )
-    return df
 
 
 def generate_uuid_for_snr_with_fnr_col(
