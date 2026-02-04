@@ -1,11 +1,16 @@
-def init_eksamen_aggregated(connection):
-    from nudb_use.datasets.nudb_datasets import NudbDataset
+from nudb_use.paths.latest import latest_shared_paths
 
+
+def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
+    from nudb_use.datasets.nudb_datasets import NudbDataset
+    
     # We have to review this logic a bit
     # this is quite a naive approach
     # we should atleast split this by year, such that we don't
     # attempt to aggregate aarganger where the aggregation has already been done
     query = f"""
+        CREATE VIEW
+            {alias} AS
         SELECT
             snr,
             nus2000,
@@ -29,4 +34,16 @@ def init_eksamen_aggregated(connection):
             uh_eksamen_er_gjentak;
     """
 
-    return connection.sql(query).df()
+    connection.sql(query)
+
+
+def _generate_eksamen_view(alias: str, connection) -> None:
+    path = latest_shared_paths("eksamen")
+
+    query = f"""
+    CREATE VIEW
+        {alias} AS
+    SELECT * FROM read_parquet('{path}')
+    """
+
+    connection.sql(query)
