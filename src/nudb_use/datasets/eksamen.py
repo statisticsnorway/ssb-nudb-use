@@ -148,7 +148,7 @@ def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
                 uh_eksamen_studpoeng,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
             FROM
-                {NudbDataset("eksamen_hoyeste")}
+                {NudbDataset("eksamen_hoyeste").alias}
         ) UNION (
             SELECT
                 snr,
@@ -159,12 +159,14 @@ def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
                 NULL AS uh_eksamen_studpoeng,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
             FROM
-                {NudbDataset("avslutta")}
+                {NudbDataset("avslutta").alias}
             WHERE
-                utd_fullfoertkode
+                utd_fullfoertkode == '8'
         )
         
     """
+
+    connection.sql(query)
 
     
 def _generate_eksamen_view(alias: str, connection) -> None:

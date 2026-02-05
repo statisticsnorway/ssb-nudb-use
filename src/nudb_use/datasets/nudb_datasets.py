@@ -67,6 +67,7 @@ class NudbDataset:
             name = name.lower()
     
             if name in _DATASETS.keys():
+                logger.info("Dataset is already initialized!")
                 self._copy_attributes_from_existing(_DATASETS[name])
                 return None
     
@@ -83,6 +84,7 @@ class NudbDataset:
             self.generator = generator
     
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
+                logger.info("Initializing dataset!")
                 self._attach()
 
     def _attach(self) -> None:
