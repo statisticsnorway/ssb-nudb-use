@@ -5,7 +5,7 @@ from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.avslutta import _generate_avslutta_view
-from nudb_use.datasets.test_non_view_table import _generate_test_non_view_table
+from nudb_use.datasets.non_view_test_table import _generate_test_non_view_table
 
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.latest import latest_shared_paths
