@@ -7,7 +7,11 @@ def _generate_igang_view(alias: str, connection) -> None:
     query = f"""
     CREATE VIEW
         {alias} AS
-    SELECT * FROM read_parquet('{path}')
+    SELECT
+        *,
+        'igang' AS nudb_dataset_id
+    FROM
+        read_parquet('{path}')
     """
 
     connection.sql(query)

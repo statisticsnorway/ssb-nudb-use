@@ -7,7 +7,11 @@ def _generate_avslutta_view(alias: str, connection) -> None:
     query = f"""
     CREATE VIEW
         {alias} AS
-    SELECT * FROM read_parquet('{path}')
+    SELECT
+        *,
+        'avslutta' AS nudb_dataset_id
+    FROM
+        read_parquet('{path}')
     """
 
     connection.sql(query)

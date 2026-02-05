@@ -2,23 +2,25 @@ import duckdb as db
 import pandas as pd
 
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
+from nudb_use.datasets.eksamen import _generate_eksamen_hoyeste_table
+from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.avslutta import _generate_avslutta_view
-from nudb_use.datasets.non_view_test_table import _generate_test_non_view_table
 
-from nudb_use.nudb_logger import logger
+from nudb_use.nudb_logger import logger, LoggerStack
 from nudb_use.paths.latest import latest_shared_paths
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
 from functools import partial
 
 _DATABASE_CONNECTION = db.connect(":memory:")
 _DATASET_GENERATORS = {
-    "eksamen_aggregated": partial(_generate_eksamen_aggregated_view, connection = _DATABASE_CONNECTION),
-    "eksamen": partial(_generate_eksamen_view, connection = _DATABASE_CONNECTION),
-    "avslutta": partial(_generate_avslutta_view, connection = _DATABASE_CONNECTION),
-    "igang": partial(_generate_igang_view, connection = _DATABASE_CONNECTION),
-    "non_view_test_table": partial(_generate_test_non_view_table, connection = _DATABASE_CONNECTION)
+    "eksamen_aggregated":       partial(_generate_eksamen_aggregated_view,         connection = _DATABASE_CONNECTION),
+    "eksamen":                  partial(_generate_eksamen_view,                    connection = _DATABASE_CONNECTION),
+    "avslutta":                 partial(_generate_avslutta_view,                   connection = _DATABASE_CONNECTION),
+    "igang":                    partial(_generate_igang_view,                      connection = _DATABASE_CONNECTION),
+    "eksamen_hoyeste":          partial(_generate_eksamen_hoyeste_table,           connection = _DATABASE_CONNECTION),
+    "eksamen_avslutta_hoyeste": partial(_generate_eksamen_avslutta_hoyeste_view,   connection = _DATABASE_CONNECTION)
 }
 
 _DATASET_NAMES = list(_DATASET_GENERATORS.keys())
@@ -61,26 +63,27 @@ def _is_in_database(alias: str) -> bool:
 class NudbDataset:
 
     def __init__(self, name: str, attach_on_init: bool = True):
-        name = name.lower()
-
-        if name in _DATASETS.keys():
-            self._copy_attributes_from_existing(_DATASETS[name])
-            return None
-
-        elif name not in _DATASET_GENERATORS.keys():
-            raise ValueError("Unrecognized NUDB dataset!")
-
-        generator = _DATASET_GENERATORS[name]
-        alias     = f"NUDB_DATA_{name.upper()}"
-
-        self.name      = name
-        self.alias     = alias
-        self.exists    = False
-        self.is_view   = False
-        self.generator = generator
-
-        if attach_on_init:  # Setting the default to `True` may be a bad idea...
-            self._attach()
+        with LoggerStack(f"Getting NUDB dataset ({name.upper()})"):
+            name = name.lower()
+    
+            if name in _DATASETS.keys():
+                self._copy_attributes_from_existing(_DATASETS[name])
+                return None
+    
+            elif name not in _DATASET_GENERATORS.keys():
+                raise ValueError("Unrecognized NUDB dataset!")
+    
+            generator = _DATASET_GENERATORS[name]
+            alias     = f"NUDB_DATA_{name.upper()}"
+    
+            self.name      = name
+            self.alias     = alias
+            self.exists    = False
+            self.is_view   = False
+            self.generator = generator
+    
+            if attach_on_init:  # Setting the default to `True` may be a bad idea...
+                self._attach()
 
     def _attach(self) -> None:
         global _DATASETS
@@ -99,7 +102,8 @@ class NudbDataset:
             return list(
                 _DATABASE_CONNECTION
                 .sql(f"DESCRIBE {self.alias}")
-                ["column_name"].astype("string[pyarrow]")
+                .df()["column_name"]
+                .astype("string[pyarrow]")
             )
         else:
             logger.warning(f"{self.name} is not available in duckdb database!")

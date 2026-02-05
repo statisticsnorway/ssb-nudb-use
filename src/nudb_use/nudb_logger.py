@@ -74,6 +74,10 @@ def add_log_record_to_json(record: logging.LogRecord) -> None:
     }
 
 
+def _truncate_message(msg: str, max_width: int = 140) -> str:
+    return "\n".join([line[0:max_width] + "..." * (len(line) > 140) for line in msg.split("\n")])
+    
+    
 class ColoredFormatter(logging.Formatter):
     """Colored log formatter."""
 
@@ -137,7 +141,11 @@ class ColoredFormatter(logging.Formatter):
             pad_l1 = ""
             pad_l2 = " " * WIDTH_LEVEL_NAME + "     "
 
-        return pad_l1 + super().format(record).replace("\n", "\n" + pad_l2)
+        return (
+            pad_l1 +
+            _truncate_message(super().format(record))
+            .replace("\n", "\n" + pad_l2)
+        )
 
 
 formatter = ColoredFormatter(
