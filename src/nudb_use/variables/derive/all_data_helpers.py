@@ -124,7 +124,7 @@ def get_source_data(
 
     aliases = [dataset.alias for dataset in datasets]
 
-    available_cols = [dataset._available_cols() for dataset in datasets]
+    available_cols = [dataset.get_available_cols() for dataset in datasets]
 
     col_aliases = [
         _get_column_aliases(cols_to_read, available) for available in available_cols

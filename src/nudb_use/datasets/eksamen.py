@@ -1,7 +1,12 @@
-from nudb_use.paths.latest import latest_shared_paths
-from nudb_use.nudb_logger import logger
+import duckdb as db
 
-def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
+from nudb_use.nudb_logger import logger
+from nudb_use.paths.latest import latest_shared_paths
+
+
+def _generate_eksamen_aggregated_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
 
     FAILED_KARAKTER_CODES = ["F", "H", "T", "X"]
@@ -32,7 +37,7 @@ def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
         WHERE
             utd_skoleaar_start < '2014'
     """
-    
+
     query_aggregate_after_2014 = f"""
         SELECT
             snr,
@@ -79,7 +84,9 @@ def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
     connection.sql(query)
 
 
-def _generate_eksamen_hoyeste_table(alias: str, connection) -> None:
+def _generate_eksamen_hoyeste_table(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
     from nudb_use.variables.derive import uh_gruppering_nus
 
@@ -104,11 +111,19 @@ def _generate_eksamen_hoyeste_table(alias: str, connection) -> None:
     sub_eksamen = uh_gruppering_nus(sub_eksamen)
     sub_eksamen["_uh_gruppering_pool"] = (
         sub_eksamen["uh_gruppering_nus"]
-        .map({
-            "18": "18", "19": "19", "20": "20",
-            "21": "21", "22": "22", "23": "23",
-            "66": "66", "67": "67"
-        }).fillna("99")
+        .map(
+            {
+                "18": "18",
+                "19": "19",
+                "20": "20",
+                "21": "21",
+                "22": "22",
+                "23": "23",
+                "66": "66",
+                "67": "67",
+            }
+        )
+        .fillna("99")
     )
 
     # Per definition all exam records will get 6 as the first digit
@@ -117,24 +132,32 @@ def _generate_eksamen_hoyeste_table(alias: str, connection) -> None:
     sub_eksamen["nus2000"] = "6" + sub_eksamen["nus2000"].str[1:4] + "99"
 
     valid_eksamen_records = (
-        sub_eksamen
-        .sort_values(by = "uh_eksamen_studpoeng", ascending=False)
+        sub_eksamen.sort_values(by="uh_eksamen_studpoeng", ascending=False)
         .groupby(["snr", "_uh_gruppering_pool"], as_index=False)
-        .agg({
-            "nus2000": "first", # pick nus value with highest studpoeng within uhgruppe pool
-            "uh_eksamen_studpoeng": "sum",
-            "uh_eksamen_dato": "max",
-            "nudb_dataset_id": "first",
-            "utd_skoleaar_start": "max"
-        })
-        .query('(_uh_gruppering_pool == "99" & uh_eksamen_studpoeng >= 120) | uh_eksamen_studpoeng >= 60')
-        .assign(nudb_dataset_id = lambda d: d["nudb_dataset_id"] + ">eksamen_hoyeste")
+        .agg(
+            {
+                "nus2000": "first",  # pick nus value with highest studpoeng within uhgruppe pool
+                "uh_eksamen_studpoeng": "sum",
+                "uh_eksamen_dato": "max",
+                "nudb_dataset_id": "first",
+                "utd_skoleaar_start": "max",
+            }
+        )
+        .query(
+            '(_uh_gruppering_pool == "99" & uh_eksamen_studpoeng >= 120) | uh_eksamen_studpoeng >= 60'
+        )
+        .assign(nudb_dataset_id=lambda d: d["nudb_dataset_id"] + ">eksamen_hoyeste")
     )
-    
+
+    if not valid_eksamen_records:
+        logger.error(f"eksamen_hoyeste / {alias} is empty!")
+
     connection.sql(f"CREATE TABLE {alias} AS SELECT * FROM valid_eksamen_records")
 
 
-def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
+def _generate_eksamen_avslutta_hoyeste_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
 
     query = f"""
@@ -163,13 +186,13 @@ def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
             WHERE
                 utd_fullfoertkode == '8'
         )
-        
+
     """
 
     connection.sql(query)
 
-    
-def _generate_eksamen_view(alias: str, connection) -> None:
+
+def _generate_eksamen_view(alias: str, connection: db.DuckDBPyConnection) -> None:
     path = latest_shared_paths("eksamen")
 
     query = f"""

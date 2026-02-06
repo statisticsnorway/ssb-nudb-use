@@ -1,7 +1,9 @@
+import duckdb as db
+
 from nudb_use.paths.latest import latest_shared_paths
 
 
-def _generate_avslutta_view(alias: str, connection) -> None:
+def _generate_avslutta_view(alias: str, connection: db.DuckDBPyConnection) -> None:
     path = latest_shared_paths("avslutta")
 
     query = f"""

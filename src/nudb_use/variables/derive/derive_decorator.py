@@ -198,7 +198,9 @@ def wrap_derive(
                     missing -= {missing_var}
 
             if missing:
-                logger.warning(f"Unable to derive {name}, missing: {', '.join(list(need))}!")
+                logger.warning(
+                    f"Unable to derive {name}, missing: {', '.join(list(need))}!"
+                )
                 return df
 
             exists = name in df.columns
