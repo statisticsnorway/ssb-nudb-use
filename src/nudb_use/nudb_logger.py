@@ -217,7 +217,7 @@ class LoggerStack:
         JSON_FIELDS.append(current_json_field[FIELD_NAME])
 
         ENTERING_STACK = True
-        self.log_msg(f"ENTERING STACK [{self.label}]")
+        self.log_msg(str(self.label))
         ENTERING_STACK = False
 
         STACK_LABELS.append(self.label)

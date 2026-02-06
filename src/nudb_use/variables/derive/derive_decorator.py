@@ -168,7 +168,7 @@ def wrap_derive(
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
 
-        with LoggerStack(f"Deriving {name} from {derived_from}..."):
+        with LoggerStack(f"Deriving {name} from {', '.join(derived_from)}..."):
             logger.debug(f"Source code for {name}:\n{inspect.getsource(basefunc)}")
 
             available = set(df.columns)
@@ -198,7 +198,7 @@ def wrap_derive(
                     missing -= {missing_var}
 
             if missing:
-                logger.warning(f"Unable to derive {name}, missing: {list(need)}!")
+                logger.warning(f"Unable to derive {name}, missing: {', '.join(list(need))}!")
                 return df
 
             exists = name in df.columns
