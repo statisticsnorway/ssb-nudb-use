@@ -12,9 +12,9 @@ from . import hoeyeste_utd
 from . import klass_correspondences_and_variants
 from . import klass_labels
 from . import land
+from . import person_idents
 from . import registrert
 from . import registrert_foerste
-from . import person_idents
 from .derive_decorator import get_derive_function
 
 derive_all_submodules = (
