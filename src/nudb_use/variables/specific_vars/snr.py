@@ -70,7 +70,7 @@ def generate_uuid_for_snr_with_fnr_col(
 
         amount_na_post_first_fill = df[snr_col].isna().sum()
         diff_first_fill = amount_na_pre_first_fill - amount_na_post_first_fill
-        percent_diff = round(diff_first_fill / len(df), 2)
+        percent_diff = round(100 * diff_first_fill / len(df), 2)
         logger.info(
             f"Filled {percent_diff}% of `{snr_col}` with UUIDs based on unique, non-missing values in `{fnr_col}`"
         )

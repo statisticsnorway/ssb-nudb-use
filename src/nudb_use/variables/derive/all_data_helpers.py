@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import duckdb
 import pandas as pd
 from nudb_config import settings
 
 from nudb_use.datasets import NudbData
+from nudb_use.datasets.nudb_datasets import _DATABASE_CONNECTION
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
 
@@ -142,44 +142,46 @@ def get_source_data(
 
     logger.notice(f"SQL query:\n{union_sql}")  # type: ignore[attr-defined]
 
-    con_factory = duckdb.connect
-    with con_factory() as con:
-        if df_left is None:
-            return con.execute(union_sql).df()
+    if df_left is None:
+        return _DATABASE_CONNECTION.execute(union_sql).df()
 
-        # Validate presence of join keys in df_left
-        missing = [k for k in derived_join_keys if k not in df_left.columns]
-        if missing:
-            raise KeyError(
-                f"{variable_name}: df_left is missing join keys {missing}. "
-                f"Expected columns: {list(derived_join_keys)}"
-            )
-
-        # Build a distinct key table from the incoming data, dropping rows where any join key is NA.
-        key_df = (
-            df_left.loc[:, list(derived_join_keys)]
-            .dropna(subset=list(derived_join_keys), how="any")
-            .drop_duplicates()
-            .reset_index(drop=True)
+    # Validate presence of join keys in df_left
+    missing = [k for k in derived_join_keys if k not in df_left.columns]
+    if missing:
+        raise KeyError(
+            f"{variable_name}: df_left is missing join keys {missing}. "
+            f"Expected columns: {list(derived_join_keys)}"
         )
 
-        # If there are no keys to filter on, return empty source (nothing overlaps).
-        if key_df.empty:
-            return pd.DataFrame(columns=cols_to_read)
+    # Build a distinct key table from the incoming data, dropping rows where any join key is NA.
+    key_filter_df = (
+        df_left.loc[:, list(derived_join_keys)]
+        .dropna(subset=list(derived_join_keys), how="any")
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
 
-        con.register("key_filter", key_df)
+    # If there are no keys to filter on, return empty source (nothing overlaps).
+    if key_filter_df.empty:
+        return pd.DataFrame(columns=cols_to_read)
 
-        # Filter source rows to overlap join-key combinations using an INNER JOIN.
-        using_keys = ", ".join(derived_join_keys)
-        filtered_sql = f"""
-        SELECT DISTINCT u.*
-        FROM ({union_sql}) AS u
-        INNER JOIN key_filter AS k
-        USING ({using_keys})
-        """
-        result: pd.DataFrame = con.execute(filtered_sql).df()
+    # Filter source rows to overlap join-key combinations using an INNER JOIN.
+    using_keys = ", ".join(derived_join_keys)
 
-        return result
+    filtered_sql = f"""
+    SELECT DISTINCT
+        u.*
+    FROM (
+        {union_sql}
+    ) AS u
+    INNER JOIN
+        key_filter_df AS k
+    USING (
+        {using_keys}
+    )
+    """
+
+    return _DATABASE_CONNECTION.execute(filtered_sql).df()
 
 
 def join_variable_data(
