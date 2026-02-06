@@ -92,6 +92,9 @@ def correct_kommune_single_values(
             "2100": "2111",
             "2500": "2580",
             "2400": "2580",  # VIGOs "utland"
+            "0025": "2580",  # Utland ifølge UH?
+            "1025": "2580",  # Utland ifølge UH?
+            "2025": "2580",  # Utland ifølge UH?
             "9900": missing_val,
             "9998": missing_val,
             "0000": missing_val,
