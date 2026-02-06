@@ -14,6 +14,7 @@ from . import klass_labels
 from . import land
 from . import registrert
 from . import registrert_foerste
+from . import person_idents
 from .derive_decorator import get_derive_function
 
 derive_all_submodules = (
@@ -25,6 +26,7 @@ derive_all_submodules = (
     klass_labels,
     hoeyeste_utd,
     land,
+    person_idents,
 )
 
 from .nus_variants import utd_erforeldet_kode_nus
