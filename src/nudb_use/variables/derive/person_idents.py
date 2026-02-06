@@ -24,7 +24,7 @@ def snr_mrk(  # noqa: DOC101,DOC103,DOC201,DOC203
             (df["snr"].notna())
             & (df["snr"].str.len() == 7)
             & (df["snr"].str.isalnum())
-            & (df["snr"].str.isascii())
+            & (df["snr"].apply(lambda x: x.isascii())) # Workaround because isascii is not supported in earlier versions of pandas
         ).astype(BOOL_DTYPE)
 
         # If there is above the threshold percent snr that are 7 digit snr that contain only numbers, give a warning.
