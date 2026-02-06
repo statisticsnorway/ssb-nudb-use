@@ -70,12 +70,8 @@ class NudbData:
         name: Name of the dataset.
         attach_on_init: Should dataset be attached to the internal database?
 
-    Attributes:
-        name: Name of the dataset.
-        alias: Database alias for the dataset.
-        exists: Does the dataset exist in the internal database?
-        is_view: Is the dataset stored (lazily) as a view, in the internal database?
-        generator: Function for generating and attaching dataset to the internal database.
+    Raises:
+        ValueError: If the dataset name isn't recognized.
     """
 
     def __init__(self, name: str, attach_on_init: bool = True) -> None:
