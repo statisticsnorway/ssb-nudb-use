@@ -26,6 +26,14 @@ nudb\_use.metadata.nudb\_config.map\_get\_dtypes module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.metadata.nudb\_config.set\_options module
+---------------------------------------------------
+
+.. automodule:: nudb_use.metadata.nudb_config.set_options
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.metadata.nudb\_config.variable\_names module
 ------------------------------------------------------
 

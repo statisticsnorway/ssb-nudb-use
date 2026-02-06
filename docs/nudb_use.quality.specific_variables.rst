@@ -50,6 +50,14 @@ nudb\_use.quality.specific\_variables.run\_all module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.quality.specific\_variables.skoleaar module
+-----------------------------------------------------
+
+.. automodule:: nudb_use.quality.specific_variables.skoleaar
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.quality.specific\_variables.sn07 module
 -------------------------------------------------
 
