@@ -40,7 +40,7 @@ for k, v in PRG_RANGES_RANGES.items():
 
 
 @wrap_derive
-def gr_ergrunnskole_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def gr_ergrunnskole_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive gr_ergrunnskole_registrering from nus2000 and utland, as a boolean filter for registrations on gr-level."""
@@ -51,7 +51,7 @@ def gr_ergrunnskole_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def vg_ervgo_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def vg_ervgo_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_ervgo_registrering from nus2000, as a boolean filter for registrations on vg-level."""
@@ -80,7 +80,7 @@ def raise_vg_utdprogram_outside_ranges(vg_utdprogram: pd.Series) -> None:
 
 
 @wrap_derive
-def vg_erstudiespess_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def vg_erstudiespess_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_erstudiespess_registrering from nus2000 and vg_utdprogram, as a boolean filter."""
@@ -93,7 +93,7 @@ def vg_erstudiespess_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def vg_eryrkesfag_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def vg_eryrkesfag_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_eryrkesfag_registrering from nus2000 and vg_utdprogram, as a boolean filter."""
@@ -106,7 +106,7 @@ def vg_eryrkesfag_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_erhoeyereutd_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_erhoeyereutd_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erhoeyereutd_registrering from nus2000 as a boolean filter."""
@@ -117,7 +117,7 @@ def uh_erhoeyereutd_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_erbachelor_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_erbachelor_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_registrering from nus2000 as a boolean filter."""
@@ -128,7 +128,7 @@ def uh_erbachelor_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_ermaster_registrering(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_ermaster_registrering(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_registrering from nus2000 as a boolean filter."""
