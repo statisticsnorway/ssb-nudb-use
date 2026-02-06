@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import duckdb
 import pandas as pd
 from nudb_config import settings
 
+from nudb_use.datasets import NudbData
+from nudb_use.datasets.nudb_datasets import _DATABASE_CONNECTION
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
-from nudb_use.paths.latest import latest_shared_paths
-from nudb_use.variables.checks import pyarrow_columns_from_metadata
 
 
 @function_logger_context(level="debug")
@@ -121,66 +120,68 @@ def get_source_data(
         set(dict.fromkeys([*derived_join_keys, *baselevel_derived_from]))
     )
 
-    dataset_paths = [
-        str(latest_shared_paths(ds_name)) for ds_name in derived_uses_datasets
-    ]
+    datasets = [NudbData(ds_name) for ds_name in derived_uses_datasets]
 
-    available_cols = [pyarrow_columns_from_metadata(path) for path in dataset_paths]
+    aliases = [dataset.alias for dataset in datasets]
+
+    available_cols = [dataset.get_available_cols() for dataset in datasets]
 
     col_aliases = [
         _get_column_aliases(cols_to_read, available) for available in available_cols
     ]
 
-    logger.info(f"Paths used to form `source_data`:\n{dataset_paths}")
+    logger.info(f"datasets used to form `source_data`:\n{datasets}")
 
     # Build a UNION ALL over all datasets, selecting only needed columns.
     union_sql = "\nUNION ALL\n".join(
         [
-            f"SELECT {cols} FROM read_parquet('{path}')"
-            for cols, path in zip(col_aliases, dataset_paths, strict=True)
+            f"SELECT {cols} FROM {alias}"
+            for cols, alias in zip(col_aliases, aliases, strict=True)
         ]
     )
 
     logger.notice(f"SQL query:\n{union_sql}")  # type: ignore[attr-defined]
 
-    con_factory = duckdb.connect
-    with con_factory() as con:
-        if df_left is None:
-            return con.execute(union_sql).df()
+    if df_left is None:
+        return _DATABASE_CONNECTION.execute(union_sql).df()
 
-        # Validate presence of join keys in df_left
-        missing = [k for k in derived_join_keys if k not in df_left.columns]
-        if missing:
-            raise KeyError(
-                f"{variable_name}: df_left is missing join keys {missing}. "
-                f"Expected columns: {list(derived_join_keys)}"
-            )
-
-        # Build a distinct key table from the incoming data, dropping rows where any join key is NA.
-        key_df = (
-            df_left.loc[:, list(derived_join_keys)]
-            .dropna(subset=list(derived_join_keys), how="any")
-            .drop_duplicates()
-            .reset_index(drop=True)
+    # Validate presence of join keys in df_left
+    missing = [k for k in derived_join_keys if k not in df_left.columns]
+    if missing:
+        raise KeyError(
+            f"{variable_name}: df_left is missing join keys {missing}. "
+            f"Expected columns: {list(derived_join_keys)}"
         )
 
-        # If there are no keys to filter on, return empty source (nothing overlaps).
-        if key_df.empty:
-            return pd.DataFrame(columns=cols_to_read)
+    # Build a distinct key table from the incoming data, dropping rows where any join key is NA.
+    key_filter_df = (
+        df_left.loc[:, list(derived_join_keys)]
+        .dropna(subset=list(derived_join_keys), how="any")
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
 
-        con.register("key_filter", key_df)
+    # If there are no keys to filter on, return empty source (nothing overlaps).
+    if key_filter_df.empty:
+        return pd.DataFrame(columns=cols_to_read)
 
-        # Filter source rows to overlap join-key combinations using an INNER JOIN.
-        using_keys = ", ".join(derived_join_keys)
-        filtered_sql = f"""
-        SELECT DISTINCT u.*
-        FROM ({union_sql}) AS u
-        INNER JOIN key_filter AS k
-        USING ({using_keys})
-        """
-        result: pd.DataFrame = con.execute(filtered_sql).df()
+    # Filter source rows to overlap join-key combinations using an INNER JOIN.
+    using_keys = ", ".join(derived_join_keys)
 
-        return result
+    filtered_sql = f"""
+    SELECT DISTINCT
+        u.*
+    FROM (
+        {union_sql}
+    ) AS u
+    INNER JOIN
+        key_filter_df AS k
+    USING (
+        {using_keys}
+    )
+    """
+
+    return _DATABASE_CONNECTION.execute(filtered_sql).df()
 
 
 def join_variable_data(

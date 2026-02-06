@@ -128,7 +128,13 @@ def test_first_registered_date_per_snr() -> None:
     df = pd.DataFrame(
         {
             "snr": ["a", "a", "b", "b", "c"],
-            "utd_aktivitet_start": [100, 200, 150, 50, 300],
+            "utd_aktivitet_start": [
+                pd.Timestamp("1970-01-01 00:01:40"),
+                pd.Timestamp("1970-01-01 00:03:20"),
+                pd.Timestamp("1970-01-01 00:02:30"),
+                pd.Timestamp("1970-01-01 00:00:50"),
+                pd.Timestamp("1970-01-01 00:05:00"),
+            ],
             "flag": [True, False, False, True, pd.NA],
         }
     )
