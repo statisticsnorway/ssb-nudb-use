@@ -153,7 +153,7 @@ def _generate_eksamen_hoyeste_table(
         .assign(nudb_dataset_id=lambda d: d["nudb_dataset_id"] + ">eksamen_hoyeste")
     )
 
-    if not valid_eksamen_records:
+    if not valid_eksamen_records.shape[0]:
         logger.error(f"eksamen_hoyeste / {alias} is empty!")
 
     connection.sql(f"CREATE TABLE {alias} AS SELECT * FROM valid_eksamen_records")
