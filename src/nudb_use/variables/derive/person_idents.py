@@ -22,10 +22,13 @@ def snr_mrk(  # noqa: DOC101,DOC103,DOC201,DOC203
     with LoggerStack("Deriving snr_mrk from snr."):
         df["snr_mrk"] = (
             (df["snr"].notna())
-            & (df["snr"].str.len() == 7)
-            & (df["snr"].str.isalnum())
-            & (df["snr"].apply(lambda x: x.isascii())) # Workaround because isascii is not supported in earlier versions of pandas
+            & (df["snr"].str.strip().str.len() == 7)
+            & (df["snr"].str.strip().str.isalnum())
+            & (df["snr"].str.strip().apply(lambda x: x.isascii())) # Workaround because isascii is not supported in earlier versions of pandas
         ).astype(BOOL_DTYPE)
+
+        if df["snr"].str.contains(" ").any():
+            logger.warning("Some of your snr contain spaces, why bro?")
 
         # If there is above the threshold percent snr that are 7 digit snr that contain only numbers, give a warning.
         # Would indicate that the snrs are not pseudonomized, or that they might be cut off fake snr, probably not UUID because of the hyphens.
