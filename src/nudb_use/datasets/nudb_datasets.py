@@ -22,7 +22,9 @@ class NudbDatabase:
     def __init__(self) -> None:
         self._connection: db.DuckDBPyConnection = db.connect(":memory:")
 
-        self._dataset_generators: dict[str, Callable[[str], None]] = {
+        self._dataset_generators: dict[
+            str, Callable[[str, db.DuckDBPyConnection], None]
+        ] = {
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
@@ -112,14 +114,14 @@ class NudbData:
             self.alias: str = alias
             self.exists: bool = False
             self.is_view: bool = False
-            self.generator: Callable[[str], None] = generator
+            self.generator: Callable[[str, db.DuckDBPyConnection], None] = generator
 
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
 
     def _attach(self) -> None:
-        self.generator(alias=self.alias, connection=_NUDB_DATABASE.get_connection())
+        self.generator(self.alias, _NUDB_DATABASE.get_connection())
         self.is_view = _is_view(self.alias)
         self.exists = _is_in_database(self.alias)
 
