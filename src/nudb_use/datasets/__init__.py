@@ -1,1 +1,1 @@
-from .nudb_datasets import NudbDataset
+from .nudb_datasets import NudbData

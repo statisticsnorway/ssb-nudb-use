@@ -60,7 +60,7 @@ def _is_in_database(alias: str) -> bool:
     return _is_table(alias) or _is_view(alias)
 
     
-class NudbDataset:
+class NudbData:
 
     def __init__(self, name: str, attach_on_init: bool = True):
         with LoggerStack(f"Getting NUDB dataset ({name.upper()})"):

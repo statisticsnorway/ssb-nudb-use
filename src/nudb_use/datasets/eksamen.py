@@ -2,7 +2,7 @@ from nudb_use.paths.latest import latest_shared_paths
 from nudb_use.nudb_logger import logger
 
 def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
-    from nudb_use.datasets.nudb_datasets import NudbDataset
+    from nudb_use.datasets.nudb_datasets import NudbData
 
     FAILED_KARAKTER_CODES = ["F", "H", "T", "X"]
     # We have to review this logic a bit
@@ -28,7 +28,7 @@ def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
             uh_eksamen_studpoeng,
             CONCAT(nudb_dataset_id, '>eksamen_aggregated') AS nudb_dataset_id
         FROM
-            {NudbDataset("eksamen").alias}
+            {NudbData("eksamen").alias}
         WHERE
             utd_skoleaar_start < '2014'
     """
@@ -52,7 +52,7 @@ def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
             SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
             CONCAT(FIRST(nudb_dataset_id), '>eksamen_aggregated') AS nudb_dataset_id
         FROM
-            {NudbDataset("eksamen").alias}
+            {NudbData("eksamen").alias}
         WHERE
             utd_skoleaar_start >= '2014'
         GROUP BY
@@ -80,7 +80,7 @@ def _generate_eksamen_aggregated_view(alias: str, connection) -> None:
 
 
 def _generate_eksamen_hoyeste_table(alias: str, connection) -> None:
-    from nudb_use.datasets.nudb_datasets import NudbDataset
+    from nudb_use.datasets.nudb_datasets import NudbData
     from nudb_use.variables.derive import uh_gruppering_nus
 
     sub_eksamen = connection.sql(f"""
@@ -93,7 +93,7 @@ def _generate_eksamen_hoyeste_table(alias: str, connection) -> None:
             uh_eksamen_studpoeng,
             nudb_dataset_id
         FROM
-            {NudbDataset("eksamen_aggregated").alias}
+            {NudbData("eksamen_aggregated").alias}
         WHERE
             NOT uh_eksamen_er_gjentak AND
             uh_eksamen_studpoeng > 0 AND
@@ -135,7 +135,7 @@ def _generate_eksamen_hoyeste_table(alias: str, connection) -> None:
 
 
 def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
-    from nudb_use.datasets.nudb_datasets import NudbDataset
+    from nudb_use.datasets.nudb_datasets import NudbData
 
     query = f"""
         CREATE VIEW {alias} AS (
@@ -148,7 +148,7 @@ def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
                 uh_eksamen_studpoeng,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
             FROM
-                {NudbDataset("eksamen_hoyeste").alias}
+                {NudbData("eksamen_hoyeste").alias}
         ) UNION (
             SELECT
                 snr,
@@ -159,7 +159,7 @@ def _generate_eksamen_avslutta_hoyeste_view(alias: str, connection) -> None:
                 NULL AS uh_eksamen_studpoeng,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
             FROM
-                {NudbDataset("avslutta").alias}
+                {NudbData("avslutta").alias}
             WHERE
                 utd_fullfoertkode == '8'
         )
