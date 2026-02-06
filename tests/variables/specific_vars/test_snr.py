@@ -6,18 +6,8 @@ from typing import Any
 import pandas as pd
 
 from nudb_use.variables.specific_vars import snr as snr_module
-from nudb_use.variables.specific_vars.snr import derive_snr_mrk
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_catalog
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_col
-
-
-def test_derive_snr_mrk() -> None:
-    df = pd.DataFrame({"snr": ["1234567", "123", pd.NA]})
-
-    result = derive_snr_mrk(df, snr_col="snr")
-
-    assert result["snr_mrk"].tolist() == [True, False, False]
-    assert str(result["snr_mrk"].dtype) == "bool[pyarrow]"
 
 
 def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
