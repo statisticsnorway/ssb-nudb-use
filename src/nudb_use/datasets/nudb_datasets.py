@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from functools import partial
-from typing import Self
 
 import duckdb as db
 import pandas as pd
@@ -31,7 +30,7 @@ _DATASET_GENERATORS: dict[str, Callable[[str], None]] = {
 }
 
 _DATASET_NAMES = list(_DATASET_GENERATORS.keys())
-_DATASETS = {}
+_DATASETS: dict[str, "NudbData"] = {}
 
 
 def reset_nudb_database() -> None:
@@ -107,12 +106,9 @@ class NudbData:
     def _attach(self) -> None:
         global _DATASETS
 
-        if not callable(self.generator):
-            logger.error(f"Generator for {self.name} is not callable!")
-        else:
-            self.generator(self.alias)
-            self.is_view = _is_view(self.alias)
-            self.exists = _is_in_database(self.alias)
+        self.generator(self.alias)
+        self.is_view = _is_view(self.alias)
+        self.exists = _is_in_database(self.alias)
 
         if self.exists:
             _DATASETS[self.name] = self
@@ -145,7 +141,7 @@ class NudbData:
         """Get string representation of NUDB dataset."""
         return self.__str__()
 
-    def _copy_attributes_from_existing(self, other: Self):
+    def _copy_attributes_from_existing(self, other: "NudbData") -> None:
         self.name = other.name
         self.alias = other.alias
         self.is_view = other.is_view
