@@ -8,7 +8,7 @@ PYARROW_STRING: Literal["string[pyarrow]"] = "string[pyarrow]"
 
 
 @wrap_derive
-def utd_skoleaar_slutt(  # noqa: DOC101,DOC103,DOC201,DOC203
+def utd_skoleaar_slutt(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive utd_skoleaar_slutt from utd_skoleaar_start.

@@ -6,7 +6,7 @@ __all__ = ["utd_erutland"]
 
 
 @wrap_derive
-def utd_erutland(  # noqa: DOC101,DOC103,DOC201,DOC203
+def utd_erutland(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive utd_erutland from utd_skolekom."""

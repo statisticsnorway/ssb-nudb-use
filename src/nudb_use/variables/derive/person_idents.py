@@ -15,7 +15,7 @@ __all__ = ["snr_mrk"]
 
 
 @wrap_derive
-def snr_mrk(  # noqa: DOC101,DOC103,DOC201,DOC203
+def snr_mrk(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive the column snr_mrk from snr-column, True if values in snr_col is notna, has a length of 7 and are wholly alphanumeric."""
@@ -24,7 +24,9 @@ def snr_mrk(  # noqa: DOC101,DOC103,DOC201,DOC203
             (df["snr"].notna())
             & (df["snr"].str.strip().str.len() == 7)
             & (df["snr"].str.strip().str.isalnum())
-            & (df["snr"].str.strip().apply(lambda x: x.isascii())) # Workaround because isascii is not supported in earlier versions of pandas
+            & (
+                df["snr"].str.strip().apply(lambda x: x.isascii())
+            )  # Workaround because isascii is not supported in earlier versions of pandas
         ).astype(BOOL_DTYPE)
 
         if df["snr"].str.contains(" ").any():
