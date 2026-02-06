@@ -88,7 +88,9 @@ def _generate_eksamen_hoyeste_table(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
-    from nudb_use.variables.derive import uh_gruppering_nus
+    from nudb_use.variables.derive import (  # type: ignore[attr-defined]
+        uh_gruppering_nus,
+    )
 
     # `uh_gruppering_nus` is generated dynamically at runtime
 
