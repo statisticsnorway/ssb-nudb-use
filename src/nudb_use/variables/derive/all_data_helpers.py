@@ -4,7 +4,7 @@ import pandas as pd
 from nudb_config import settings
 
 from nudb_use.datasets import NudbData
-from nudb_use.datasets.nudb_datasets import _DATABASE_CONNECTION
+from nudb_use.datasets.nudb_datasets import _NUDB_DATABASE
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
 
@@ -141,9 +141,10 @@ def get_source_data(
     )
 
     logger.notice(f"SQL query:\n{union_sql}")  # type: ignore[attr-defined]
+    connection = _NUDB_DATABASE.get_connection()
 
     if df_left is None:
-        return _DATABASE_CONNECTION.execute(union_sql).df()
+        return connection.execute(union_sql).df()
 
     # Validate presence of join keys in df_left
     missing = [k for k in derived_join_keys if k not in df_left.columns]
@@ -181,7 +182,7 @@ def get_source_data(
     )
     """
 
-    return _DATABASE_CONNECTION.execute(filtered_sql).df()
+    return connection.execute(filtered_sql).df()
 
 
 def join_variable_data(
