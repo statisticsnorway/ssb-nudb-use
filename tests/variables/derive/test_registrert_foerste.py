@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 
 import nudb_use
+from nudb_use.datasets.nudb_datasets import reset_nudb_database
 from nudb_use.variables.derive.registrert_foerste import first_registered_date_per_snr
 from nudb_use.variables.derive.registrert_foerste import gr_foerste_registrert_dato
 from nudb_use.variables.derive.registrert_foerste import (
@@ -18,6 +19,7 @@ from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_d
 
 
 def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
+    reset_nudb_database()
 
     basepath = tmp_path / "local" / "nudb-data"
     nudbpath = basepath / "klargjorte-data"
@@ -128,7 +130,13 @@ def test_first_registered_date_per_snr() -> None:
     df = pd.DataFrame(
         {
             "snr": ["a", "a", "b", "b", "c"],
-            "utd_aktivitet_start": [100, 200, 150, 50, 300],
+            "utd_aktivitet_start": [
+                pd.Timestamp("1970-01-01 00:01:40"),
+                pd.Timestamp("1970-01-01 00:03:20"),
+                pd.Timestamp("1970-01-01 00:02:30"),
+                pd.Timestamp("1970-01-01 00:00:50"),
+                pd.Timestamp("1970-01-01 00:05:00"),
+            ],
             "flag": [True, False, False, True, pd.NA],
         }
     )
