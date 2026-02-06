@@ -31,9 +31,9 @@ def snr_mrk(  # noqa:DOC201
             logger.warning(
                 f"We found {percent}% rows where snr is 7 characters, but contain all digits. This is highly suspicious if you are working with pseudonomized data... Did you cut the column down to 7 characters by mistake somewhere?"
             )
-    
+
     with LoggerStack("Deriving snr_mrk from snr."):
-        snr_mrk = (
+        snr_mrk: pd.Series = (
             (df["snr"].notna())
             & (df["snr"].str.strip().str.len() == 7)
             & (df["snr"].str.strip().str.isalnum())
@@ -42,6 +42,8 @@ def snr_mrk(  # noqa:DOC201
             )  # Workaround because isascii is not supported in earlier versions of pandas
         ).astype(BOOL_DTYPE)
 
-        logger.info(f"{round(snr_mrk.sum() / len(snr_mrk)*100, 2)}%: {snr_mrk.sum()} of {len(snr_mrk)} rows have valid snr -> snr_mrk.")
+        logger.info(
+            f"{round(snr_mrk.sum() / len(snr_mrk)*100, 2)}%: {snr_mrk.sum()} of {len(snr_mrk)} rows have valid snr -> snr_mrk."
+        )
 
         return snr_mrk
