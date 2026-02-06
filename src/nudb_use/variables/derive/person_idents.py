@@ -19,16 +19,7 @@ def snr_mrk(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive the column snr_mrk from snr-column, True if values in snr_col is notna, has a length of 7 and are wholly alphanumeric."""
-    with LoggerStack("Deriving snr_mrk from snr."):
-        df["snr_mrk"] = (
-            (df["snr"].notna())
-            & (df["snr"].str.strip().str.len() == 7)
-            & (df["snr"].str.strip().str.isalnum())
-            & (
-                df["snr"].str.strip().apply(lambda x: x.isascii())
-            )  # Workaround because isascii is not supported in earlier versions of pandas
-        ).astype(BOOL_DTYPE)
-
+    with LoggerStack("Looking for weird content in the snr column"):
         if df["snr"].str.contains(" ").any():
             logger.warning("Some of your snr contain spaces, why bro?")
 
@@ -40,5 +31,17 @@ def snr_mrk(  # noqa:DOC201
             logger.warning(
                 f"We found {percent}% rows where snr is 7 characters, but contain all digits. This is highly suspicious if you are working with pseudonomized data... Did you cut the column down to 7 characters by mistake somewhere?"
             )
+    
+    with LoggerStack("Deriving snr_mrk from snr."):
+        snr_mrk = (
+            (df["snr"].notna())
+            & (df["snr"].str.strip().str.len() == 7)
+            & (df["snr"].str.strip().str.isalnum())
+            & (
+                df["snr"].str.strip().apply(lambda x: x.isascii())
+            )  # Workaround because isascii is not supported in earlier versions of pandas
+        ).astype(BOOL_DTYPE)
 
-        return df
+        logger.info(f"{round(snr_mrk.sum() / len(snr_mrk)*100, 2)}%: {snr_mrk.sum()} of {len(snr_mrk)} rows have valid snr -> snr_mrk.")
+
+        return snr_mrk
