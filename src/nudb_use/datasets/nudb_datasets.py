@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from functools import partial
 
 import duckdb as db
 import pandas as pd
@@ -13,37 +12,56 @@ from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-_DATABASE_CONNECTION: db.DuckDBPyConnection = db.connect(":memory:")
-_DATASET_GENERATORS: dict[str, Callable[[str], None]] = {
-    "eksamen_aggregated": partial(
-        _generate_eksamen_aggregated_view, connection=_DATABASE_CONNECTION
-    ),
-    "eksamen": partial(_generate_eksamen_view, connection=_DATABASE_CONNECTION),
-    "avslutta": partial(_generate_avslutta_view, connection=_DATABASE_CONNECTION),
-    "igang": partial(_generate_igang_view, connection=_DATABASE_CONNECTION),
-    "eksamen_hoyeste": partial(
-        _generate_eksamen_hoyeste_table, connection=_DATABASE_CONNECTION
-    ),
-    "eksamen_avslutta_hoyeste": partial(
-        _generate_eksamen_avslutta_hoyeste_view, connection=_DATABASE_CONNECTION
-    ),
-}
+# Create a mutable singleton for the database, so it can be safely
+# passed around to other modules, without being immutable
 
-_DATASET_NAMES = list(_DATASET_GENERATORS.keys())
-_DATASETS: dict[str, "NudbData"] = {}
+
+class NudbDatabase:
+    """Singleton for internal NUDB database."""
+
+    def __init__(self) -> None:
+        self._connection: db.DuckDBPyConnection = db.connect(":memory:")
+
+        self._dataset_generators: dict[
+            str, Callable[[str, db.DuckDBPyConnection], None]
+        ] = {
+            "eksamen_aggregated": _generate_eksamen_aggregated_view,
+            "eksamen": _generate_eksamen_view,
+            "avslutta": _generate_avslutta_view,
+            "igang": _generate_igang_view,
+            "eksamen_hoyeste": _generate_eksamen_hoyeste_table,
+            "eksamen_avslutta_hoyeste": _generate_eksamen_avslutta_hoyeste_view,
+        }
+
+        self._dataset_names = list(self._dataset_generators.keys())
+        self._datasets: dict[str, NudbData] = {}
+
+    def _reset(self) -> None:
+        self._connection.close()
+        self._connection = db.connect(":memory:")
+        self._datasets = {}
+
+    def __del__(self) -> None:
+        """Destructor for NudbDatabase."""
+        self._connection.close()  # close before deleting
+
+    def get_connection(self) -> db.DuckDBPyConnection:
+        """Get database connection."""
+        return self._connection
+
+
+_NUDB_DATABASE = NudbDatabase()
 
 
 def reset_nudb_database() -> None:
     """Reset (I.e., clear) the internal database."""
-    global _DATABASE_CONNECTION, _DATASETS
-    _DATABASE_CONNECTION.close()
-    _DATABASE_CONNECTION = db.connect(":memory:")
-    _DATASETS = {}
+    _NUDB_DATABASE._reset()
 
 
 def _is_view(alias: str) -> bool:
     views = list(
-        _DATABASE_CONNECTION.sql("SELECT view_name FROM duckdb_views()")
+        _NUDB_DATABASE.get_connection()
+        .sql("SELECT view_name FROM duckdb_views()")
         .df()["view_name"]
         .astype("string[pyarrow]")
     )
@@ -53,7 +71,10 @@ def _is_view(alias: str) -> bool:
 
 def _is_table(alias: str) -> bool:
     tables = list(
-        _DATABASE_CONNECTION.sql("SHOW TABLES").df()["name"].astype("string[pyarrow]")
+        _NUDB_DATABASE.get_connection()
+        .sql("SHOW TABLES")
+        .df()["name"]
+        .astype("string[pyarrow]")
     )
 
     return alias in tables
@@ -78,36 +99,34 @@ class NudbData:
         with LoggerStack(f"Getting NUDB dataset ({name.upper()})"):
             name = name.lower()
 
-            if name in _DATASETS.keys():
+            if name in _NUDB_DATABASE._datasets.keys():
                 logger.info("Dataset is already initialized!")
-                self._copy_attributes_from_existing(_DATASETS[name])
+                self._copy_attributes_from_existing(_NUDB_DATABASE._datasets[name])
                 return None
 
-            elif name not in _DATASET_GENERATORS.keys():
+            elif name not in _NUDB_DATABASE._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
 
-            generator = _DATASET_GENERATORS[name]
+            generator = _NUDB_DATABASE._dataset_generators[name]
             alias = f"NUDB_DATA_{name.upper()}"
 
             self.name: str = name
             self.alias: str = alias
             self.exists: bool = False
             self.is_view: bool = False
-            self.generator: Callable[[str], None] = generator
+            self.generator: Callable[[str, db.DuckDBPyConnection], None] = generator
 
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
 
     def _attach(self) -> None:
-        global _DATASETS
-
-        self.generator(self.alias)
+        self.generator(self.alias, _NUDB_DATABASE.get_connection())
         self.is_view = _is_view(self.alias)
         self.exists = _is_in_database(self.alias)
 
         if self.exists:
-            _DATASETS[self.name] = self
+            _NUDB_DATABASE._datasets[self.name] = self
         else:
             logger.critical(f"Failed to attach {self.name} to database!")
 
@@ -115,7 +134,8 @@ class NudbData:
         """Get available columns in dataset."""
         if self.exists:
             return list(
-                _DATABASE_CONNECTION.sql(f"DESCRIBE {self.alias}")
+                _NUDB_DATABASE.get_connection()
+                .sql(f"DESCRIBE {self.alias}")
                 .df()["column_name"]
                 .astype("string[pyarrow]")
             )
@@ -146,4 +166,4 @@ class NudbData:
 
     def df(self) -> pd.DataFrame:
         """Return dataset as a pandas DataFrame."""
-        return _DATABASE_CONNECTION.sql(f"SELECT * FROM {self.alias}").df()
+        return _NUDB_DATABASE.get_connection().sql(f"SELECT * FROM {self.alias}").df()
