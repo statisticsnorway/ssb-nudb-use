@@ -23,8 +23,8 @@ def _generate_avslutta_fullfoert_table(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     from nudb_use.datasets import NudbData
-    from nudb_use.variables.derive import (
-        uh_gruppering_nus,  # type: ignore[attr-defined]
+    from nudb_use.variables.derive import (  # type: ignore[attr-defined]
+        uh_gruppering_nus,
     )
 
     query = f"""
