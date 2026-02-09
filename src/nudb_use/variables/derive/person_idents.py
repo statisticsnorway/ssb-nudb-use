@@ -38,8 +38,11 @@ def snr_mrk(  # noqa:DOC201
             & (df["snr"].str.strip().str.len() == 7)
             & (df["snr"].str.strip().str.isalnum())
             & (
-                df["snr"].str.strip().apply(lambda x: x.isascii())
-            )  # Workaround because isascii is not supported in earlier versions of pandas
+                df["snr"]
+                .str.strip()
+                .apply(lambda x: (not pd.isna(x)) and (x.isascii()))
+                .astype(BOOL_DTYPE)
+            )  # Workaround because isascii is not supported in earlier versions of pandas, isascii fails on NAtypes?
         ).astype(BOOL_DTYPE)
 
         logger.info(
