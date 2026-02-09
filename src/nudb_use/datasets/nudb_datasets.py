@@ -13,6 +13,8 @@ from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
+from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
+
 # Create a mutable singleton for the database, so it can be safely
 # passed around to other modules, without being immutable
 
@@ -65,7 +67,7 @@ def _is_view(alias: str) -> bool:
         _NUDB_DATABASE.get_connection()
         .sql("SELECT view_name FROM duckdb_views()")
         .df()["view_name"]
-        .astype("string[pyarrow]")
+        .astype(STRING_DTYPE_NAME)
     )
 
     return alias in views
@@ -76,7 +78,7 @@ def _is_table(alias: str) -> bool:
         _NUDB_DATABASE.get_connection()
         .sql("SHOW TABLES")
         .df()["name"]
-        .astype("string[pyarrow]")
+        .astype(STRING_DTYPE_NAME)
     )
 
     return alias in tables
@@ -139,7 +141,7 @@ class NudbData:
                 _NUDB_DATABASE.get_connection()
                 .sql(f"DESCRIBE {self.alias}")
                 .df()["column_name"]
-                .astype("string[pyarrow]")
+                .astype(STRING_DTYPE_NAME)
             )
         else:
             logger.warning(f"{self.name} is not available in duckdb database!")

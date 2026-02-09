@@ -66,3 +66,6 @@ autodoc_typehints = "description"
 
 # Do not prepend module names to object names
 add_module_names = False
+
+# Mock optional imports to avoid autodoc failures
+autodoc_mock_imports = ["matplotlib"]
