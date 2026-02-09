@@ -10,10 +10,9 @@ from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_hoyeste_table
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
+from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
-
-from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 
 # Create a mutable singleton for the database, so it can be safely
 # passed around to other modules, without being immutable
