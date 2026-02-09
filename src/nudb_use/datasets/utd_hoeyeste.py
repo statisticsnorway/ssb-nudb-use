@@ -18,7 +18,7 @@ def _generate_utd_hoeyeste_table(
     from nudb_use.variables.derive import utd_hoeyeste_rangering
 
     def keep_valid_snrs(df: pd.DataFrame) -> pd.DataFrame:
-        return df[df["snr"].isin(valid_snrs)] if valid_snrs else df
+        return df[df["snr"].isin(valid_snrs)] if valid_snrs.shape[0] else df
 
     eksamen_avslutta_hoeyeste_rangert = (
         NudbData("eksamen_avslutta_hoeyeste")
