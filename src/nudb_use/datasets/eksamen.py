@@ -9,7 +9,9 @@ def _generate_eksamen_aggregated_view(
 ) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
 
+    nudb_eksamen = NudbData("eksamen")
     FAILED_KARAKTER_CODES = ["F", "H", "T", "X"]
+
     # We have to review this logic a bit
     # this is quite a naive approach
     # we should atleast split this by year, such that we don't
@@ -33,7 +35,7 @@ def _generate_eksamen_aggregated_view(
             uh_eksamen_studpoeng,
             CONCAT(nudb_dataset_id, '>eksamen_aggregated') AS nudb_dataset_id
         FROM
-            {NudbData("eksamen").alias}
+            {nudb_eksamen.alias}
         WHERE
             utd_skoleaar_start < '2014'
     """
@@ -57,7 +59,7 @@ def _generate_eksamen_aggregated_view(
             SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
             CONCAT(FIRST(nudb_dataset_id), '>eksamen_aggregated') AS nudb_dataset_id
         FROM
-            {NudbData("eksamen").alias}
+            {nudb_eksamen.alias}
         WHERE
             utd_skoleaar_start >= '2014'
         GROUP BY
@@ -74,7 +76,7 @@ def _generate_eksamen_aggregated_view(
     query = f"""
         CREATE VIEW {alias} AS (
             {query_select_before_2014}
-        ) UNION (
+        ) UNION ALL BY NAME(
             {query_aggregate_after_2014}
         );
     """
@@ -145,6 +147,7 @@ def _generate_eksamen_hoyeste_table(
                 "uh_eksamen_dato": "max",
                 "nudb_dataset_id": "first",
                 "utd_skoleaar_start": "max",
+                "uh_gruppering_nus": "first",  # This is iffy...
             }
         )
         .query(
@@ -171,22 +174,22 @@ def _generate_eksamen_avslutta_hoyeste_view(
                 nus2000,
                 utd_skoleaar_start,
                 uh_eksamen_dato,
-                NULL AS utd_aktivitet_slutt,
                 uh_eksamen_studpoeng,
+                uh_gruppering_nus,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
             FROM
                 {NudbData("eksamen_hoyeste").alias}
-        ) UNION (
+        ) UNION ALL BY NAME (
             SELECT
                 snr,
                 nus2000,
                 utd_skoleaar_start,
-                NULL AS uh_eksamen_dato,
                 utd_aktivitet_slutt,
-                NULL AS uh_eksamen_studpoeng,
+                utd_klassetrinn,
+                uh_gruppering_nus,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
             FROM
-                {NudbData("avslutta").alias}
+                {NudbData("avslutta_fullfoert").alias}
             WHERE
                 utd_fullfoertkode == '8'
         )

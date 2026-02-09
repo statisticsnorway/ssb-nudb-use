@@ -133,7 +133,7 @@ def get_source_data(
     logger.info(f"datasets used to form `source_data`:\n{datasets}")
 
     # Build a UNION ALL over all datasets, selecting only needed columns.
-    union_sql = "\nUNION ALL\n".join(
+    union_sql = "\nUNION ALL BY NAME\n".join(
         [
             f"SELECT {cols} FROM {alias}"
             for cols, alias in zip(col_aliases, aliases, strict=True)

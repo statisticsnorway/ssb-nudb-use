@@ -3,6 +3,7 @@ from collections.abc import Callable
 import duckdb as db
 import pandas as pd
 
+from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_table
 from nudb_use.datasets.avslutta import _generate_avslutta_view
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
 from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoyeste_view
@@ -28,6 +29,7 @@ class NudbDatabase:
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
+            "avslutta_fullfoert": _generate_avslutta_fullfoert_table,
             "igang": _generate_igang_view,
             "eksamen_hoyeste": _generate_eksamen_hoyeste_table,
             "eksamen_avslutta_hoyeste": _generate_eksamen_avslutta_hoyeste_view,
