@@ -1,4 +1,6 @@
+from collections.abc import Any
 from collections.abc import Callable
+from functools import partial
 
 import duckdb as db
 import pandas as pd
@@ -6,11 +8,11 @@ import pandas as pd
 from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_table
 from nudb_use.datasets.avslutta import _generate_avslutta_view
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
-from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoyeste_view
-from nudb_use.datasets.eksamen import _generate_eksamen_hoyeste_table
+from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
+from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
-from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
+from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_table
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
@@ -25,15 +27,16 @@ class NudbDatabase:
         self._connection: db.DuckDBPyConnection = db.connect(":memory:")
 
         self._dataset_generators: dict[
-            str, Callable[[str, db.DuckDBPyConnection], None]
+            str, Callable[[str, db.DuckDBPyConnection, ...], None]
         ] = {
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
             "avslutta_fullfoert": _generate_avslutta_fullfoert_table,
             "igang": _generate_igang_view,
-            "eksamen_hoyeste": _generate_eksamen_hoyeste_table,
-            "eksamen_avslutta_hoyeste": _generate_eksamen_avslutta_hoyeste_view,
+            "eksamen_hoeyeste": _generate_eksamen_hoeyeste_table,
+            "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
+            "utd_hoeyeste": _generate_utd_hoeyeste_table,
         }
 
         self._dataset_names = list(self._dataset_generators.keys())
@@ -66,7 +69,7 @@ def _is_view(alias: str) -> bool:
         _NUDB_DATABASE.get_connection()
         .sql("SELECT view_name FROM duckdb_views()")
         .df()["view_name"]
-        .astype(STRING_DTYPE_NAME)
+        .astype("string[pyarrow]")
     )
 
     return alias in views
@@ -77,7 +80,7 @@ def _is_table(alias: str) -> bool:
         _NUDB_DATABASE.get_connection()
         .sql("SHOW TABLES")
         .df()["name"]
-        .astype(STRING_DTYPE_NAME)
+        .astype("string[pyarrow]")
     )
 
     return alias in tables
@@ -98,7 +101,9 @@ class NudbData:
         ValueError: If the dataset name isn't recognized.
     """
 
-    def __init__(self, name: str, attach_on_init: bool = True) -> None:
+    def __init__(
+        self, name: str, attach_on_init: bool = True, *args: Any, **kwargs: Any
+    ) -> None:
         with LoggerStack(f"Getting NUDB dataset ({name.upper()})"):
             name = name.lower()
 
@@ -110,7 +115,10 @@ class NudbData:
             elif name not in _NUDB_DATABASE._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
 
-            generator = _NUDB_DATABASE._dataset_generators[name]
+            generator = partial(
+                _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
+            )
+
             alias = f"NUDB_DATA_{name.upper()}"
 
             self.name: str = name
@@ -140,7 +148,7 @@ class NudbData:
                 _NUDB_DATABASE.get_connection()
                 .sql(f"DESCRIBE {self.alias}")
                 .df()["column_name"]
-                .astype(STRING_DTYPE_NAME)
+                .astype("string[pyarrow]")
             )
         else:
             logger.warning(f"{self.name} is not available in duckdb database!")

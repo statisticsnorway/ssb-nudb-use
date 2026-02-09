@@ -86,7 +86,7 @@ def _generate_eksamen_aggregated_view(
     connection.sql(query)
 
 
-def _generate_eksamen_hoyeste_table(
+def _generate_eksamen_hoeyeste_table(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
@@ -153,16 +153,16 @@ def _generate_eksamen_hoyeste_table(
         .query(
             '(_uh_gruppering_pool == "99" & uh_eksamen_studpoeng >= 120) | uh_eksamen_studpoeng >= 60'
         )
-        .assign(nudb_dataset_id=lambda d: d["nudb_dataset_id"] + ">eksamen_hoyeste")
+        .assign(nudb_dataset_id=lambda d: d["nudb_dataset_id"] + ">eksamen_hoeyeste")
     )
 
     if not valid_eksamen_records.shape[0]:
-        logger.error(f"eksamen_hoyeste / {alias} is empty!")
+        logger.error(f"eksamen_hoeyeste / {alias} is empty!")
 
     connection.sql(f"CREATE TABLE {alias} AS SELECT * FROM valid_eksamen_records")
 
 
-def _generate_eksamen_avslutta_hoyeste_view(
+def _generate_eksamen_avslutta_hoeyeste_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
@@ -176,9 +176,9 @@ def _generate_eksamen_avslutta_hoyeste_view(
                 uh_eksamen_dato,
                 uh_eksamen_studpoeng,
                 uh_gruppering_nus,
-                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
+                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
             FROM
-                {NudbData("eksamen_hoyeste").alias}
+                {NudbData("eksamen_hoeyeste").alias}
         ) UNION ALL BY NAME (
             SELECT
                 snr,
@@ -187,7 +187,7 @@ def _generate_eksamen_avslutta_hoyeste_view(
                 utd_aktivitet_slutt,
                 utd_klassetrinn,
                 uh_gruppering_nus,
-                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoyeste') AS nudb_dataset_id
+                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
             FROM
                 {NudbData("avslutta_fullfoert").alias}
             WHERE

@@ -12,7 +12,7 @@ UTDANNING_SHARED_EXTERNAL = settings.paths["local_daplalab"].get(
     "delt_utdanning", "/buckets/shared/utd-nudb/utdanning/"
 )
 UTDANNING_SHARED_LOCAL = "/buckets/delt-utdanning/nudb-data"
-NUDB_PRODUCT = "/buckets/produkt/nudb-data/klargjorte-data"
+NUDB_PRODUCT = "/buckets/produkt/nudb-data/"
 
 POSSIBLE_PATHS = [
     Path(UTDANNING_SHARED_EXTERNAL),
@@ -45,8 +45,8 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
     filepattern = f"{filename}*" if filename else "*"
 
     globs = [
-        # f"klargjorte-data/**/{filepattern}.{filetype}",
-        f"**/{filepattern}.{filetype}",
+        f"klargjorte-data/*/{filepattern}.{filetype}",
+        f"*/{filepattern}.{filetype}",
         f"{filepattern}.{filetype}",
     ]
 
@@ -119,6 +119,9 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
             logger.info(
                 f"Found {dataset_name} in the paths_dict, returning single Path."
             )
+            logger.info(f"Selected path: '{paths_dict[dataset_name]}'.'")
+
             return paths_dict[dataset_name]
+
         logger.info(f"Did not find {dataset_name} in the paths_dict, all found paths.")
         return paths_dict
