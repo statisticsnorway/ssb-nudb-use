@@ -1,5 +1,6 @@
-import pandas as pd
 from typing import TypeGuard
+
+import pandas as pd
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
@@ -13,8 +14,6 @@ from nudb_use.nudb_logger import logger
 from .derive_decorator import wrap_derive
 
 __all__ = ["snr_mrk"]
-
-
 
 
 @wrap_derive
