@@ -4,6 +4,7 @@ import pandas as pd
 from nudb_config import settings
 
 from nudb_use.datasets import NudbData
+from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
 __all__ = ["utd_hoeyeste_nus2000", "utd_hoeyeste_rangering"]
@@ -134,22 +135,30 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.DataFrame:
     """Derive `utd_hoyeste_nus2000`."""
     merge_keys = settings.variables.utd_hoeyeste_nus2000.derived_join_keys
+    df = df.copy()
 
     if year_col:
+        df[year_col] = df[year_col].astype("string[pyarrow]")
         merge_keys += ["utd_hoeyeste_aar"]
-        first_year = int(df["year_col"].min())
-        last_year = int(df["year_col"].max())
+        first_year = int(df[year_col].min())
+        last_year = int(df[year_col].max())
     else:
         first_year = dt.datetime.now().year
         last_year = first_year
 
-    utd_hoeyeste_df = NudbData(
-        "utd_hoeyeste",
-        first_year=first_year,
-        last_year=last_year,
-        valid_snrs=pd.Series(df["snr"].unique()),
+    utd_hoeyeste_df = (
+        NudbData(
+            "utd_hoeyeste",
+            first_year=first_year,
+            last_year=last_year,
+            valid_snrs=pd.Series(df["snr"].unique()),
+        )
+        .df()
+        .rename(columns={"nus2000": "utd_hoeyeste_nus2000"})
     )
 
-    return df.rename({year_col: "utd_hoeyeste_aar"}).merge(
+    logger.info(f"utd_hoeyeste_df.head(50):\n{utd_hoeyeste_df.head(50)}")
+
+    return df.rename(columns={year_col: "utd_hoeyeste_aar"}).merge(
         utd_hoeyeste_df, on=merge_keys, how="left", validate="m:1"
     )
