@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import TypeGuard
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
@@ -12,6 +13,8 @@ from nudb_use.nudb_logger import logger
 from .derive_decorator import wrap_derive
 
 __all__ = ["snr_mrk"]
+
+
 
 
 @wrap_derive
@@ -33,6 +36,10 @@ def snr_mrk(  # noqa:DOC201
             )
 
     with LoggerStack("Deriving snr_mrk from snr."):
+        # This function helps mypy realize that we might reach isascii
+        def is_str(x: object) -> TypeGuard[str]:
+            return isinstance(x, str)
+
         snr_mrk: pd.Series = (
             (df["snr"].notna())
             & (df["snr"].str.strip().str.len() == 7)
@@ -40,7 +47,7 @@ def snr_mrk(  # noqa:DOC201
             & (
                 df["snr"]
                 .str.strip()
-                .apply(lambda x: (not pd.isna(x)) and (x.isascii()))
+                .apply(lambda x: is_str(x) and x.isascii())
                 .astype(BOOL_DTYPE)
             )  # Workaround because isascii is not supported in earlier versions of pandas, isascii fails on NAtypes?
         ).astype(BOOL_DTYPE)
