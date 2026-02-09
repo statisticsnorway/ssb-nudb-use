@@ -6,6 +6,8 @@ from nudb_config import settings
 from nudb_use.datasets import NudbData
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
+__all__ = ["utd_hoeyeste_nus2000", "utd_hoeyeste_rangering"]
+
 # column renames
 nus2000 = "nus2000"
 kltrinn2000 = "utd_klassetrinn"
@@ -131,17 +133,21 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 @wrap_derive
 def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.DataFrame:
     """Derive `utd_hoyeste_nus2000`."""
-    merge_keys = settings.variables.utd_hoeyeste_nus2000.merge_keys
+    merge_keys = settings.variables.utd_hoeyeste_nus2000.derived_join_keys
+
     if year_col:
         merge_keys += ["utd_hoeyeste_aar"]
         first_year = int(df["year_col"].min())
         last_year = int(df["year_col"].max())
     else:
-        first_year = dt.now().year
+        first_year = dt.datetime.now().year
         last_year = first_year
 
     utd_hoeyeste_df = NudbData(
-        "utd_hoeyeste", first_year=first_year, last_year=last_year
+        "utd_hoeyeste",
+        first_year=first_year,
+        last_year=last_year,
+        valid_snrs=pd.Series(df["snr"].unique()),
     )
 
     return df.rename({year_col: "utd_hoeyeste_aar"}).merge(

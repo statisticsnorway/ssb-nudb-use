@@ -12,13 +12,18 @@ def _generate_utd_hoeyeste_table(
     connection: db.DuckDBPyConnection,
     first_year: int = 1970,
     last_year: int | None = None,
+    valid_snrs: None | pd.Series = None,
 ) -> None:
     from nudb_use.datasets.nudb_datasets import NudbData
     from nudb_use.variables.derive import utd_hoeyeste_rangering
 
+    def keep_valid_snrs(df: pd.DataFrame) -> pd.DataFrame:
+        return df[df["snr"].isin(valid_snrs)] if valid_snrs else df
+
     eksamen_avslutta_hoeyeste_rangert = (
         NudbData("eksamen_avslutta_hoeyeste")
         .df()
+        .pipe(keep_valid_snrs)
         .pipe(utd_hoeyeste_rangering)
         .sort_values(by="utd_hoeyeste_rangering", ascending=False)
         .assign(
@@ -28,8 +33,12 @@ def _generate_utd_hoeyeste_table(
         )[["snr", "nus2000", "utd_hoeyeste_dato", "utd_hoeyeste_rangering"]]
     )
 
+    last_year_data = eksamen_avslutta_hoeyeste_rangert["utd_hoeyeste_dato"].max().year
+
     if not last_year:
-        last_year = eksamen_avslutta_hoeyeste_rangert["utd_hoeyeste_dato"].max().year
+        last_year = last_year_data
+    else:
+        last_year = max(last_year, last_year_data)
 
     years = list(range(last_year, first_year - 1, -1))
     utd_hoeyeste_year = {}
