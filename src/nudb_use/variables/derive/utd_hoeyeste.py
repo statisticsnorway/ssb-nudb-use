@@ -59,6 +59,13 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         df["uh_eksamen_studpoeng"] > 0
     )  # Trenger en måte å skille eksamensrader fra avslutta rader
 
+    # Trinn-plassering, best til dårligst:
+    # 4: avslutta grad UH
+    # 3: Eksamensrecords på UH som tilsier grad
+    # 2: Annet
+    # 1: VG1 eller VG2, som ikke tilsier ferdig på vgs
+    # 0: Ukjent nus2000
+
     trinn_plassering: pd.Series = pd.Series("2", index=df.index)
     # Om det er en avslutning på høyere nivå (uten studiepoeng) - så ansees det alltid som noe som skal erstattes av det som er nytt
     trinn_plassering.loc[
@@ -76,12 +83,18 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
             (df[nus2000].str[0] == "3")
             & (df[kltrinn2000].isin([10, 11]))
             & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1975, month=10, day=1))
+        )|(
+            (df[nus2000].str[0] == "3")
+            & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1995, month=10, day=1))
         )
-        & (eksamener_maske)
     ] = "1"
+
+    # Nus som starter på 3, skal ansees som bedre en ukjent nus2000.
+    trinn_plassering.loc[df[nus2000] == "999999"] = "0"
 
     rangering: pd.Series = trinn_plassering
 
+    # Visse plasseringer sorteres etter dato, hvor nyere er bedre
     # Om det IKKE er å anse som en fullføring på UH, så venter vi med å tie-breake på dato
     dato_kanskje = (
         df["utd_aktivitet_slutt"]
