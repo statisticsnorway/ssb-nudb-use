@@ -33,6 +33,7 @@ from .nus_variants import utd_erforeldet_kode_nus
 from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
+from .utd_hoeyeste import utd_hoeyeste_nus2000
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
 

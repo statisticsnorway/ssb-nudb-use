@@ -14,12 +14,12 @@ from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_table
+from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
+from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-# Create a mutable singleton for the database, so it can be safely
-# passed around to other modules, without being immutable
-
+STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
 GeneratorFunc = Callable[..., None] | Callable[[str, db.DuckDBPyConnection], None]
 
 
@@ -70,7 +70,7 @@ def _is_view(alias: str) -> bool:
         _NUDB_DATABASE.get_connection()
         .sql("SELECT view_name FROM duckdb_views()")
         .df()["view_name"]
-        .astype("string[pyarrow]")
+        .astype(STRING_DTYPE)
     )
 
     return alias in views
@@ -81,7 +81,7 @@ def _is_table(alias: str) -> bool:
         _NUDB_DATABASE.get_connection()
         .sql("SHOW TABLES")
         .df()["name"]
-        .astype("string[pyarrow]")
+        .astype(STRING_DTYPE)
     )
 
     return alias in tables
@@ -147,14 +147,18 @@ class NudbData:
         else:
             logger.critical(f"Failed to attach {self.name} to database!")
 
-    def get_available_cols(self) -> list[str]:
+    def get_available_cols(
+        self,
+    ) -> list[
+        str | Any
+    ]:  # always returns list[str] but mypy struggles with STRING_DTYPE
         """Get available columns in dataset."""
         if self.exists:
             return list(
                 _NUDB_DATABASE.get_connection()
                 .sql(f"DESCRIBE {self.alias}")
                 .df()["column_name"]
-                .astype("string[pyarrow]")
+                .astype(STRING_DTYPE)
             )
         else:
             logger.warning(f"{self.name} is not available in duckdb database!")

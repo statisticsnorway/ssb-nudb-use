@@ -58,7 +58,9 @@ def _generate_utd_hoeyeste_table(
             gc.collect()
 
             utd_hoeyeste_year[year] = (
-                eksamen_avslutta_hoeyeste_rangert[["snr", "nus2000"]]
+                eksamen_avslutta_hoeyeste_rangert[
+                    ["snr", "nus2000", "utd_hoeyeste_rangering"]
+                ]
                 .groupby("snr", as_index=False)
                 .first()
                 .assign(utd_hoeyeste_aar=str(year))

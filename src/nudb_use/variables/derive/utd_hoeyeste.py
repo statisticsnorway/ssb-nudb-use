@@ -4,6 +4,8 @@ import pandas as pd
 from nudb_config import settings
 
 from nudb_use.datasets import NudbData
+from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
+from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
@@ -15,6 +17,7 @@ kltrinn2000 = "utd_klassetrinn"
 uhgruppe = "uh_gruppering_nus"
 regdato = "utd_skoleaar_start"  # Potensielt skummelt med tanke på likhet?
 VENSTRESENSUR = "1970"
+STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
 
 
 @wrap_derive
@@ -39,13 +42,13 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     # Sett sentinellverdier
     df[nus2000] = df[nus2000].fillna("999999")
     df[kltrinn2000] = (
-        df[kltrinn2000].astype("string[pyarrow]").fillna("00")
+        df[kltrinn2000].astype(STRING_DTYPE).fillna("00")
     )  # er klassetrinn ett heltall?
     df[uhgruppe] = (
-        df[uhgruppe].astype("string[pyarrow]").fillna("00")
+        df[uhgruppe].astype(STRING_DTYPE).fillna("00")
     )  # 99 er en dårlig default fordi det betyr bachelor i kodelisten, men det er 99 som er bruk i oracle-koden
     df[regdato] = (
-        df[regdato].astype("string[pyarrow]").fillna(VENSTRESENSUR)
+        df[regdato].astype(STRING_DTYPE).fillna(VENSTRESENSUR)
     )  # Vi bør kanskje benytt venstresensur-dato ved manglende dato her?
 
     ######################################
@@ -94,11 +97,11 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 
     # Første siffer nus
     rangering += (
-        (df[nus2000].str[0].astype("Int64") + 1).astype("string[pyarrow]").str[-1]
+        (df[nus2000].str[0].astype("Int64") + 1).astype(STRING_DTYPE).str[-1]
     )  # Cycles nus2000 starts with 9 to 0
 
     # Klassetrinn tilsier ett høyere nivå
-    rangering += df[kltrinn2000].astype("string[pyarrow]").str.zfill(2).str[-2:]
+    rangering += df[kltrinn2000].astype(STRING_DTYPE).str.zfill(2).str[-2:]
 
     # Allmenfag, generelle saker ansees som dårligere - ting med uoppgitte fagfelt kan ende her ifølge NUDB-team
     generelle = pd.Series("1", index=rangering.index)
@@ -113,7 +116,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 
     # Vi tar med dato som en tie-breaker, dvs. høyere dato er bedre? Selv om man tar sånn ca. den samme utdanningen igjen???
     # rangering += df[regdato].dt.strftime("%Y%m").fillna(VENSTRESENSUR)
-    rangering += df[regdato].astype("string[pyarrow]")
+    rangering += df[regdato].astype(STRING_DTYPE)
 
     # Hele nuskoden som tiebreaker, litt rart å ta med 1. siffer, når denne allerede er del av rangeringstallet fra før...
     # Og dette betyr at vi rangerer opp "99"-koder, som egentlig er litt feil sånn faglig, men akk vel, la oss rekreere fra Oracle...
@@ -140,7 +143,7 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
     merge_keys = merge_keys_raw or []
 
     if year_col:
-        df[year_col] = df[year_col].astype("string[pyarrow]")
+        df[year_col] = df[year_col].astype(STRING_DTYPE)
         merge_keys += ["utd_hoeyeste_aar"]
         first_year = int(df[year_col].min())
         last_year = int(df[year_col].max())
