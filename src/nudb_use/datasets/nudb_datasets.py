@@ -166,6 +166,8 @@ class NudbData:
         self.is_view = other.is_view
         self.exists = other.exists
         self.generator = other.generator
+        self._select = other._select
+        self._where = other._where
 
     def _get_query(self) -> str:
         query = f"SELECT\n\t{self._select}\nFROM\n\t{self.alias}"
