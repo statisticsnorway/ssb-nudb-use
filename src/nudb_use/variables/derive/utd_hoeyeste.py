@@ -56,7 +56,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         df["uh_eksamen_studpoeng"] > 0
     )  # Trenger en måte å skille eksamensrader fra avslutta rader
 
-    trinn_plassering = pd.Series("2", index=df.index)
+    trinn_plassering: pd.Series = pd.Series("2", index=df.index)
     # Om det er en avslutning på høyere nivå (uten studiepoeng) - så ansees det alltid som noe som skal erstattes av det som er nytt
     trinn_plassering.loc[
         df[nus2000].str[0].isin(["6", "7", "8"]) & (~eksamener_maske)
@@ -77,7 +77,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         & (eksamener_maske)
     ] = "1"
 
-    rangering = trinn_plassering
+    rangering: pd.Series = trinn_plassering
 
     # Om det IKKE er å anse som en fullføring på UH, så venter vi med å tie-breake på dato
     dato_kanskje = (
@@ -134,8 +134,10 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 @wrap_derive
 def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.DataFrame:
     """Derive `utd_hoyeste_nus2000`."""
-    merge_keys = settings.variables.utd_hoeyeste_nus2000.derived_join_keys
     df = df.copy()
+
+    merge_keys_raw = settings.variables.utd_hoeyeste_nus2000.derived_join_keys
+    merge_keys = merge_keys_raw or []
 
     if year_col:
         df[year_col] = df[year_col].astype("string[pyarrow]")

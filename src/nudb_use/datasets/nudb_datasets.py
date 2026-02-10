@@ -20,6 +20,8 @@ from nudb_use.nudb_logger import logger
 # Create a mutable singleton for the database, so it can be safely
 # passed around to other modules, without being immutable
 
+GeneratorFunc = Callable[..., None] | Callable[[str, db.DuckDBPyConnection], None]
+
 
 class NudbDatabase:
     """Singleton for internal NUDB database."""
@@ -27,9 +29,7 @@ class NudbDatabase:
     def __init__(self) -> None:
         self._connection: db.DuckDBPyConnection = db.connect(":memory:")
 
-        self._dataset_generators: dict[
-            str, Callable[[str, db.DuckDBPyConnection, ...], None]
-        ] = {
+        self._dataset_generators: dict[str, GeneratorFunc] = {
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
@@ -118,7 +118,7 @@ class NudbData:
             elif name not in _NUDB_DATABASE._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
 
-            generator = partial(
+            generator: Callable[..., None] = partial(
                 _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
             )
 
@@ -128,7 +128,7 @@ class NudbData:
             self.alias: str = alias
             self.exists: bool = False
             self.is_view: bool = False
-            self.generator: Callable[[str, db.DuckDBPyConnection], None] = generator
+            self.generator: Callable[..., None] = generator
 
             self._select = "*"
             self._where = ""
