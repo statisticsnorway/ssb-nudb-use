@@ -83,7 +83,8 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
             (df[nus2000].str[0] == "3")
             & (df[kltrinn2000].isin([10, 11]))
             & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1975, month=10, day=1))
-        )|(
+        )
+        | (
             (df[nus2000].str[0] == "3")
             & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1995, month=10, day=1))
         )
