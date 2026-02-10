@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Callable
 from functools import partial
 from typing import Any
@@ -96,6 +97,8 @@ class NudbData:
     Args:
         name: Name of the dataset.
         attach_on_init: Should dataset be attached to the internal database?
+        *args: Unnamed arguments passed on to the dataset generator.
+        **kwargs: Named arguments passed on to the dataset generator.
 
     Raises:
         ValueError: If the dataset name isn't recognized.
@@ -127,6 +130,9 @@ class NudbData:
             self.is_view: bool = False
             self.generator: Callable[[str, db.DuckDBPyConnection], None] = generator
 
+            self._select = "*"
+            self._where = ""
+
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
@@ -154,6 +160,21 @@ class NudbData:
             logger.warning(f"{self.name} is not available in duckdb database!")
             return []
 
+    def _copy_attributes_from_existing(self, other: "NudbData") -> None:
+        self.name = other.name
+        self.alias = other.alias
+        self.is_view = other.is_view
+        self.exists = other.exists
+        self.generator = other.generator
+
+    def _get_query(self) -> str:
+        query = f"SELECT\n\t{self._select}\nFROM\n\t{self.alias}"
+
+        if self._where:
+            query += f"\nWHERE\n\t{self._where}"
+
+        return query
+
     def __str__(self) -> str:
         """Get string representation of NUDB dataset."""
         return f"""
@@ -162,19 +183,37 @@ class NudbData:
             alias:    {self.alias}
             exists:   {self.exists}
             is_view:  {self.is_view}
+            select:   {self._select}
+            where:    {self._where}
         """
+
+    def where(self, expr: str) -> "NudbData":
+        """Specify (inner part) of the WHERE statement in SQL query."""
+        out = copy.copy(self)
+        out._where = expr
+        out._select = self._select
+        return out
+
+    def select(self, expr: str) -> "NudbData":
+        """Specify (inner part) of the SELECT statement in SQL query."""
+        out = copy.copy(self)
+        out._select = expr
+        out._where = self._where
+        return out
 
     def __repr__(self) -> str:
         """Get string representation of NUDB dataset."""
         return self.__str__()
 
-    def _copy_attributes_from_existing(self, other: "NudbData") -> None:
-        self.name = other.name
-        self.alias = other.alias
-        self.is_view = other.is_view
-        self.exists = other.exists
-        self.generator = other.generator
-
     def df(self) -> pd.DataFrame:
         """Return dataset as a pandas DataFrame."""
-        return _NUDB_DATABASE.get_connection().sql(f"SELECT * FROM {self.alias}").df()
+        query = self._get_query()
+        return _NUDB_DATABASE.get_connection().sql(query).df()
+
+    def sql(self, expr: str) -> Any:
+        """Use sql method of database connection."""
+        return _NUDB_DATABASE.get_connection().sql(expr)
+
+    def execute(self, expr: str) -> Any:
+        """Use execute method of database connection."""
+        return _NUDB_DATABASE.get_connection().execute(expr)
