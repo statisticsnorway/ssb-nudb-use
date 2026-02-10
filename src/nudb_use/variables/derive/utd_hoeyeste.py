@@ -89,7 +89,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     )
 
     # Innenfor "vanlig sammenligning" - sorterer vi ikke med dato, slik vi gjør på de andre prioritetene
-    dato_kanskje.loc[trinn_plassering == "2"] = pd.NA
+    dato_kanskje.loc[trinn_plassering == "2"] = "000000"
     rangering += dato_kanskje
 
     # Første siffer nus
