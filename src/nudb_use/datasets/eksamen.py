@@ -135,11 +135,11 @@ def _generate_eksamen_hoeyeste_table(
     # Per definition all exam records will get 6 as the first digit
     # Even if the exams have nivaa 7. The last two digits should be 99
     # This might be different for bhu...
-    sub_eksamen["nus2000"] = "6" + sub_eksamen["nus2000"].str[1:4] + "99"
+    # sub_eksamen["nus2000"] = "6" + sub_eksamen["nus2000"].str[1:4] + "99"
 
     valid_eksamen_records = (
         sub_eksamen.sort_values(by="uh_eksamen_studpoeng", ascending=False)
-        .groupby(["snr", "_uh_gruppering_pool"], as_index=False)
+        .groupby(["snr", "_uh_gruppering_pool", "utd_skoleaar_start"], as_index=False)
         .agg(
             {
                 "nus2000": "first",  # pick nus value with highest studpoeng within uhgruppe pool
@@ -150,10 +150,30 @@ def _generate_eksamen_hoeyeste_table(
                 "uh_gruppering_nus": "first",  # This is iffy...
             }
         )
-        .query(
-            '(_uh_gruppering_pool == "99" & uh_eksamen_studpoeng >= 120) | uh_eksamen_studpoeng >= 60'
-        )
         .assign(nudb_dataset_id=lambda d: d["nudb_dataset_id"] + ">eksamen_hoeyeste")
+    )
+
+    valid_eksamen_records = valid_eksamen_records.sort_values(by="utd_skoleaar_start")
+    grouped = valid_eksamen_records.groupby(["snr", "_uh_gruppering_pool"])
+
+    # pick current nus2000 value with most studpoeng
+    running_max = grouped["uh_eksamen_studpoeng"].cummax()
+    is_new_best = valid_eksamen_records["uh_eksamen_studpoeng"].eq(running_max)
+
+    valid_eksamen_records["nus2000"] = (
+        valid_eksamen_records["nus2000"]
+        .where(is_new_best)
+        .groupby(
+            [valid_eksamen_records["snr"], valid_eksamen_records["_uh_gruppering_pool"]]
+        )
+        .ffill()
+    )
+
+    valid_eksamen_records["uh_eksamen_studpoeng"] = grouped[
+        "uh_eksamen_studpoeng"
+    ].cumsum()
+    valid_eksamen_records = valid_eksamen_records.query(
+        '(_uh_gruppering_pool == "99" & uh_eksamen_studpoeng >= 120) | uh_eksamen_studpoeng >= 60'
     )
 
     if not valid_eksamen_records.shape[0]:
