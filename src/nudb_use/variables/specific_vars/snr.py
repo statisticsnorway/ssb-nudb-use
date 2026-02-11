@@ -10,29 +10,26 @@ from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+from nudb_use.utils.packages import move_to_use_deprecate
+
+# Moved function
+from nudb_use.variables.derive.person_idents import snr_mrk as _snr_mrk
+
+derive_snr_mrk = move_to_use_deprecate(
+    _snr_mrk,
+    old_path="nudb_use.variables.specific_vars.snr",
+    new_path="nudb_use.variables.derive.person_idents",
+)
 
 BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
 
 
-def derive_snr_mrk(df: pd.DataFrame, snr_col: str = "snr") -> pd.DataFrame:
-    """Derive the column snr_mrk from snr-column, True if values in snr_col is notna and has a length of 7.
-
-    Args:
-        df: The dataframe to insert/overwrite the snr_mrk-column into.
-        snr_col: The name of the snr-column, if it isnt "snr".
-
-    Returns:
-        pd.DataFrame: the dataframe with the added snr_mrk column.
-    """
-    df["snr_mrk"] = ((df[snr_col].notna()) & (df[snr_col].str.len() == 7)).astype(
-        BOOL_DTYPE
-    )
-    return df
-
-
 def generate_uuid_for_snr_with_fnr_col(
-    df: pd.DataFrame, snr_col: str = "snr", fnr_col: str = "fnr"
+    df: pd.DataFrame,
+    snr_col: str = "snr",
+    fnr_col: str = "fnr",
+    subset: list[str] | None = None,
 ) -> pd.DataFrame:
     """Fill missing SNR values using FNR-based UUIDs, then per-row UUIDs.
 
@@ -45,32 +42,46 @@ def generate_uuid_for_snr_with_fnr_col(
         df: Input DataFrame to update (modified in place).
         snr_col: Name of the SNR column to fill.
         fnr_col: Name of the FNR column used as the grouping key.
+        subset: Name of subsetting variables to find unique FNRs within.
 
     Returns:
         pd.DataFrame: The same DataFrame instance with filled SNR values.
     """
+    subset = subset or []
+
     with LoggerStack(
         f"Generating UUID4 into {snr_col} based on unique values in {fnr_col}"
     ):
-        unique_fnr_missing_snr = (
-            df[df[snr_col].isna()][fnr_col].dropna().unique()
+        identificator = df[fnr_col]
+
+        for subsetvar in subset:
+            addition = df[subsetvar].astype("string[pyarrow]").fillna("<NA>")
+            identificator += "-" + addition
+
+        df["_fnr_identificator"] = identificator
+        invalid = df[snr_col].isna()
+
+        unique_id_missing_snr = (
+            identificator[invalid].dropna().unique()
         )  # The dropna is important, so we dont get a fnr = NA join-key.
+
         fnr_uuid_katalog = pd.DataFrame(
             {
-                fnr_col: unique_fnr_missing_snr,
-                snr_col: [str(uuid.uuid4()) for _ in unique_fnr_missing_snr],
+                "_fnr_identificator": unique_id_missing_snr,
+                snr_col: [str(uuid.uuid4()) for _ in unique_id_missing_snr],
             }
         )
+
         amount_na_pre_first_fill = df[snr_col].isna().sum()
         df[snr_col] = df[snr_col].fillna(
             df.drop(columns=snr_col, errors="ignore").merge(
-                fnr_uuid_katalog, on=fnr_col, how="left", validate="m:1"
+                fnr_uuid_katalog, on="_fnr_identificator", how="left", validate="m:1"
             )[snr_col]
         )
 
         amount_na_post_first_fill = df[snr_col].isna().sum()
         diff_first_fill = amount_na_pre_first_fill - amount_na_post_first_fill
-        percent_diff = round(diff_first_fill / len(df), 2)
+        percent_diff = round(100 * diff_first_fill / len(df), 2)
         logger.info(
             f"Filled {percent_diff}% of `{snr_col}` with UUIDs based on unique, non-missing values in `{fnr_col}`"
         )
@@ -86,6 +97,7 @@ def generate_uuid_for_snr_with_fnr_col(
 
         df[fnr_col] = df[fnr_col].astype(STRING_DTYPE)
         df[snr_col] = df[snr_col].astype(STRING_DTYPE)
+        df = df.drop(columns="_fnr_identificator")
 
         return df
 

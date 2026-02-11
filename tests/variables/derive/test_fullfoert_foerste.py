@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 
 import nudb_use
+from nudb_use.datasets import reset_nudb_database
 from nudb_use.variables.derive.fullfoert_foerste import first_end_date_per_snr
 from nudb_use.variables.derive.fullfoert_foerste import gr_foerste_fullfoert_dato
 from nudb_use.variables.derive.fullfoert_foerste import (
@@ -26,6 +27,7 @@ from nudb_use.variables.derive.fullfoert_foerste import (
 
 
 def patch_wrap_join_helpers(tmp_path: Path, monkeypatch: Any) -> None:
+    reset_nudb_database()
 
     basepath = tmp_path / "local" / "nudb-data"
     nudbpath = basepath / "klargjorte-data"

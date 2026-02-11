@@ -26,7 +26,7 @@ __all__ = [
 
 
 @wrap_derive
-def gr_ergrunnskole_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def gr_ergrunnskole_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive gr_ergrunnskole_fullfoert from nus2000, utd_fullfoertkode, utd_erutland."""
@@ -38,7 +38,7 @@ def gr_ergrunnskole_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def vg_ervgo_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def vg_ervgo_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_ervgo_fullfoert from nus2000, utd_fullfoertkode, vg_kompetanse_nus and utd_aktivitet_start."""
@@ -56,7 +56,7 @@ def vg_ervgo_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def vg_erstudiespess_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def vg_erstudiespess_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_erstudiespess_fullfoert from nus2000, vg_utdprogram, utd_fullfoertkode, vg_kompetanse_nus and utd_aktivitet_start."""
@@ -68,7 +68,7 @@ def vg_erstudiespess_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def vg_eryrkesfag_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def vg_eryrkesfag_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_eryrkesfag_fullfoert from nus2000, vg_utdprogram, utd_fullfoertkode, vg_kompetanse_nus and utd_aktivitet_start."""
@@ -80,7 +80,7 @@ def vg_eryrkesfag_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_erhoeyskolekandidat_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_erhoeyskolekandidat_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive vg_eryrkesfag_fullfoert from nus2000, vg_utdprogram, utd_fullfoertkode, vg_kompetanse_nus and utd_aktivitet_start."""
@@ -95,7 +95,7 @@ def uh_erhoeyskolekandidat_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_erbachelor_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_erbachelor_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_fullfoert from uh_gradmerke_nus."""
@@ -108,7 +108,7 @@ def uh_erbachelor_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_ermaster_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_ermaster_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_ermaster_fullfoert from nus2000, utd_fullfoertkode."""
@@ -118,7 +118,7 @@ def uh_ermaster_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
 
 
 @wrap_derive
-def uh_erdoktorgrad_fullfoert(  # noqa: DOC101,DOC103,DOC201,DOC203
+def uh_erdoktorgrad_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erdoktorgrad_fullfoert from nus2000, utd_fullfoertkode."""

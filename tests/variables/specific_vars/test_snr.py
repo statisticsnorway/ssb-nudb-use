@@ -6,18 +6,8 @@ from typing import Any
 import pandas as pd
 
 from nudb_use.variables.specific_vars import snr as snr_module
-from nudb_use.variables.specific_vars.snr import derive_snr_mrk
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_catalog
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_col
-
-
-def test_derive_snr_mrk() -> None:
-    df = pd.DataFrame({"snr": ["1234567", "123", pd.NA]})
-
-    result = derive_snr_mrk(df, snr_col="snr")
-
-    assert result["snr_mrk"].tolist() == [True, False, False]
-    assert str(result["snr_mrk"].dtype) == "bool[pyarrow]"
 
 
 def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
@@ -42,6 +32,37 @@ def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
         "00000000-0000-0000-0000-000000000001",
         "00000000-0000-0000-0000-000000000001",
         "00000000-0000-0000-0000-000000000002",
+        "existing",
+    ]
+    assert str(result["snr"].dtype) in ["string", "string[pyarrow]"]
+
+
+def test_generate_uuid_for_snr_with_fnr_col_subset(monkeypatch: Any) -> None:
+    uuids = iter(
+        [
+            uuidlib.UUID("00000000-0000-0000-0000-000000000001"),
+            uuidlib.UUID("00000000-0000-0000-0000-000000000002"),
+            uuidlib.UUID("00000000-0000-0000-0000-000000000003"),
+        ]
+    )
+    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))  # type: ignore[attr-defined]
+
+    df = pd.DataFrame(
+        {
+            "fnr": ["1", "1", pd.NA, "2"],
+            "snr": [pd.NA, pd.NA, pd.NA, "existing"],
+            "kilde": ["49", "42", "49", "49"],
+        }
+    )
+
+    result = generate_uuid_for_snr_with_fnr_col(
+        df, snr_col="snr", fnr_col="fnr", subset=["kilde"]
+    )
+
+    assert result["snr"].tolist() == [
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+        "00000000-0000-0000-0000-000000000003",
         "existing",
     ]
     assert str(result["snr"].dtype) in ["string", "string[pyarrow]"]
