@@ -52,7 +52,7 @@ def generate_uuid_for_snr_with_fnr_col(
     with LoggerStack(
         f"Generating UUID4 into {snr_col} based on unique values in {fnr_col}"
     ):
-        identificator = df[fnr_col]
+        identificator = df[fnr_col].copy()
 
         for subsetvar in subset:
             addition = df[subsetvar].astype("string[pyarrow]").fillna("<NA>")
