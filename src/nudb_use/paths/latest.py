@@ -36,8 +36,22 @@ def _add_delt_path(path: str | Path) -> None:
 
 
 def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[Path]:
-    global POSSIBLE_PATHS
+    # Lets first try the glob pattern from the config for external datasets
+    if filename in settings.datasets and settings.datasets[filename].team != settings.dapla_team:
+        datameta = settings.datasets[filename]
+        if datameta.team and datameta.bucket and datameta.path_glob:
+            local_path = Path(f"/buckets/shared/{datameta.team}/{datameta.bucket}/")
+            found_files = list(local_path.glob(datameta.path_glob))
+            if found_files:
+                return found_files
+        # If we are here, the file looks external, but we couldnt find it locally
+        log_msg = "Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
+        log_msg += "Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
+        log_msg += "the bucket name: `{datameta.bucket}` or path glob: `{datameta.path_glob}`"
+        logger.warning(log_msg)
+    
 
+    global POSSIBLE_PATHS
     # For custom paths we don't know if there is a klargjorte-data
     # directory, so we search in the directory directly as well
     # We could perhaps rework this logic into _add_delt_path()
@@ -73,21 +87,20 @@ def filter_out_periods_paths(p: Path) -> str:
         str: File stem without period and version fragments.
     """
     p = Path(p)  # In case someone sends a str...
-    parts_left = [
-        part
-        for part in p.stem.split("_")
-        if not (
-            (
-                part.startswith("v") and len(part) >= 2 and part[1:].isdigit()
-            )  # This means its a version part
-            or (
-                part.startswith("p")
-                and len(part) >= 5
-                and part[1:].strip("-").isdigit()
-            )  # This should mean it is a period part only checking for year and dash-seperated dates
-        )
-    ]
-    return "_".join(parts_left)
+    current_stem = p.stem
+
+    # Removing version part
+    last_part = current_stem.rsplit("_", 1)[-1]
+    if last_part[0] == "v" and last_part[1:].isdigit():
+        current_stem = current_stem.rsplit("_", 1)[0]
+
+    # Removing up to two period parts, starts with p followed by 4 digits
+    for _ in range(2):
+        last_part = current_stem.rsplit("_", 1)[-1]
+        if last_part[0] == "p" and last_part[1:].strip("-").isdigit():
+            current_stem = current_stem.rsplit("_", 1)[0]
+
+    return current_stem
 
 
 def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
