@@ -10,7 +10,7 @@ def _generate_igang_view(alias: str, connection: db.DuckDBPyConnection) -> None:
     CREATE VIEW
         {alias} AS
     SELECT
-        *,
+        * EXCLUDE (__index_level_0__),
         'igang' AS nudb_dataset_id
     FROM
         read_parquet('{path}')

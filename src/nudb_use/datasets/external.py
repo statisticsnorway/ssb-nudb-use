@@ -32,10 +32,11 @@ def _generate_view(
         CREATE VIEW
             {alias} AS
         SELECT
-            *,
+            * EXCLUDE (__index_level_0__),
             '{dataset_name}' AS nudb_dataset_id
         FROM
             read_parquet('{last_path}')
+
         """
 
         connection.sql(query)

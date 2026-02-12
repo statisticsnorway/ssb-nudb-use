@@ -206,7 +206,7 @@ def _generate_eksamen_view(alias: str, connection: db.DuckDBPyConnection) -> Non
     CREATE VIEW
         {alias} AS
     SELECT
-        *,
+        * EXCLUDE (__index_level_0__),
         'eksamen' AS nudb_dataset_id
     FROM
         read_parquet('{path}')
