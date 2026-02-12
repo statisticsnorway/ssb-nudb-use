@@ -51,6 +51,9 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         df[regdato].astype(STRING_DTYPE).fillna(VENSTRESENSUR)
     )  # Vi bør kanskje benytt venstresensur-dato ved manglende dato her?
 
+    # Make sure NAs dont f-up our exam filter
+    df["uh_eksamen_studpoeng"] = df["uh_eksamen_studpoeng"].fillna(0)
+
     ######################################
     # Bygge rangeringstall - høyt er bra #
     ######################################
@@ -75,7 +78,6 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     trinn_plassering.loc[
         df[nus2000].str[0].isin(["6", "7", "8"]) & (eksamener_maske)
     ] = "3"
-
     # Fullføringer på VGS på lavere nivå, nus starter på 3, ansees som DÅRLIGERE enn alt, inkludert grunnskole?
     # Hardkoding på disse er potensielt allerede gjort til nuskode 201199?
     trinn_plassering.loc[
@@ -89,10 +91,8 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
             & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1995, month=10, day=1))
         )
     ] = "1"
-
     # Nus som starter på 3, skal ansees som bedre en ukjent nus2000.
     trinn_plassering.loc[df[nus2000] == "999999"] = "0"
-
     rangering: pd.Series = trinn_plassering
 
     # Visse plasseringer sorteres etter dato, hvor nyere er bedre
@@ -104,7 +104,12 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         .dt.strftime("%Y%m")
         .copy()
     )
-
+    # Vi skal plukke "den første gangen en eksamensrecord flipper over 60/120 studiepoeng"
+    # Fra foregående aggregerings-logikk får vi bare sammenslåtte eksamensrecords hvor dette er sant
+    # Siden dette er tilfelle verdisettes eksamensrecords med reversert dato, slik at eldre sammenslåtte eksamen-records verdsettes over nyere
+    dato_kanskje.loc[trinn_plassering == "3"] = (
+        (999999 - dato_kanskje.astype("Int64")).astype("string[pyarrow]").str.zfill(6)
+    )
     # Innenfor "vanlig sammenligning" - sorterer vi ikke med dato, slik vi gjør på de andre prioritetene
     dato_kanskje.loc[trinn_plassering == "2"] = "000000"
     rangering += dato_kanskje
