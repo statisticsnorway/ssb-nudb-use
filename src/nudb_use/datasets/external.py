@@ -10,7 +10,7 @@ __all__ = []
 
 EXTERNAL_DATASETS = [
     dataset_name
-    for dataset_name, dataset_values in settings.dataset.items()
+    for dataset_name, dataset_values in settings.datasets.items()
     if dataset_values.team != settings.dapla_team
 ]
 
