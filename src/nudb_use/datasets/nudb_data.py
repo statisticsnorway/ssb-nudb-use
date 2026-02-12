@@ -59,7 +59,7 @@ class NudbData:
                 self._attach()
 
     def _attach(self) -> None:
-        self.generator(self.alias, _NUDB_DATABASE.get_connection())
+        self.generator(alias=self.alias, connection=_NUDB_DATABASE.get_connection())
         self.is_view = _is_view(self.alias)
         self.exists = _is_in_database(self.alias)
 
