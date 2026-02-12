@@ -106,6 +106,25 @@ def filter_out_periods_paths(p: Path) -> str:
 
     return current_stem
 
+def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
+    """Return the newest shared dataset path.
+
+    This is a convenience wrapper around `latest_shared_paths` that returns
+    the most recent dataset entry (by sorted key).
+
+    Args:
+        dataset_name: Optional dataset identifier to filter available paths
+            before selecting the newest entry.
+
+    Returns:
+        tuple[str, Path]: The dataset key and its latest path.
+    """
+    paths_dict = latest_shared_paths(dataset_name)
+    last_key = sorted(list(paths_dict.keys()))[-1]
+    last_path = paths_dict[last_key]
+    logger.info(f"Newest {dataset_name} is {last_key} at {last_path}.")
+    return last_key, last_path
+
 
 def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
     """Find the last shared version and period of each stem in the shared folder.

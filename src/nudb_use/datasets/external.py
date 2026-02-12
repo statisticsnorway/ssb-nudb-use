@@ -3,8 +3,8 @@ from functools import partial
 import duckdb as db
 from nudb_config import settings
 
-from nudb_use.datasets.utils import _default_alias_from_name
-from nudb_use.paths.latest import latest_shared_paths
+from nudb_use.datasets.utils import _default_alias_from_name, _select_if_contains_index_col_0
+from nudb_use.paths.latest import latest_shared_path
 from nudb_use import logger, LoggerStack
 
 __all__ = []
@@ -20,19 +20,17 @@ def _generate_view(
     dataset_name: str, alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     with LoggerStack(f"Creating a view for {dataset_name} with alias of {alias}."):
-        paths_dict = latest_shared_paths(dataset_name)
-        last_key = sorted(list(paths_dict.keys()))[-1]
-        last_path = paths_dict[last_key]
-
-        logger.info(f"Newest {dataset_name} is {last_key} at {last_path}.")
+        last_key,last_path = latest_shared_path(dataset_name)
 
         if not alias:
             alias = _default_alias_from_name(last_key)
+
+        
         query = f"""
         CREATE VIEW
             {alias} AS
         SELECT
-            * EXCLUDE (__index_level_0__),
+            {_select_if_contains_index_col_0(last_path, connection)},
             '{dataset_name}' AS nudb_dataset_id
         FROM
             read_parquet('{last_path}')

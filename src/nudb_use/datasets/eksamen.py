@@ -1,7 +1,8 @@
 import duckdb as db
 
 from nudb_use.nudb_logger import logger
-from nudb_use.paths.latest import latest_shared_paths
+from nudb_use.paths.latest import latest_shared_path
+from nudb_use.datasets.utils import _default_alias_from_name, _select_if_contains_index_col_0
 
 
 def _generate_eksamen_aggregated_view(
@@ -200,16 +201,17 @@ def _generate_eksamen_avslutta_hoeyeste_view(
 
 
 def _generate_eksamen_view(alias: str, connection: db.DuckDBPyConnection) -> None:
-    path = latest_shared_paths("eksamen")
-
+    last_key, last_path = latest_shared_path("eksamen")
+    if not alias:
+        alias = _default_alias_from_name(last_key)
     query = f"""
     CREATE VIEW
         {alias} AS
     SELECT
-        * EXCLUDE (__index_level_0__),
+        {_select_if_contains_index_col_0(last_path, connection)},
         'eksamen' AS nudb_dataset_id
     FROM
-        read_parquet('{path}')
+        read_parquet('{last_path}')
     """
 
     connection.sql(query)
