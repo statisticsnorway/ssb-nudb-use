@@ -16,10 +16,11 @@ EXTERNAL_DATASETS = [
 
 
 def _generate_view(
-    dataset_name: str, connection: db.DuckDBPyConnection
+    dataset_name: str, alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     path = latest_shared_paths(dataset_name)
-    alias = _default_alias_from_name(dataset_name)
+    if not alias:
+        alias = _default_alias_from_name(dataset_name)
     query = f"""
     CREATE VIEW
         {alias} AS

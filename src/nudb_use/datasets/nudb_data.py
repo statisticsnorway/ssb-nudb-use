@@ -38,16 +38,18 @@ class NudbData:
 
             elif name not in _NUDB_DATABASE._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
-
-            generator: Callable[..., None] = partial(
-                _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
-            )
-
+            
             self.name: str = name
-            self.alias: str = _default_alias_from_name(name)
+            if "alias" in kwargs:
+                self.alias = kwargs["alias"]
+            else:
+                self.alias: str = _default_alias_from_name(name)
             self.exists: bool = False
             self.is_view: bool = False
-            self.generator: Callable[..., None] = generator
+
+            self.generator: Callable[..., None] = partial(
+                _NUDB_DATABASE._dataset_generators[name], *args, alias=self.alias **kwargs
+            )
 
             self._select = "*"
             self._where = ""
