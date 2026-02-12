@@ -51,7 +51,7 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
         msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
         msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
         msg += (
-            f"the bucket name: `{datameta.bucket}` or path glob: `{datameta.path_glob}`"
+            f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
         )
         raise FileNotFoundError(msg)
 
