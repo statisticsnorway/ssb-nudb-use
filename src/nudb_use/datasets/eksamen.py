@@ -7,7 +7,7 @@ from nudb_use.paths.latest import latest_shared_paths
 def _generate_eksamen_aggregated_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    from nudb_use.datasets.nudb_datasets import NudbData
+    from nudb_use.datasets.nudb_data import NudbData
 
     nudb_eksamen = NudbData("eksamen")
     FAILED_KARAKTER_CODES = ["F", "H", "T", "X"]
@@ -89,7 +89,7 @@ def _generate_eksamen_aggregated_view(
 def _generate_eksamen_hoeyeste_table(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    from nudb_use.datasets.nudb_datasets import NudbData
+    from nudb_use.datasets.nudb_data import NudbData
     from nudb_use.variables.derive import (  # type: ignore[attr-defined]
         uh_gruppering_nus,
     )
@@ -165,7 +165,7 @@ def _generate_eksamen_hoeyeste_table(
 def _generate_eksamen_avslutta_hoeyeste_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    from nudb_use.datasets.nudb_datasets import NudbData
+    from nudb_use.datasets.nudb_data import NudbData
 
     query = f"""
         CREATE VIEW {alias} AS (

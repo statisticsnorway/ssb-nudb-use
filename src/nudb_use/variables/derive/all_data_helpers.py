@@ -4,7 +4,7 @@ import pandas as pd
 from nudb_config import settings
 
 from nudb_use.datasets import NudbData
-from nudb_use.datasets.nudb_datasets import _NUDB_DATABASE
+from nudb_use.datasets.nudb_database import _NUDB_DATABASE
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
 
