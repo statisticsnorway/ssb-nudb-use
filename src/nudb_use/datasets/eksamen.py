@@ -137,29 +137,71 @@ def _generate_eksamen_hoeyeste_table(
     # This might be different for bhu...
     sub_eksamen["nus2000"] = "6" + sub_eksamen["nus2000"].str[1:4] + "99"
 
-    valid_eksamen_records = (
-        sub_eksamen.sort_values(by="uh_eksamen_studpoeng", ascending=False)
-        .groupby(["snr", "_uh_gruppering_pool"], as_index=False)
-        .agg(
-            {
-                "nus2000": "first",  # pick nus value with highest studpoeng within uhgruppe pool
-                "uh_eksamen_studpoeng": "sum",
-                "uh_eksamen_dato": "max",
-                "nudb_dataset_id": "first",
-                "utd_skoleaar_start": "max",
-                "uh_gruppering_nus": "first",  # This is iffy...
-            }
-        )
-        .query(
-            '(_uh_gruppering_pool == "99" & uh_eksamen_studpoeng >= 120) | uh_eksamen_studpoeng >= 60'
-        )
-        .assign(nudb_dataset_id=lambda d: d["nudb_dataset_id"] + ">eksamen_hoeyeste")
-    )
+    connection.sql(f"""
+        CREATE TABLE
+            {alias} AS
+        SELECT
+            snr,
+            SUBSTR(_sp_nus2000, 7) AS nus2000,
+            uh_eksamen_studpoeng,
+            nudb_dataset_id,
+            uh_eksamen_dato,
+            utd_skoleaar_start,
+            uh_gruppering_nus,
+            _uh_gruppering_pool
 
-    if not valid_eksamen_records.shape[0]:
-        logger.error(f"eksamen_hoeyeste / {alias} is empty!")
+        FROM (
 
-    connection.sql(f"CREATE TABLE {alias} AS SELECT * FROM valid_eksamen_records")
+            SELECT
+                -- Get the current nus2000 value with the most studpoeng
+                MAX( -- Use LPAD() in conjunction with SUBSTR() to assure a fixed width and format
+                    CONCAT(SUBSTR(LPAD(CAST(uh_eksamen_studpoeng AS VARCHAR), 6, '0'), 1, 6), -- '22.7' -> '0022.7', '180.0' -> '0180.0'
+                           SUBSTR(LPAD(nus2000, 6, '0'), 1, 6)
+                )) OVER (
+                    PARTITION BY snr, _uh_gruppering_pool
+                    ORDER BY utd_skoleaar_start
+                ) AS _sp_nus2000,
+
+                -- Get the cumulative studpoeng
+                SUM(uh_eksamen_studpoeng) OVER (
+                    PARTITION BY snr, _uh_gruppering_pool
+                    ORDER BY utd_skoleaar_start
+                ) AS uh_eksamen_studpoeng,
+
+                CONCAT(nudb_dataset_id, '>eksamen_hoeyeste') AS nudb_dataset_id,
+
+                snr,
+                uh_eksamen_dato,
+                utd_skoleaar_start,
+                uh_gruppering_nus,
+                _uh_gruppering_pool
+
+            FROM (
+
+                SELECT
+                    snr,
+                    _uh_gruppering_pool,
+                    utd_skoleaar_start,
+
+                    FIRST(nus2000 ORDER BY uh_eksamen_studpoeng) AS nus2000,
+                    SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
+                    MAX(uh_eksamen_dato) AS uh_eksamen_dato,
+                    FIRST(uh_gruppering_nus ORDER BY uh_eksamen_studpoeng) AS uh_gruppering_nus,
+                    FIRST(nudb_dataset_id) AS nudb_dataset_id
+
+                FROM
+                    sub_eksamen
+
+                GROUP BY
+                    snr, _uh_gruppering_pool, utd_skoleaar_start
+            )
+
+        )
+
+        WHERE
+            (_uh_gruppering_pool != '99' AND uh_eksamen_studpoeng >= 60) OR
+            uh_eksamen_studpoeng >= 120;
+    """)
 
 
 def _generate_eksamen_avslutta_hoeyeste_view(

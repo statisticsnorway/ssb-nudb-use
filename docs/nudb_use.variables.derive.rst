@@ -34,14 +34,6 @@ nudb\_use.variables.derive.fullfoert\_foerste module
    :show-inheritance:
    :undoc-members:
 
-nudb\_use.variables.derive.hoeyeste\_utd module
------------------------------------------------
-
-.. automodule:: nudb_use.variables.derive.hoeyeste_utd
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 nudb\_use.variables.derive.klass\_correspondences\_and\_variants module
 -----------------------------------------------------------------------
 
@@ -102,6 +94,14 @@ nudb\_use.variables.derive.uh\_univ\_eller\_hoegskole module
 ------------------------------------------------------------
 
 .. automodule:: nudb_use.variables.derive.uh_univ_eller_hoegskole
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.variables.derive.utd\_hoeyeste module
+-----------------------------------------------
+
+.. automodule:: nudb_use.variables.derive.utd_hoeyeste
    :members:
    :show-inheritance:
    :undoc-members:
