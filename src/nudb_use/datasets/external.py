@@ -7,6 +7,11 @@ from nudb_use.paths.latest import latest_shared_paths
 
 __all__ = []
 
+EXTERNAL_DATASETS = [
+    dataset_name
+    for dataset_name, dataset_values in settings.dataset.items()
+    if dataset_values.team != settings.dapla_team
+]
 
 def _generate_view(dataset_name: str, connection: db.DuckDBPyConnection) -> None:
     path = latest_shared_paths(dataset_name)
@@ -24,13 +29,9 @@ def _generate_view(dataset_name: str, connection: db.DuckDBPyConnection) -> None
     connection.sql(query)
 
 
-external_datasets = [
-    dataset_name
-    for dataset_name, dataset_values in settings.dataset.items()
-    if dataset_values.team != settings.dapla_team
-]
 
-for dataset_name in external_datasets:
+
+for dataset_name in EXTERNAL_DATASETS:
     function_name = f"_generate_{dataset_name}_view"
     globals()[function_name] = partial(_generate_view, dataset_name=dataset_name)
     __all__.append(function_name)
