@@ -21,6 +21,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   nudb_use.datasets
    nudb_use.exceptions
    nudb_use.metadata
    nudb_use.paths
