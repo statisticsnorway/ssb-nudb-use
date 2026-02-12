@@ -38,12 +38,12 @@ class NudbData:
 
             elif name not in _NUDB_DATABASE._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
-            
+
             self.name: str = name
             if "alias" in kwargs:
-                self.alias = kwargs["alias"]
+                self.alias : str = kwargs["alias"]
             else:
-                self.alias: str = _default_alias_from_name(name)
+                self.alias  = _default_alias_from_name(name)
             self.exists: bool = False
             self.is_view: bool = False
 

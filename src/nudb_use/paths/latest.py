@@ -50,9 +50,7 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
         # If we are here, the file looks external, but we couldnt find it locally
         msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
         msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
-        msg += (
-            f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
-        )
+        msg += f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
         raise FileNotFoundError(msg)
 
     global POSSIBLE_PATHS
@@ -106,6 +104,7 @@ def filter_out_periods_paths(p: Path) -> str:
 
     return current_stem
 
+
 def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
     """Return the newest shared dataset path.
 
@@ -119,7 +118,10 @@ def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
     Returns:
         tuple[str, Path]: The dataset key and its latest path.
     """
-    paths_dict = latest_shared_paths(dataset_name)
+    paths = latest_shared_paths(dataset_name)
+    if isinstance(paths, Path):
+        return dataset_name, paths
+    paths_dict: dict[str, Path] = paths
     last_key = sorted(list(paths_dict.keys()))[-1]
     last_path = paths_dict[last_key]
     logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
@@ -159,5 +161,7 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
 
             return paths_dict[dataset_name]
 
-        logger.info(f"Did not find {dataset_name} in the paths_dict, all found path keys: {list(paths_dict.keys())}")
+        logger.info(
+            f"Did not find {dataset_name} in the paths_dict, all found path keys: {list(paths_dict.keys())}"
+        )
         return paths_dict
