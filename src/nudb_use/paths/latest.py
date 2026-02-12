@@ -48,12 +48,12 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
             if found_files:
                 return found_files
         # If we are here, the file looks external, but we couldnt find it locally
-        log_msg = "Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
-        log_msg += "Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
-        log_msg += (
+        msg = "Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
+        msg += "Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
+        msg += (
             "the bucket name: `{datameta.bucket}` or path glob: `{datameta.path_glob}`"
         )
-        logger.warning(log_msg)
+        raise FileNotFoundError(msg)
 
     global POSSIBLE_PATHS
     # For custom paths we don't know if there is a klargjorte-data

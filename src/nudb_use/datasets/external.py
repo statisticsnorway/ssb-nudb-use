@@ -3,6 +3,7 @@ from functools import partial
 import duckdb as db
 from nudb_config import settings
 
+from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.paths.latest import latest_shared_paths
 
 __all__ = []
@@ -13,12 +14,15 @@ EXTERNAL_DATASETS = [
     if dataset_values.team != settings.dapla_team
 ]
 
-def _generate_view(dataset_name: str, connection: db.DuckDBPyConnection) -> None:
-    path = latest_shared_paths(dataset_name)
 
+def _generate_view(
+    dataset_name: str, alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    path = latest_shared_paths(dataset_name)
+    alias = _default_alias_from_name(dataset_name)
     query = f"""
     CREATE VIEW
-        {dataset_name} AS
+        {alias} AS
     SELECT
         *,
         '{dataset_name}' AS nudb_dataset_id
@@ -27,8 +31,6 @@ def _generate_view(dataset_name: str, connection: db.DuckDBPyConnection) -> None
     """
 
     connection.sql(query)
-
-
 
 
 for dataset_name in EXTERNAL_DATASETS:
