@@ -5,6 +5,7 @@ from nudb_config import settings
 
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.paths.latest import latest_shared_paths
+from nudb_use import logger, LoggerStack
 
 __all__ = []
 
@@ -18,20 +19,26 @@ EXTERNAL_DATASETS = [
 def _generate_view(
     dataset_name: str, alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    path = latest_shared_paths(dataset_name)
-    if not alias:
-        alias = _default_alias_from_name(dataset_name)
-    query = f"""
-    CREATE VIEW
-        {alias} AS
-    SELECT
-        *,
-        '{dataset_name}' AS nudb_dataset_id
-    FROM
-        read_parquet('{path}')
-    """
+    with LoggerStack(f"Creating a view for {dataset_name} with alias of {alias}."):
+        paths_dict = latest_shared_paths(dataset_name)
+        last_key = sorted(list(paths_dict.keys()))[-1]
+        last_path = paths_dict[last_key]
 
-    connection.sql(query)
+        logger.info(f"Newest {dataset_name} is {last_key} at {last_path}.")
+
+        if not alias:
+            alias = _default_alias_from_name(last_key)
+        query = f"""
+        CREATE VIEW
+            {alias} AS
+        SELECT
+            *,
+            '{dataset_name}' AS nudb_dataset_id
+        FROM
+            read_parquet('{last_path}')
+        """
+
+        connection.sql(query)
 
 
 for dataset_name in EXTERNAL_DATASETS:
