@@ -48,7 +48,7 @@ class NudbData:
             self.is_view: bool = False
 
             self.generator: Callable[..., None] = partial(
-                _NUDB_DATABASE._dataset_generators[name], *args, alias=self.alias, **kwargs
+                _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
             )
 
             self._select = "*"
