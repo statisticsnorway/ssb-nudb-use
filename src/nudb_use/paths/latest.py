@@ -128,7 +128,7 @@ def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
     if isinstance(paths, Path):
         return dataset_name, paths
     paths_dict: dict[str, Path] = paths
-    last_key = sorted(list(paths_dict.keys()))[-1]
+    last_key = sorted(paths_dict.keys())[-1]
     last_path = paths_dict[last_key]
     logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
     return last_key, last_path
