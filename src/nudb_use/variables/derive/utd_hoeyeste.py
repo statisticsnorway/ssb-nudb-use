@@ -59,7 +59,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     ######################################
 
     eksamener_maske = (df["uh_eksamen_dato"].notna()) | (
-        df["uh_eksamen_studpoeng"] > 0
+        (df["uh_eksamen_studpoeng"].notna()) & (df["uh_eksamen_studpoeng"] > 0)
     )  # Trenger en måte å skille eksamensrader fra avslutta rader
 
     # Trinn-plassering, best til dårligst:

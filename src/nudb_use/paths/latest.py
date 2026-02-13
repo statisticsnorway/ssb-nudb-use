@@ -37,7 +37,6 @@ def _add_delt_path(path: str | Path) -> None:
 
 def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[Path]:
     global POSSIBLE_PATHS
-
     # For custom paths we don't know if there is a klargjorte-data
     # directory, so we search in the directory directly as well
     # We could perhaps rework this logic into _add_delt_path()
@@ -60,6 +59,29 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
         for glob in globs:
             files += list(path.glob(glob))
 
+    if files:
+        logger.info(
+            f"Found relevant files locally in POSSIBLE_PATHS, not using glob from config: {files}"
+        )
+        return files
+
+    # Fall back to the dataset config for external datasets that live in other teams
+    if (
+        filename in settings.datasets
+        and settings.datasets[filename].team != settings.dapla_team
+    ):
+        datameta = settings.datasets[filename]
+        if datameta.team and datameta.bucket and datameta.path_glob:
+            local_path = Path(f"/buckets/shared/{datameta.team}/{datameta.bucket}/")
+            found_files = list(local_path.glob(datameta.path_glob))
+            if found_files:
+                return found_files
+        # If we are here, the file looks external, but we couldnt find it locally
+        msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
+        msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
+        msg += f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
+        raise FileNotFoundError(msg)
+
     return files
 
 
@@ -73,21 +95,43 @@ def filter_out_periods_paths(p: Path) -> str:
         str: File stem without period and version fragments.
     """
     p = Path(p)  # In case someone sends a str...
-    parts_left = [
-        part
-        for part in p.stem.split("_")
-        if not (
-            (
-                part.startswith("v") and len(part) >= 2 and part[1:].isdigit()
-            )  # This means its a version part
-            or (
-                part.startswith("p")
-                and len(part) >= 5
-                and part[1:].strip("-").isdigit()
-            )  # This should mean it is a period part only checking for year and dash-seperated dates
-        )
-    ]
-    return "_".join(parts_left)
+    current_stem = p.stem
+
+    # Removing version part
+    last_part = current_stem.rsplit("_", 1)[-1]
+    if last_part[0] == "v" and last_part[1:].isdigit():
+        current_stem = current_stem.rsplit("_", 1)[0]
+
+    # Removing up to two period parts, starts with p followed by 4 digits
+    for _ in range(2):
+        last_part = current_stem.rsplit("_", 1)[-1]
+        if last_part[0] == "p" and last_part[1:].strip("-").isdigit():
+            current_stem = current_stem.rsplit("_", 1)[0]
+
+    return current_stem
+
+
+def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
+    """Return the newest shared dataset path.
+
+    This is a convenience wrapper around `latest_shared_paths` that returns
+    the most recent dataset entry (by sorted key).
+
+    Args:
+        dataset_name: Optional dataset identifier to filter available paths
+            before selecting the newest entry.
+
+    Returns:
+        tuple[str, Path]: The dataset key and its latest path.
+    """
+    paths = latest_shared_paths(dataset_name)
+    if isinstance(paths, Path):
+        return dataset_name, paths
+    paths_dict: dict[str, Path] = paths
+    last_key = sorted(paths_dict.keys())[-1]
+    last_path = paths_dict[last_key]
+    logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
+    return last_key, last_path
 
 
 def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
@@ -123,5 +167,7 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
 
             return paths_dict[dataset_name]
 
-        logger.info(f"Did not find {dataset_name} in the paths_dict, all found paths.")
+        logger.info(
+            f"Did not find {dataset_name} in the paths_dict, all found path keys: {list(paths_dict.keys())}"
+        )
         return paths_dict

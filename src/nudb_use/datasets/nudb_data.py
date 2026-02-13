@@ -2,93 +2,15 @@ import copy
 from collections.abc import Callable
 from functools import partial
 from typing import Any
+from typing import cast
 
-import duckdb as db
 import pandas as pd
 
-from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_table
-from nudb_use.datasets.avslutta import _generate_avslutta_view
-from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
-from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
-from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
-from nudb_use.datasets.eksamen import _generate_eksamen_view
-from nudb_use.datasets.igang import _generate_igang_view
-from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_table
-from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
-from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
+from nudb_use.datasets.nudb_database import _NUDB_DATABASE
+from nudb_use.datasets.nudb_database import STRING_DTYPE
+from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
-
-STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
-GeneratorFunc = Callable[..., None] | Callable[[str, db.DuckDBPyConnection], None]
-
-
-class NudbDatabase:
-    """Singleton for internal NUDB database."""
-
-    def __init__(self) -> None:
-        self._connection: db.DuckDBPyConnection = db.connect(":memory:")
-
-        self._dataset_generators: dict[str, GeneratorFunc] = {
-            "eksamen_aggregated": _generate_eksamen_aggregated_view,
-            "eksamen": _generate_eksamen_view,
-            "avslutta": _generate_avslutta_view,
-            "avslutta_fullfoert": _generate_avslutta_fullfoert_table,
-            "igang": _generate_igang_view,
-            "eksamen_hoeyeste": _generate_eksamen_hoeyeste_table,
-            "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
-            "utd_hoeyeste": _generate_utd_hoeyeste_table,
-        }
-
-        self._dataset_names = list(self._dataset_generators.keys())
-        self._datasets: dict[str, NudbData] = {}
-
-    def _reset(self) -> None:
-        self._connection.close()
-        self._connection = db.connect(":memory:")
-        self._datasets = {}
-
-    def __del__(self) -> None:
-        """Destructor for NudbDatabase."""
-        self._connection.close()  # close before deleting
-
-    def get_connection(self) -> db.DuckDBPyConnection:
-        """Get database connection."""
-        return self._connection
-
-
-_NUDB_DATABASE = NudbDatabase()
-
-
-def reset_nudb_database() -> None:
-    """Reset (I.e., clear) the internal database."""
-    _NUDB_DATABASE._reset()
-
-
-def _is_view(alias: str) -> bool:
-    views = list(
-        _NUDB_DATABASE.get_connection()
-        .sql("SELECT view_name FROM duckdb_views()")
-        .df()["view_name"]
-        .astype(STRING_DTYPE)
-    )
-
-    return alias in views
-
-
-def _is_table(alias: str) -> bool:
-    tables = list(
-        _NUDB_DATABASE.get_connection()
-        .sql("SHOW TABLES")
-        .df()["name"]
-        .astype(STRING_DTYPE)
-    )
-
-    return alias in tables
-
-
-def _is_in_database(alias: str) -> bool:
-    return _is_table(alias) or _is_view(alias)
 
 
 class NudbData:
@@ -118,17 +40,17 @@ class NudbData:
             elif name not in _NUDB_DATABASE._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
 
-            generator: Callable[..., None] = partial(
-                _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
-            )
-
-            alias = f"NUDB_DATA_{name.upper()}"
-
             self.name: str = name
-            self.alias: str = alias
+            if "alias" in kwargs:
+                self.alias: str = kwargs["alias"]
+            else:
+                self.alias = _default_alias_from_name(name)
             self.exists: bool = False
             self.is_view: bool = False
-            self.generator: Callable[..., None] = generator
+
+            self.generator: Callable[..., None] = partial(
+                _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
+            )
 
             self._select = "*"
             self._where = ""
@@ -138,7 +60,7 @@ class NudbData:
                 self._attach()
 
     def _attach(self) -> None:
-        self.generator(self.alias, _NUDB_DATABASE.get_connection())
+        self.generator(alias=self.alias, connection=_NUDB_DATABASE.get_connection())
         self.is_view = _is_view(self.alias)
         self.exists = _is_in_database(self.alias)
 
@@ -154,11 +76,9 @@ class NudbData:
     ]:  # always returns list[str] but mypy struggles with STRING_DTYPE
         """Get available columns in dataset."""
         if self.exists:
-            return list(
-                _NUDB_DATABASE.get_connection()
-                .sql(f"DESCRIBE {self.alias}")
-                .df()["column_name"]
-                .astype(STRING_DTYPE)
+            return _fetch_string_column(
+                f"DESCRIBE {self.alias}",
+                "column_name",
             )
         else:
             logger.warning(f"{self.name} is not available in duckdb database!")
@@ -223,3 +143,32 @@ class NudbData:
     def execute(self, expr: str) -> Any:
         """Use execute method of database connection."""
         return _NUDB_DATABASE.get_connection().execute(expr)
+
+
+def _is_view(alias: str) -> bool:
+    views = _fetch_string_column(
+        "SELECT view_name FROM duckdb_views()",
+        "view_name",
+    )
+
+    return alias in views
+
+
+def _is_in_database(alias: str) -> bool:
+    return _is_table(alias) or _is_view(alias)
+
+
+def _is_table(alias: str) -> bool:
+    tables = _fetch_string_column(
+        "SHOW TABLES",
+        "name",
+    )
+
+    return alias in tables
+
+
+def _fetch_string_column(sql: str, column_name: str) -> list[str]:
+    series = (
+        _NUDB_DATABASE.get_connection().sql(sql).df()[column_name].astype(STRING_DTYPE)
+    )
+    return list(cast("pd.Series[str]", series))
