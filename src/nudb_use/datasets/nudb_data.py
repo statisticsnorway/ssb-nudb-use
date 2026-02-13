@@ -41,9 +41,9 @@ class NudbData:
 
             self.name: str = name
             if "alias" in kwargs:
-                self.alias : str = kwargs["alias"]
+                self.alias: str = kwargs["alias"]
             else:
-                self.alias  = _default_alias_from_name(name)
+                self.alias = _default_alias_from_name(name)
             self.exists: bool = False
             self.is_view: bool = False
 
@@ -75,11 +75,9 @@ class NudbData:
     ]:  # always returns list[str] but mypy struggles with STRING_DTYPE
         """Get available columns in dataset."""
         if self.exists:
-            return list(
-                _NUDB_DATABASE.get_connection()
-                .sql(f"DESCRIBE {self.alias}")
-                .df()["column_name"]
-                .astype(STRING_DTYPE)
+            return _fetch_string_column(
+                f"DESCRIBE {self.alias}",
+                "column_name",
             )
         else:
             logger.warning(f"{self.name} is not available in duckdb database!")
@@ -147,11 +145,9 @@ class NudbData:
 
 
 def _is_view(alias: str) -> bool:
-    views = list(
-        _NUDB_DATABASE.get_connection()
-        .sql("SELECT view_name FROM duckdb_views()")
-        .df()["view_name"]
-        .astype(STRING_DTYPE)
+    views = _fetch_string_column(
+        "SELECT view_name FROM duckdb_views()",
+        "view_name",
     )
 
     return alias in views
@@ -162,11 +158,18 @@ def _is_in_database(alias: str) -> bool:
 
 
 def _is_table(alias: str) -> bool:
-    tables = list(
-        _NUDB_DATABASE.get_connection()
-        .sql("SHOW TABLES")
-        .df()["name"]
-        .astype(STRING_DTYPE)
+    tables = _fetch_string_column(
+        "SHOW TABLES",
+        "name",
     )
 
     return alias in tables
+
+
+def _fetch_string_column(sql: str, column_name: str) -> list[str]:
+    return list(
+        _NUDB_DATABASE.get_connection()
+        .sql(sql)
+        .df()[column_name]
+        .astype(STRING_DTYPE)
+    )

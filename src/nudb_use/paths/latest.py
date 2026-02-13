@@ -36,23 +36,6 @@ def _add_delt_path(path: str | Path) -> None:
 
 
 def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[Path]:
-    # Lets first try the glob pattern from the config for external datasets
-    if (
-        filename in settings.datasets
-        and settings.datasets[filename].team != settings.dapla_team
-    ):
-        datameta = settings.datasets[filename]
-        if datameta.team and datameta.bucket and datameta.path_glob:
-            local_path = Path(f"/buckets/shared/{datameta.team}/{datameta.bucket}/")
-            found_files = list(local_path.glob(datameta.path_glob))
-            if found_files:
-                return found_files
-        # If we are here, the file looks external, but we couldnt find it locally
-        msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
-        msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
-        msg += f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
-        raise FileNotFoundError(msg)
-
     global POSSIBLE_PATHS
     # For custom paths we don't know if there is a klargjorte-data
     # directory, so we search in the directory directly as well
@@ -75,6 +58,29 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
 
         for glob in globs:
             files += list(path.glob(glob))
+
+    if files:
+        logger.info(
+            f"Found relevant files locally in POSSIBLE_PATHS, not using glob from config: {files}"
+        )
+        return files
+
+    # Fall back to the dataset config for external datasets that live in other teams
+    if (
+        filename in settings.datasets
+        and settings.datasets[filename].team != settings.dapla_team
+    ):
+        datameta = settings.datasets[filename]
+        if datameta.team and datameta.bucket and datameta.path_glob:
+            local_path = Path(f"/buckets/shared/{datameta.team}/{datameta.bucket}/")
+            found_files = list(local_path.glob(datameta.path_glob))
+            if found_files:
+                return found_files
+        # If we are here, the file looks external, but we couldnt find it locally
+        msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
+        msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
+        msg += f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
+        raise FileNotFoundError(msg)
 
     return files
 
