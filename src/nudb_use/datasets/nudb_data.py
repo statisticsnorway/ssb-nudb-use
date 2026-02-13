@@ -2,6 +2,7 @@ import copy
 from collections.abc import Callable
 from functools import partial
 from typing import Any
+from typing import cast
 
 import pandas as pd
 
@@ -167,9 +168,7 @@ def _is_table(alias: str) -> bool:
 
 
 def _fetch_string_column(sql: str, column_name: str) -> list[str]:
-    return list(
-        _NUDB_DATABASE.get_connection()
-        .sql(sql)
-        .df()[column_name]
-        .astype(STRING_DTYPE)
+    series = (
+        _NUDB_DATABASE.get_connection().sql(sql).df()[column_name].astype(STRING_DTYPE)
     )
+    return list(cast("pd.Series[str]", series))
