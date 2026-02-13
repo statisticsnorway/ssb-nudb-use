@@ -11,9 +11,9 @@ def _parquet_contains_index_col_0(
     path: Path, connection: db.DuckDBPyConnection
 ) -> bool:
     try:
-        columns = connection.sql(
-            f"DESCRIBE SELECT * FROM read_parquet('{path}')"
-        ).df()["column_name"]
+        columns = connection.sql(f"DESCRIBE SELECT * FROM read_parquet('{path}')").df()[
+            "column_name"
+        ]
     except Exception:
         return False
     return bool((columns == "__index_level_0__").any())
