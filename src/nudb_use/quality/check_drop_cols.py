@@ -136,8 +136,9 @@ def check_drop_cols_for_valid_cols(
         ]
         drops_old_names = [c for c in drop_cols if c in renamed_list]
         if drops_old_names:
+            drops_old_names_lines = "\n".join(drops_old_names)
             logger.warning(
-                f"You are trying to drop the old names of columns (should have been renamed?), these may not be handled correctly: {drops_old_names}"
+                f"Dropping old names of columns (rename?), these may be handled incorrectly:\n{drops_old_names_lines}"
             )
 
         want_list = var_meta_valid.index.to_list()

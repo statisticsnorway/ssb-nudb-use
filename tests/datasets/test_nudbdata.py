@@ -34,7 +34,7 @@ def patch_nudb_database(
     avslutta = update_colnames(avslutta)
     eksamen = update_colnames(eksamen)
 
-    eksamen["uh_eksamen_er_gjentak"] = eksamen["uh_eksamen_er_gjentak"] == "d"
+    eksamen["uh_eksamen_ergjentak"] = eksamen["uh_eksamen_ergjentak"] == "d"
 
     igang.to_parquet(nudbpath / "igang_p1970_p1971_v1.parquet")
     avslutta.to_parquet(nudbpath / "avslutta_p1970_p1971_v1.parquet")

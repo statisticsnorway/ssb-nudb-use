@@ -34,6 +34,11 @@ def check_column_widths(
     Returns:
         list[NudbQualityError]: Errors describing columns whose values are outside
         the allowed width definitions, or an empty list when all pass.
+
+    Raises:
+        TypeError: If the column checking fails with an AttributeError
+            it might mean the .str accessor does not work with the dtype of the column,
+            it might be a BOOLEAN for example.
     """
     with LoggerStack(
         "Checking the widths of values in columns according to a dict sent in or gotten from the config."
@@ -68,7 +73,11 @@ def check_column_widths(
 
             logger.debug(col)
             # display(~df[col])
-            if not pd.api.types.is_string_dtype(df[col]):
+            if pd.api.types.is_string_dtype(df[col]) or pd.api.types.is_object_dtype(
+                df[col]
+            ):
+                pass
+            else:
                 raise TypeError(
                     f"Checking char widths using config: {col} should be string, but its a {df[col].dtype}."
                 )
