@@ -16,3 +16,8 @@ def test_overlapping_drop_invalid_cols() -> None:
         ["random_col_1", "random_col_2"], raise_errors=False
     )
     assert errs is None
+
+
+def test_drop_derivable_cols_ok() -> None:
+    errs = check_drop_cols_for_valid_cols(["snr_mrk"], raise_errors=False)
+    assert errs is None

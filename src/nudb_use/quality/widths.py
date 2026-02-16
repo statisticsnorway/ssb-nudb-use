@@ -68,20 +68,34 @@ def check_column_widths(
 
             logger.debug(col)
             # display(~df[col])
-            len_mask_diff = (~df[col].str.len().isin(widths_conf)) & (~df[col].isna())
-            if len_mask_diff.sum():
-                first_values = pd.Series(df[len_mask_diff][col].unique()).head(
-                    maxprint
-                )  # pd.Series.unique() doesn't return a Series object if dtype is a pyarrow type
-                unique_mismatch_vals = ",\n".join(list(first_values))
-                too_many_message = (
-                    f"first {maxprint}" if len(unique_mismatch_vals) > maxprint else ""
+            if not pd.api.types.is_string_dtype(df[col]):
+                raise TypeError(
+                    f"Checking char widths using config: {col} should be string, but its a {df[col].dtype}."
                 )
-                errors.append(
-                    NudbQualityError(
-                        f"In {col} found values not of the defined widths: {widths_conf}, the {too_many_message} mismatched codes:\n{unique_mismatch_vals}"
+
+            try:
+                len_mask_diff = (~df[col].str.len().isin(widths_conf)) & (
+                    ~df[col].isna()
+                )
+                if len_mask_diff.sum():
+                    first_values = pd.Series(df[len_mask_diff][col].unique()).head(
+                        maxprint
+                    )  # pd.Series.unique() doesn't return a Series object if dtype is a pyarrow type
+                    unique_mismatch_vals = ",\n".join(list(first_values))
+                    too_many_message = (
+                        f"first {maxprint}"
+                        if len(unique_mismatch_vals) > maxprint
+                        else ""
                     )
-                )
+                    errors.append(
+                        NudbQualityError(
+                            f"In {col} found values not of the defined widths: {widths_conf}, the {too_many_message} mismatched codes:\n{unique_mismatch_vals}"
+                        )
+                    )
+            except AttributeError as e:
+                raise TypeError(
+                    f"Column {col} has dtype {df[col].dtype}, might not work when looking at char width from config?"
+                ) from e
 
         if raise_errors:
             raise_exception_group(errors)

@@ -252,8 +252,9 @@ def _apply_dataset_specific_rename(
 
 
 def _warn_fillna(candidates: list[str]) -> None:
+    candidate_lines = "\n".join(candidates)
     logger.warning(
-        f"Found multiple columns that will map to the same, meaning we are doing a fillna, instead of a pure rename: {candidates}"
+        f"Multiple columns map to the same, doing a fillna, instead of a pure renames:\n {candidate_lines}"
     )
 
 
@@ -274,7 +275,7 @@ def _fill_and_drop_sources(
             )
         else:
             logger.warning(
-                f"Found multiple columns that will map to the same, meaning we are doing a fillna into {new_name} from {col}, deleting {col} after."
+                f"Found multiple columns mapping to the same, doing a fillna into {new_name} from {col}, deleting {col} after."
             )
             df[new_name] = df[new_name].fillna(df[col])
         df = df.drop(columns=[col])
