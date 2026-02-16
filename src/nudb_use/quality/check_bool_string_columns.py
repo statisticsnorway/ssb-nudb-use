@@ -1,7 +1,6 @@
 """Checks for string columns containing boolean-like literal values."""
 
 import pandas as pd
-from pandas.api.types import is_string_dtype
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.exceptions.groups import raise_exception_group
@@ -30,8 +29,6 @@ def check_bool_string_columns(
         errors: list[NudbQualityError] = []
         for col in df.columns:
             series = df[col]
-            if not is_string_dtype(series):
-                continue
             string_mask = series.map(lambda value: isinstance(value, str))
             if not bool(string_mask.any()):
                 continue

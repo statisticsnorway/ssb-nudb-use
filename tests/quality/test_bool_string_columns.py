@@ -6,8 +6,8 @@ from nudb_use.quality.check_bool_string_columns import check_bool_string_columns
 def test_bool_string_columns_detects_literals() -> None:
     df = pd.DataFrame(
         {
-            "flag": ["True", "False", "True"],
-            "name": ["Ada", "Bjarne", "Claude"],
+            "flag": ["True", "False", "True", pd.NA, "NA", "<NA>", "np.nan"],
+            "name": ["Ada", "Bjarne", "Claude", "Ada", "Bjarne", "Claude", "Ada"],
         }
     )
 

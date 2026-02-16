@@ -49,57 +49,73 @@ def generate_uuid_for_snr_with_fnr_col(
     """
     subset = subset or []
 
-    with LoggerStack(
-        f"Generating UUID4 into {snr_col} based on unique values in {fnr_col}"
-    ):
-        identificator = df[fnr_col].copy()
+    with LoggerStack(f"Generating UUID4 into {snr_col} based on unique values in {fnr_col}"):
+        # Build identifier used for stable mapping (fnr + optional subset vars)
+        identificator = df[fnr_col].astype("string").copy()
 
         for subsetvar in subset:
-            addition = df[subsetvar].astype("string[pyarrow]").fillna("<NA>")
-            identificator += "-" + addition
+            addition = df[subsetvar].astype("string").fillna("<NA>")
+            identificator = identificator + "-" + addition
 
         df["_fnr_identificator"] = identificator
-        invalid = df[snr_col].isna()
 
-        unique_id_missing_snr = (
-            identificator[invalid].dropna().unique()
-        )  # The dropna is important, so we dont get a fnr = NA join-key.
+        # Treat missing SNR as NA or empty/whitespace
+        snr_s = df[snr_col].astype("string")
+        invalid = snr_s.isna() | (snr_s.str.strip() == "")
+
+        # Only map non-missing identifiers for rows that need filling
+        unique_id_missing_snr = df.loc[invalid, "_fnr_identificator"].dropna().unique()
 
         fnr_uuid_katalog = pd.DataFrame(
             {
                 "_fnr_identificator": unique_id_missing_snr,
-                snr_col: [str(uuid.uuid4()) for _ in unique_id_missing_snr],
+                snr_col: [str(uuid.uuid4()) for _ in range(len(unique_id_missing_snr))],
             }
         )
 
-        amount_na_pre_first_fill = df[snr_col].isna().sum()
-        df[snr_col] = df[snr_col].fillna(
-            df.drop(columns=snr_col, errors="ignore").merge(
-                fnr_uuid_katalog, on="_fnr_identificator", how="left", validate="m:1"
-            )[snr_col]
+        amount_na_pre_first_fill = int(invalid.sum())
+
+        # Preferred pattern: merge a temporary column into df, then fill from it.
+        # This avoids index-alignment pitfalls with Series.fillna(other_series).
+        df = df.merge(
+            fnr_uuid_katalog,
+            on="_fnr_identificator",
+            how="left",
+            validate="m:1",
+            suffixes=("", "_new"),
         )
 
-        amount_na_post_first_fill = df[snr_col].isna().sum()
+        new_col = f"{snr_col}_new"
+        df[snr_col] = df[snr_col].fillna(df[new_col])
+        df = df.drop(columns=[new_col])
+
+        # Recompute missing after first fill (same "missing" definition)
+        snr_s_after = df[snr_col].astype("string")
+        invalid_after = snr_s_after.isna() | (snr_s_after.str.strip() == "")
+
+        amount_na_post_first_fill = int(invalid_after.sum())
         diff_first_fill = amount_na_pre_first_fill - amount_na_post_first_fill
-        percent_diff = round(100 * diff_first_fill / len(df), 2)
+        percent_diff = round(100 * diff_first_fill / len(df), 2) if len(df) else 0.0
+
         logger.info(
             f"Filled {percent_diff}% of `{snr_col}` with UUIDs based on unique, non-missing values in `{fnr_col}`"
         )
 
         if amount_na_post_first_fill:
             logger.warning(
-                f"""Still empty cells in `{snr_col}` after filling from unique values in `{fnr_col}`, `{fnr_col}` might contain NA-values?
-                        Assuming the rest of data is one-person-per row, giving each row a unique UUID4.
-                        To avoid this, add an identifier to all rows of `{fnr_col}` before running the function generate_uuid_for_snr_with_fnr_col."""
+                f"""Still empty cells in `{snr_col}` after filling from unique values in `{fnr_col}`.
+`{fnr_col}` might contain NA-values (or identifiers became NA after subsetting).
+Assuming the rest of data is one-person-per-row, giving each row a unique UUID4.
+To avoid this, ensure all rows have a non-missing `{fnr_col}` (and subset columns, if used)
+before running generate_uuid_for_snr_with_fnr_col."""
             )
-            mask = df[snr_col].isna()
-            df.loc[mask, snr_col] = [str(uuid.uuid4()) for _ in range(mask.sum())]
+            mask = invalid_after
+            df.loc[mask, snr_col] = [str(uuid.uuid4()) for _ in range(int(mask.sum()))]
 
         df[fnr_col] = df[fnr_col].astype(STRING_DTYPE)
         df[snr_col] = df[snr_col].astype(STRING_DTYPE)
-        df = df.drop(columns="_fnr_identificator")
 
-        return df
+        return df.drop(columns=["_fnr_identificator"])
 
 
 def generate_uuid_for_snr_with_fnr_catalog(
