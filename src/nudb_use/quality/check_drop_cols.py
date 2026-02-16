@@ -1,5 +1,6 @@
 """Ensure requested drop columns do not collide with configured variables."""
 
+import math
 from collections.abc import Iterable
 
 import pandas as pd
@@ -10,6 +11,71 @@ from nudb_use.metadata.nudb_config.find_var_missing import VariableMetadata
 from nudb_use.metadata.nudb_config.find_var_missing import find_vars
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+
+
+def _is_missing(value: object) -> bool:
+    if value is None or value is pd.NA or value is pd.NaT:
+        return True
+    if isinstance(value, float) and math.isnan(value):
+        return True
+    return False
+
+
+def _normalize_var(value: object) -> str | None:
+    if _is_missing(value):
+        return None
+    if not isinstance(value, str):
+        return None
+    name = value.strip().lower()
+    return name or None
+
+
+def _to_list(value: object) -> list[str]:
+    if _is_missing(value):
+        return []
+    if isinstance(value, str):
+        norm = _normalize_var(value)
+        return [norm] if norm else []
+    if isinstance(value, Iterable):
+        items: list[str] = []
+        for item in value:
+            norm = _normalize_var(item)
+            if norm:
+                items.append(norm)
+        return items
+    norm = _normalize_var(value)
+    return [norm] if norm else []
+
+
+def _build_dependency_map(
+    var_meta_valid: pd.DataFrame,
+) -> tuple[dict[str, list[str]], set[str]]:
+    deps_map: dict[str, list[str]] = {}
+    base_vars: set[str] = set()
+    for idx, derived_from in var_meta_valid["derived_from"].items():
+        key = _normalize_var(idx)
+        if key is None:
+            continue
+        deps = _to_list(derived_from)
+        deps_map[key] = deps
+        if not deps:
+            base_vars.add(key)
+    return deps_map, base_vars
+
+
+def _resolve_derivable(deps_map: dict[str, list[str]], base_vars: set[str]) -> set[str]:
+    available = set(base_vars)
+    pending = set(deps_map.keys()) - available
+    changed = True
+    while changed:
+        changed = False
+        for var in tuple(pending):
+            deps = deps_map.get(var, [])
+            if deps and all(dep in available for dep in deps):
+                available.add(var)
+                pending.remove(var)
+                changed = True
+    return available - base_vars
 
 
 def _drop_vars_derivable_from_valid(var_meta_valid: pd.DataFrame) -> pd.DataFrame:
@@ -29,66 +95,12 @@ def _drop_vars_derivable_from_valid(var_meta_valid: pd.DataFrame) -> pd.DataFram
     if "derived_from" not in var_meta_valid.columns:
         return var_meta_valid
 
-    import math
-
-    def _is_missing(value: object) -> bool:
-        if value is None or value is pd.NA or value is pd.NaT:
-            return True
-        if isinstance(value, float) and math.isnan(value):
-            return True
-        return False
-
-    def _normalize_var(value: object) -> str | None:
-        if _is_missing(value):
-            return None
-        if not isinstance(value, str):
-            return None
-        name = value.strip().lower()
-        return name or None
-
-    def _to_list(value: object) -> list[str]:
-        if _is_missing(value):
-            return []
-        if isinstance(value, str):
-            norm = _normalize_var(value)
-            return [norm] if norm else []
-        if isinstance(value, Iterable):
-            items: list[str] = []
-            for item in value:
-                norm = _normalize_var(item)
-                if norm:
-                    items.append(norm)
-            return items
-        norm = _normalize_var(value)
-        return [norm] if norm else []
-
     want_set = {_normalize_var(idx) for idx in var_meta_valid.index}
     want_set.discard(None)
 
-    deps_map: dict[str, list[str]] = {}
-    base_vars: set[str] = set()
-    for idx, derived_from in var_meta_valid["derived_from"].items():
-        key = _normalize_var(idx)
-        if key is None:
-            continue
-        deps = _to_list(derived_from)
-        deps_map[key] = deps
-        if not deps:
-            base_vars.add(key)
+    deps_map, base_vars = _build_dependency_map(var_meta_valid)
+    derivable = _resolve_derivable(deps_map, base_vars)
 
-    available = set(base_vars)
-    pending = set(deps_map.keys()) - available
-    changed = True
-    while changed:
-        changed = False
-        for var in list(pending):
-            deps = deps_map.get(var, [])
-            if deps and all(dep in available for dep in deps):
-                available.add(var)
-                pending.remove(var)
-                changed = True
-
-    derivable = available - base_vars
     drop_indices = [
         idx
         for idx in var_meta_valid.index

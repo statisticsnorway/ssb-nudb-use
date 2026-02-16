@@ -49,7 +49,9 @@ def generate_uuid_for_snr_with_fnr_col(
     """
     subset = subset or []
 
-    with LoggerStack(f"Generating UUID4 into {snr_col} based on unique values in {fnr_col}"):
+    with LoggerStack(
+        f"Generating UUID4 into {snr_col} based on unique values in {fnr_col}"
+    ):
         # Build identifier used for stable mapping (fnr + optional subset vars)
         identificator = df[fnr_col].astype("string").copy()
 
