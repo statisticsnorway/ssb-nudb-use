@@ -142,7 +142,7 @@ def _find_column_mismatches(
 
 def _append_if_missing(errors: list[Exception], missing: list[str], msg: str) -> None:
     if missing:
-        err_msg = msg.format(missing)
+        err_msg = msg.format("\n" + "\n".join(missing))
         logger.warning(err_msg)
         errors.append(KeyError(err_msg))
 

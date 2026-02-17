@@ -33,7 +33,7 @@ def require_series_present(
     for name, series in series_by_name.items():
         if series is None:
             logger.info(
-                f"Terminating: `{function_name}()`, Reason: `{name}` is `None` - maybe the needed columns are not in the dataset?"
+                f"Terminating: `{function_name}()`, \n\tReason: `{name}` is `None` - maybe the needed columns are not in the dataset?"
             )
             return None
 

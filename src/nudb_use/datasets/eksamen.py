@@ -26,7 +26,7 @@ def _generate_eksamen_aggregated_view(
             uh_institusjon_id,
             utd_skoleaar_start,
             uh_studienivaa,
-            CAST(uh_eksamen_er_gjentak AS BOOLEAN) AS uh_eksamen_er_gjentak,
+            CAST(uh_eksamen_ergjentak AS BOOLEAN) AS uh_eksamen_ergjentak,
             utd_orgnr,
             bof_orgnrbed,
             uh_antall_deleksamener,
@@ -49,7 +49,7 @@ def _generate_eksamen_aggregated_view(
             uh_institusjon_id,
             utd_skoleaar_start,
             uh_studienivaa,
-            CAST(uh_eksamen_er_gjentak AS BOOLEAN) AS uh_eksamen_er_gjentak,
+            CAST(uh_eksamen_ergjentak AS BOOLEAN) AS uh_eksamen_ergjentak,
             utd_orgnr,
             bof_orgnrbed,
 
@@ -70,7 +70,7 @@ def _generate_eksamen_aggregated_view(
             uh_institusjon_id,
             utd_skoleaar_start,
             uh_studienivaa,
-            uh_eksamen_er_gjentak,
+            uh_eksamen_ergjentak,
             utd_orgnr,
             bof_orgnrbed,
             EXTRACT(YEAR FROM uh_eksamen_dato) -- used to seperate semesters
@@ -110,7 +110,7 @@ def _generate_eksamen_hoeyeste_table(
         FROM
             {NudbData("eksamen_aggregated").alias}
         WHERE
-            NOT uh_eksamen_er_gjentak AND
+            NOT uh_eksamen_ergjentak AND
             uh_eksamen_studpoeng > 0 AND
             uh_eksamen_studpoeng IS NOT NULL AND
             nus2000_nivaa IN ['6', '7'];

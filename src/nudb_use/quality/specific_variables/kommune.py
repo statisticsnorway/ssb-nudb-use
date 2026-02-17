@@ -83,7 +83,8 @@ def subcheck_single_kommune_oslo_svalbard_utland(
     if not non_match_dict:
         return None
 
-    err_msg = f"Found illegal kommune-values that can be recoded because the fylke only maps to single kommune: {non_match_dict}"
+    non_match_dict_lines = "\n".join([f"{k} -> {v}" for k, v in non_match_dict.items()])
+    err_msg = f"Found illegal kommune-values that can be recoded because the fylke only maps to single kommune:\n{non_match_dict_lines}"
     logger.warning(err_msg)
     return NudbQualityError(err_msg)
 

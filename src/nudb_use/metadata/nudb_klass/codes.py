@@ -88,7 +88,7 @@ def check_klass_codes(
         for col in df.columns:
             if pd.api.types.is_bool_dtype(df[col]):
                 logger.info(
-                    f"Column {col} is a BOOLEAN, and should not have an associated codelist in KLASS. Skipping checking the column against klass."
+                    f"{col} is a BOOLEAN, should not have codelist in KLASS. Skipping checking against klass."
                 )
             else:
                 errors.extend(
