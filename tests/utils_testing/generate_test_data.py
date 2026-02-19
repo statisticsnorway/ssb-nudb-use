@@ -45,22 +45,21 @@ def generate_test_variable(
 
     rng = np.random.default_rng(seed=seed)
 
-    if name not in settings.variables.keys():
-        logger.warning(f"Unable to find '{name}' in config!")
-
-        codelist = 0
-        length = [7]
-        dtype = "STRING"
-        renamed_from = []
-        klass_codelist_from_date = None
-
-    else:
+    if name in settings.variables.keys():
         metadata = settings.variables[name]
         codelist = metadata.klass_codelist
         length = metadata.length
         dtype = metadata.dtype
         renamed_from = metadata.renamed_from or []
         klass_codelist_from_date = metadata.klass_codelist_from_date
+
+    else:
+        logger.warning(f"Unable to find '{name}' in config!")
+        codelist = 0
+        length = [7]
+        dtype = "STRING"
+        renamed_from = []
+        klass_codelist_from_date = None
 
     has_codelist = codelist is not None and codelist != 0
     length_list = length or []
