@@ -49,10 +49,6 @@ def patch_nudb_database(
 
     eksamen["uh_eksamen_ergjentak"] = eksamen["uh_eksamen_ergjentak"] == "d"
 
-    from nudb_use.nudb_logger import logger
-
-    logger.info(f"Slekt\n{slekt.head(10)}")
-
     freg_situttak.to_parquet(freg_dir / "freg_situasjonsuttak_p2026-01-31_v1.parquet")
     snrkat.to_parquet(snrkat_dir / "snrkat_p2026-01-31_v1.parquet")
     slekt.to_parquet(slekt_dir / "slekt_p2025-01-01_v1.parquet")

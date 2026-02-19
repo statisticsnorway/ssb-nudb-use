@@ -27,10 +27,22 @@ PREDEFINED_CODES_NEWNAME = {
 
 
 # Monkeypatch some external variables into the config (for now)
-settings.variables["foedselsdato"] = settings.variables["pers_foedselsdato"]
-settings.variables["kjoenn"] = settings.variables["pers_kjoenn"]
-settings.variables["mor_snr"] = settings.variables["snr"]
-settings.variables["far_snr"] = settings.variables["snr"]
+settings.variables.foedselsdato = settings.variables.pers_foedselsdato.copy()
+settings.variables.foedselsdato.renamed_from = None
+settings.variables.foedselsdato.name = "foedselsdato"
+
+settings.variables.kjoenn = settings.variables.pers_kjoenn.copy()
+settings.variables.kjoenn.renamed_from = None
+settings.variables.kjoenn.name = "kjoenn"
+
+settings.variables.mor_snr = settings.variables.snr.copy()
+settings.variables.mor_snr.renamed_from = None
+settings.variables.mor_snr.name = "mor_snr"
+
+settings.variables.far_snr = settings.variables.snr.copy()
+settings.variables.far_snr.renamed_from = None
+settings.variables.far_snr.name = "far_snr"
+
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
 
