@@ -13,9 +13,10 @@ from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
+from nudb_use.datasets.person import _generate_slekt_snr_view
+from nudb_use.datasets.person import _generate_snr2alder16_view
+from nudb_use.datasets.person import _generate_utd_person_view
 from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
-from nudb_use.datasets.sosbak import _generate_slekt_snr_view
-from nudb_use.datasets.sosbak import _generate_snr2alder16_view
 from nudb_use.datasets.sosbak import _generate_utd_sosbak_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_table
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
@@ -47,6 +48,7 @@ class NudbDatabase:
             "slekt_snr": _generate_slekt_snr_view,
             "snr2alder16": _generate_snr2alder16_view,
             "utd_sosbak": _generate_utd_sosbak_view,
+            "utd_person": _generate_utd_person_view,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
