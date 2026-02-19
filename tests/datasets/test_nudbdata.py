@@ -21,6 +21,9 @@ def patch_nudb_database(
     igang: pd.DataFrame,
     avslutta: pd.DataFrame,
     eksamen: pd.DataFrame,
+    freg_situttak: pd.DataFrame,
+    snrkat: pd.DataFrame,
+    slekt: pd.DataFrame,
     tmp_path: Path,
     monkeypatch: Any,
 ) -> None:
@@ -28,6 +31,16 @@ def patch_nudb_database(
 
     basepath = tmp_path / "local" / "nudb-data"
     nudbpath = basepath / "klargjorte-data"
+
+    shared_root = tmp_path / "shared"
+    bef_statistikk = shared_root / "bef-statistikk"
+    snrkat_dir = bef_statistikk / "snrkat" / "2026"
+    slekt_dir = bef_statistikk / "folketall" / "slekt" / "2025"
+    freg_dir = bef_statistikk / "freg-situttak" / "2026"
+
+    snrkat_dir.mkdir(parents=True)
+    slekt_dir.mkdir(parents=True)
+    freg_dir.mkdir(parents=True)
     nudbpath.mkdir(parents=True)
 
     igang = update_colnames(igang)
@@ -36,25 +49,40 @@ def patch_nudb_database(
 
     eksamen["uh_eksamen_ergjentak"] = eksamen["uh_eksamen_ergjentak"] == "d"
 
+    from nudb_use.nudb_logger import logger
+
+    logger.info(f"Slekt\n{slekt.head(10)}")
+
+    freg_situttak.to_parquet(freg_dir / "freg_situasjonsuttak_p2026-01-31_v1.parquet")
+    snrkat.to_parquet(snrkat_dir / "snrkat_p2026-01-31_v1.parquet")
+    slekt.to_parquet(slekt_dir / "slekt_p2025-01-01_v1.parquet")
+
     igang.to_parquet(nudbpath / "igang_p1970_p1971_v1.parquet")
     avslutta.to_parquet(nudbpath / "avslutta_p1970_p1971_v1.parquet")
     eksamen.to_parquet(nudbpath / "eksamen_p1970_p1971_v1.parquet")
 
     # legg inn i config at alle registreringer trenger flere (potensielt) dato-kolonner
     monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
+    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT", shared_root)
 
 
 def test_nudbdata(
     igang: pd.DataFrame,
     avslutta: pd.DataFrame,
     eksamen: pd.DataFrame,
+    freg_situttak: pd.DataFrame,
+    snrkat: pd.DataFrame,
+    slekt: pd.DataFrame,
     tmp_path: Path,
     monkeypatch: Any,
 ) -> None:
-    patch_nudb_database(igang, avslutta, eksamen, tmp_path, monkeypatch)
+    patch_nudb_database(
+        igang, avslutta, eksamen, freg_situttak, snrkat, slekt, tmp_path, monkeypatch
+    )
 
     NudbData("utd_hoeyeste")
     NudbData("igang")
+    NudbData("utd_sosbak")
 
 
 def test_fetch_string_column_and_tables() -> None:

@@ -11,6 +11,8 @@ from nudb_use.nudb_logger import logger
 UTDANNING_SHARED_EXTERNAL = settings.paths["local_daplalab"].get(
     "delt_utdanning", "/buckets/shared/utd-nudb/utdanning/"
 )
+
+SHARED_ROOT = "/buckets/shared"
 UTDANNING_SHARED_LOCAL = "/buckets/delt-utdanning/nudb-data"
 NUDB_PRODUCT = "/buckets/produkt/nudb-data/"
 
@@ -72,7 +74,7 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
     ):
         datameta = settings.datasets[filename]
         if datameta.team and datameta.bucket and datameta.path_glob:
-            local_path = Path(f"/buckets/shared/{datameta.team}/{datameta.bucket}/")
+            local_path = Path(f"{SHARED_ROOT}/{datameta.team}/{datameta.bucket}/")
             found_files = list(local_path.glob(datameta.path_glob))
             if found_files:
                 return found_files
