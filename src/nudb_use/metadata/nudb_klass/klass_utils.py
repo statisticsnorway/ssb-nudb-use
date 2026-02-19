@@ -90,6 +90,7 @@ def _left_adjust_from(date1: str, date2: str) -> str | None:
         from_date = first_start.strftime(r"%Y-%m-%d")
     return from_date
 
+
 def _right_adjust_to(date1: str, date2: str) -> str | None:
     param_to = dateutil.parser.parse(date1)
     first_to = dateutil.parser.parse(date2)
@@ -98,7 +99,6 @@ def _right_adjust_to(date1: str, date2: str) -> str | None:
     else:
         from_date = param_to.strftime(r"%Y-%m-%d")
     return from_date
-
 
 
 def _prioritize_dates_from_param_or_config(
@@ -122,14 +122,18 @@ def _prioritize_dates_from_param_or_config(
         ValueError: If the requested window does not overlap the classification availability window.
         TypeError: If klass_codelist_from_date has an unexpected type.
     """
-    first_available_date, last_available_date = find_earliest_latest_klass_version_date(klassid)
+    first_available_date, last_available_date = find_earliest_latest_klass_version_date(
+        klassid
+    )
 
     if data_time_start is not None:
         from_date = _left_adjust_from(data_time_start, first_available_date)
     else:
         if klass_codelist_from_date and not pd.isna(klass_codelist_from_date):
             if isinstance(klass_codelist_from_date, str):
-                from_date = _left_adjust_from(klass_codelist_from_date, first_available_date)
+                from_date = _left_adjust_from(
+                    klass_codelist_from_date, first_available_date
+                )
             else:
                 raise TypeError("Unknown type of from_date here?")
         else:
