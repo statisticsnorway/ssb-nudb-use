@@ -8,6 +8,7 @@ import pandas as pd
 from nudb_use.variables.specific_vars import snr as snr_module
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_catalog
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_col
+from nudb_use.variables.specific_vars.snr import update_snr_with_snrkat
 
 
 def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
@@ -113,3 +114,55 @@ def test_generate_uuid_for_snr_with_fnr_catalog(
         ["1", "existing-uuid"],
         ["2", "00000000-0000-0000-0000-000000000010"],
     ]
+
+
+def test_update_snr_with_snrkat_remaps_and_preserves_snr(
+    monkeypatch: Any,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "fnr": [
+                "7KFQKZih4ha",
+                "O3pnUDPfake",
+                "GU9Vi3Jfake",
+                "Qbbf3dWfake",
+                "OjtKRx5fake",
+                "SVA8izufake",
+            ],
+            "snr": [
+                "nvYEPlu",
+                "qa0fake",
+                "5dYfake",
+                "khtfake",
+                "khtfake",
+                "gc6fake",
+            ],
+        }
+    )
+
+    snrkat = pd.DataFrame(
+        {
+            "fnr": ["7KFQKZih4ha", "Qbbf3dWfake", "OjtKRx5fake"],
+            "snr_utgatt": ["nvYEPlu", "khtfake", "khtfake"],
+            "snr": ["NEW0001", "NEWKHT1", "NEWKHT1"],
+        }
+    )
+
+    class FakeNudbData:
+        def __init__(self, name: str) -> None:
+            assert name == "snrkat"
+
+        def select(self, _cols: str) -> FakeNudbData:
+            return self
+
+        def df(self) -> pd.DataFrame:
+            return snrkat
+
+    monkeypatch.setattr(snr_module, "NudbData", FakeNudbData)
+
+    result = update_snr_with_snrkat(df)
+
+    assert "snr" in result.columns
+    assert result.loc[result["fnr"] == "7KFQKZih4ha", "snr"].item() == "NEW0001"
+    assert result.loc[result["fnr"] == "Qbbf3dWfake", "snr"].item() == "NEWKHT1"
+    assert result.loc[result["fnr"] == "OjtKRx5fake", "snr"].item() == "NEWKHT1"

@@ -5,6 +5,7 @@ import pandas as pd
 from fagfunksjoner.paths.versions import latest_version_path
 from fagfunksjoner.paths.versions import next_version_path
 
+from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
@@ -13,16 +14,217 @@ from nudb_use.nudb_logger import logger
 from nudb_use.utils.packages import move_to_use_deprecate
 
 # Moved function
-from nudb_use.variables.derive.person_idents import snr_mrk as _snr_mrk
+from nudb_use.variables.derive.person_idents import snr_mrk
 
 derive_snr_mrk = move_to_use_deprecate(
-    _snr_mrk,
+    snr_mrk,
     old_path="nudb_use.variables.specific_vars.snr",
     new_path="nudb_use.variables.derive.person_idents",
 )
 
 BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
+
+
+def update_snr_with_snrkat(
+    df: pd.DataFrame,
+    update_fnr: bool = False,
+    create_snr_mrk: None | bool = None,
+    return_dupes: bool = False,
+    snr_col_name: str = "snr",
+    fnr_col_name: str = "fnr",
+) -> pd.DataFrame:
+    """Update snr and possibly fnr using snrkat.
+
+    Args:
+        df: The pandas dataframe you want updated with personal idents.
+        update_fnr: Set this to True if you want to update fnr also, no longer considered "as it came in".
+            Warning! We want original FNR as reported in, in most cases. Consider carefully before updating fnr.
+        create_snr_mrk: Set this to True, if you want to create/re-derive snr_mrk,
+            set it to False if you dont want the function to re-derive an existing snr_mrk column.
+        return_dupes: If you want to take a look at the dupes that arise from the first operation. Set to True.
+        snr_col_name: If you want your snr-col to stay named something different than "snr".
+        fnr_col_name: If you want your fnr-col to stay named something different than "fnr".
+
+
+    Returns:
+        pd.DataFrame: The Dataframe with a modified snr column, and optionally updated fnr.
+
+    Raises:
+        KeyError: If there is something with the column names that will complicate things.
+        ValueError: If the length of the dataframe changes during the merges, this should not happen.
+    """
+    with LoggerStack("Updating snr (maybe fnr) using snrkat"):
+        # If you dataset has none of the join columns, why are you using the function?
+        join_cols_in_df = [c for c in [snr_col_name, fnr_col_name] if c in df.columns]
+        if not join_cols_in_df:
+            raise KeyError(
+                f"Expecting there to some of these columns to join on: {snr_col_name}, {fnr_col_name}."
+            )
+
+        # Guard against issues
+        temp_cols = ["fnr_from_fnr", "snr_from_fnr", "snr_from_snr", "new_col"]
+        exist_temp_cols = [c for c in temp_cols if c in df.columns]
+        if exist_temp_cols:
+            raise KeyError(
+                f"These already exist, what are you doing dude? {exist_temp_cols}"
+            )
+
+        # Get snrkat contents
+        want_cols = ["fnr", "snr_utgatt", "snr"]
+        if update_fnr:
+            want_cols += ["fnr_naa"]
+        snrkat = NudbData("snrkat").select(", ".join(want_cols)).df()
+
+        df_lengths = {"read": len(df)}
+
+        # Order in the snrkat_renames matters, because we are picking out the first key
+        def merge_cols(
+            df: pd.DataFrame,
+            snrkat: pd.DataFrame,
+            ident_col_name: str,
+            snrkat_renames: dict[str, str],
+        ) -> pd.DataFrame:
+            """Merge new columns onto the datasets with the newer personal idents.
+
+            Args:
+                df: The dataframe we are merging onto.
+                snrkat: The dataframe we have content we want to update with.
+                ident_col_name: The ident column of the original dataset.
+                snrkat_renames: How the snrkat-columns should be renamed to fit into the logic.
+
+            Returns:
+                pd.DataFrame: The dataframe with added column with content from snrkat.
+            """
+            logger.info(
+                f"Merging {list(snrkat_renames.keys())[-1]} from snrkat using {next(iter(snrkat_renames.keys()))} -> {ident_col_name}"
+            )
+            return df.merge(
+                snrkat[list(snrkat_renames.keys())]
+                .dropna(how="any")
+                .drop_duplicates()
+                .rename(columns=snrkat_renames),
+                left_on=ident_col_name,
+                right_on=next(iter(snrkat_renames.values())),
+                how="left",
+            )
+
+        # Update snr from fnr
+        if fnr_col_name in df.columns:
+            df = merge_cols(
+                df,
+                snrkat,
+                ident_col_name=fnr_col_name,
+                snrkat_renames={"fnr": "fnr", "snr": "snr_from_fnr"},
+            )
+            df_lengths["after fnr > snr merge"] = len(df)
+
+        # Update snr from snr
+        if snr_col_name in df.columns:
+            df = merge_cols(
+                df,
+                snrkat,
+                ident_col_name=snr_col_name,
+                snrkat_renames={"snr_utgatt": "snr", "snr": "snr_from_snr"},
+            )
+            df_lengths["after snr > snr merge"] = len(df)
+
+        # Update fnr
+        if update_fnr and fnr_col_name in df.columns:
+            logger.warning(
+                "We want original FNR as reported in, in most cases. Consider carefully before updating fnr. Ask a friend."
+            )
+            df = merge_cols(
+                df,
+                snrkat,
+                ident_col_name=fnr_col_name,
+                snrkat_renames={"fnr": "fnr", "fnr_naa": "fnr_from_fnr"},
+            )
+            df_lengths["after fnr merge"] = len(df)
+
+        # Raise error if dataset change lengths
+        if not all([length == len(df) for length in df_lengths.values()]):
+            raise ValueError(
+                f"Lengths changed during snr refresh, should not happen: {df_lengths}"
+            )
+
+        def merge_and_log(
+            df: pd.DataFrame, original_col_name: str, merge_col_name: str
+        ) -> tuple[pd.DataFrame, bool]:
+            """Merges changed, better content from the joined ident column into the existing column, then drop it.
+
+            Args:
+                df: The datasett with the merged columns on.
+                original_col_name: The orginal column name sent in to the parent function.
+                merge_col_name: The col name of the column merged on from snrkat.
+
+            Returns:
+                tuple[pd.DataFrame, bool]: Dataframe with content from merge_col added to original_col, merge_col dropped.
+                    And a bool signifying if the dataset should be returned right away or not.
+            """
+            with LoggerStack(f"Combining {merge_col_name} into {original_col_name}"):
+                if merge_col_name in df.columns:
+                    # Detect which rows we want to change on
+                    mask = (
+                        (df[original_col_name] != df[merge_col_name])
+                        & (df[merge_col_name].notna())
+                        & (df[merge_col_name].str.len().isin([7, 11]))
+                    )
+                    mask_sum = mask.sum()
+                    logger.info(
+                        f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2)}% of total rows."
+                    )
+
+                    # Do the actual combination of values
+                    df["new_col"] = df[original_col_name].copy()
+                    df.loc[mask, "new_col"] = df[merge_col_name]
+
+                    # Find possible cases of arised duplicates
+                    dupes = df[
+                        df.groupby("new_col")[original_col_name].transform("nunique")
+                        >= 2
+                    ]
+                    if return_dupes and len(dupes):
+                        return dupes, True
+                    elif len(dupes):
+                        old_nunique = dupes[original_col_name].nunique()
+                        new_nunique = dupes["new_col"].nunique()
+                        logger.warning(
+                            f"[DUPLICATES?] {old_nunique} -> {new_nunique}: Number of unique changed when {merge_col_name} -> {original_col_name}!"
+                        )
+                    else:
+                        logger.info(
+                            f"No duplicate warning for you. {original_col_name} seems to have 1:1 values with {merge_col_name}."
+                        )
+
+                    # Write changed column to dataframe
+                    df[original_col_name] = df["new_col"]
+                    df = df.drop(columns=[merge_col_name, "new_col"])
+                return df, False
+
+        # Merge and log stats
+        if "snr_from_fnr" in df.columns:
+            df, return_dupes_now = merge_and_log(df, snr_col_name, "snr_from_fnr")
+            if return_dupes_now:
+                return df
+        if "snr_from_snr" in df.columns:
+            df, return_dupes_now = merge_and_log(df, snr_col_name, "snr_from_snr")
+            if return_dupes_now:
+                return df
+        if "fnr_from_fnr" in df.columns:
+            df, return_dupes_now = merge_and_log(df, fnr_col_name, "fnr_from_fnr")
+            if return_dupes_now:
+                return df
+
+        if create_snr_mrk or (create_snr_mrk is None and "snr_mrk" in df.columns):
+            logger.info("Re-deriving snr_mrk.")
+            df = df.drop(columns=["snr_mrk"], errors="ignore").pipe(snr_mrk)
+        else:
+            logger.info(
+                "Not re-deriving snr_mrk, set create_snr_mrk to True if you want snr_mrk created/updated."
+            )
+
+        return df
 
 
 def generate_uuid_for_snr_with_fnr_col(

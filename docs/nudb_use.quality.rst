@@ -10,6 +10,14 @@ Subpackages
    nudb_use.quality.specific_variables
 
 
+nudb\_use.quality.check\_bool\_string\_columns module
+-----------------------------------------------------
+
+.. automodule:: nudb_use.quality.check_bool_string_columns
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.quality.check\_drop\_cols module
 ------------------------------------------
 
