@@ -98,7 +98,9 @@ def get_file_short_name(p: Path) -> str:
         str: File short name without period and version fragments.
     """
     p = Path(p)  # In case someone sends a str...
-    return DaplaDatasetPathInfo(p).dataset_short_name
+    short_name = DaplaDatasetPathInfo(p).dataset_short_name
+
+    return short_name if short_name else ""
 
 
 def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:

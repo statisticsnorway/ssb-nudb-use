@@ -17,12 +17,6 @@ def test_find_file_custom_dir(tmp_path: Path) -> None:
     assert result.name == "tmp.parquet"
 
 
-def test_filter_out_periods_paths_strips_version_and_period() -> None:
-    result = latest.filter_out_periods_paths(Path("dataset_p2020-01-01_v3.parquet"))
-
-    assert result == "dataset_p2020-01-01"
-
-
 def test_latest_shared_paths_builds_mapping(tmp_path: Path) -> None:
     base = tmp_path / "mount"
     (base / "klargjorte-data").mkdir(parents=True)

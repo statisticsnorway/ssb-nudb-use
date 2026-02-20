@@ -78,7 +78,7 @@ def test_nudbdata(
 
     NudbData("utd_hoeyeste")
     NudbData("igang")
-    NudbData("utd_sosbak")
+    NudbData("utd_foreldres_utdnivaa")
 
 
 def test_fetch_string_column_and_tables() -> None:
