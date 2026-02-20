@@ -37,9 +37,6 @@ def _generate_utd_hoeyeste_table(
     else:
         last_year = max(last_year, last_year_data)
 
-    # years = list(range(last_year, first_year - 1, -1))
-    # utd_hoeyeste_year = {}
-
     base = eksamen_avslutta_hoeyeste_rangert
     # Ensure datetime64[ns]
     base["utd_hoeyeste_dato"] = pd.to_datetime(base["utd_hoeyeste_dato"])
