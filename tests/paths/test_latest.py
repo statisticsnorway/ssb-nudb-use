@@ -29,5 +29,5 @@ def test_latest_shared_paths_builds_mapping(tmp_path: Path) -> None:
 
     paths = latest.latest_shared_paths()
 
-    assert paths == {"a_p2021-01-01": file_a, "b_p2021-02-02": file_b}
-    assert latest.latest_shared_paths("a_p2021-01-01") == file_a
+    assert paths == {"a": file_a, "b": file_b}
+    assert latest.latest_shared_paths("a") == file_a
