@@ -86,7 +86,7 @@ def _generate_slekt_snr_view(alias: str, connection: db.DuckDBPyConnection) -> N
     from nudb_use.datasets.nudb_data import NudbData
 
     slekt = NudbData("slekt")
-    fnr2snr = NudbData("snrkat_fnr2snr")
+    fnr2snr = NudbData("_snrkat_fnr2snr")
 
     query = f"""
         CREATE VIEW

@@ -44,9 +44,9 @@ class NudbDatabase:
             "eksamen_hoeyeste": _generate_eksamen_hoeyeste_table,
             "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
             "utd_hoeyeste": _generate_utd_hoeyeste_table,
-            "snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
+            "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "slekt_snr": _generate_slekt_snr_view,
-            "snr2alder16": _generate_snr2alder16_view,
+            "_snr2alder16": _generate_snr2alder16_view,
             "utd_sosbak": _generate_utd_sosbak_view,
             "utd_person": _generate_utd_person_view,
         }
@@ -72,6 +72,10 @@ class NudbDatabase:
         """Get database connection."""
         return self._connection
 
+    def show_datasets(self, show_private: bool = False) -> list[str]:
+        """Get datasets in NudbDatabase."""
+        return sorted([x for x in self._dataset_names if x[0] != "_" or show_private])
+
 
 _NUDB_DATABASE = NudbDatabase()
 
@@ -79,3 +83,15 @@ _NUDB_DATABASE = NudbDatabase()
 def reset_nudb_database() -> None:
     """Reset (I.e., clear) the internal database."""
     _NUDB_DATABASE._reset()
+
+
+def show_nudb_datasets(show_private: bool = False) -> list[str]:
+    """Get datasets in NudbDatabase.
+
+    Args:
+        show_private: Should private datasets be shown?
+
+    Returns:
+        list[str]: A list with dataset names.
+    """
+    return _NUDB_DATABASE.show_datasets(show_private)

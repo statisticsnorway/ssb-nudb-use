@@ -5,7 +5,7 @@ def _generate_utd_sosbak_view(alias: str, connection: db.DuckDBPyConnection) -> 
     from nudb_use.datasets.nudb_data import NudbData
 
     slekt_snr = NudbData("slekt_snr")
-    snr2alder16 = NudbData("snr2alder16")
+    snr2alder16 = NudbData("_snr2alder16")
     utd_hoeyeste = NudbData("utd_hoeyeste")
 
     query = f"""

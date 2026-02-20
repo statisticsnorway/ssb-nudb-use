@@ -35,13 +35,13 @@ settings.variables.kjoenn = settings.variables.pers_kjoenn.copy()
 settings.variables.kjoenn.renamed_from = None
 settings.variables.kjoenn.name = "kjoenn"
 
-settings.variables.mor_snr = settings.variables.snr.copy()
-settings.variables.mor_snr.renamed_from = None
-settings.variables.mor_snr.name = "mor_snr"
+settings.variables.mor_fnr = settings.variables.fnr.copy()
+settings.variables.mor_fnr.renamed_from = None
+settings.variables.mor_fnr.name = "mor_fnr"
 
-settings.variables.far_snr = settings.variables.snr.copy()
-settings.variables.far_snr.renamed_from = None
-settings.variables.far_snr.name = "far_snr"
+settings.variables.far_fnr = settings.variables.fnr.copy()
+settings.variables.far_fnr.renamed_from = None
+settings.variables.far_fnr.name = "far_fnr"
 
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
