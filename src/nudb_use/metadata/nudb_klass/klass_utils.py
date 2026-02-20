@@ -116,7 +116,7 @@ def _prioritize_dates_from_param_or_config(
         data_time_end: Requested end date (YYYY-MM-DD).
 
     Returns:
-        A tuple (from_date, to_date) in YYYY-MM-DD, or (None, None) if no date constraints apply.
+        tuple[str | None, str | None]: (from_date, to_date) in YYYY-MM-DD, or (None, None) if no date constraints apply.
 
     Raises:
         ValueError: If the requested window does not overlap the classification availability window.
