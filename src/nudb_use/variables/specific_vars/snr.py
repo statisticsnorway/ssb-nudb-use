@@ -92,18 +92,18 @@ def update_snr_with_snrkat(
             Returns:
                 pd.DataFrame: The dataframe with added column with content from snrkat.
             """
-            with LoggerStack(
-                f"Merging {next(iter(snrkat_renames.keys()))} from snrkat onto {ident_col_name}"
-            ):
-                return df.merge(
-                    snrkat[list(snrkat_renames.keys())]
-                    .dropna(how="any")
-                    .drop_duplicates()
-                    .rename(columns=snrkat_renames),
-                    left_on=ident_col_name,
-                    right_on=next(iter(snrkat_renames.keys())),
-                    how="left",
-                )
+            logger.info(
+                f"Merging {list(snrkat_renames.keys())[-1]} from snrkat using {ident_col_name} <- {next(iter(snrkat_renames.keys()))}"
+            )
+            return df.merge(
+                snrkat[list(snrkat_renames.keys())]
+                .dropna(how="any")
+                .drop_duplicates()
+                .rename(columns=snrkat_renames),
+                left_on=ident_col_name,
+                right_on=next(iter(snrkat_renames.values())),
+                how="left",
+            )
 
         # Update fnr
         if update_fnr and fnr_col_name in df.columns:
@@ -130,8 +130,8 @@ def update_snr_with_snrkat(
             df = merge_cols(
                 df,
                 snrkat,
-                ident_col_name=fnr_col_name,
-                snrkat_renames={"snr": "snr_from_snr", "snr_utgatt": "snr"},
+                ident_col_name=snr_col_name,
+                snrkat_renames={"snr_utgatt": "snr", "snr": "snr_from_snr"},
             )
             df_lengths["after snr > snr merge"] = len(df)
 
