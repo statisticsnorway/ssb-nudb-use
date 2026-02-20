@@ -93,7 +93,7 @@ def update_snr_with_snrkat(
                 pd.DataFrame: The dataframe with added column with content from snrkat.
             """
             logger.info(
-                f"Merging {list(snrkat_renames.keys())[-1]} from snrkat using {ident_col_name} <- {next(iter(snrkat_renames.keys()))}"
+                f"Merging {list(snrkat_renames.keys())[-1]} from snrkat using {next(iter(snrkat_renames.keys()))} -> {ident_col_name}"
             )
             return df.merge(
                 snrkat[list(snrkat_renames.keys())]
