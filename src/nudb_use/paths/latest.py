@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from dapla_metadata.datasets.dapla_dataset_path_info import DaplaDatasetPathInfo
 from fagfunksjoner.paths.versions import get_latest_fileversions
 from nudb_config import settings
 
@@ -87,30 +88,17 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
     return files
 
 
-def filter_out_periods_paths(p: Path) -> str:
-    """Filter the versions and periods out of a path.
+def get_file_short_name(p: Path) -> str:
+    """Get short name of a file, from a path.
 
     Args:
         p: Path that potentially includes period/version information.
 
     Returns:
-        str: File stem without period and version fragments.
+        str: File short name without period and version fragments.
     """
     p = Path(p)  # In case someone sends a str...
-    current_stem = p.stem
-
-    # Removing version part
-    last_part = current_stem.rsplit("_", 1)[-1]
-    if last_part[0] == "v" and last_part[1:].isdigit():
-        current_stem = current_stem.rsplit("_", 1)[0]
-
-    # Removing up to two period parts, starts with p followed by 4 digits
-    for _ in range(2):
-        last_part = current_stem.rsplit("_", 1)[-1]
-        if last_part[0] == "p" and last_part[1:].strip("-").isdigit():
-            current_stem = current_stem.rsplit("_", 1)[0]
-
-    return current_stem
+    return DaplaDatasetPathInfo(p).dataset_short_name
 
 
 def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
@@ -129,10 +117,12 @@ def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
     paths = latest_shared_paths(dataset_name)
     if isinstance(paths, Path):
         return dataset_name, paths
+
     paths_dict: dict[str, Path] = paths
     last_key = sorted(paths_dict.keys())[-1]
     last_path = paths_dict[last_key]
     logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
+
     return last_key, last_path
 
 
@@ -157,10 +147,9 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
 
         paths_dict: dict[str, Path] = {}
         for p in latest_parquets:
-            paths_dict[filter_out_periods_paths(p)] = p
+            paths_dict[get_file_short_name(p)] = p
 
         # We should probably log what we found as latest files to disk?
-
         if dataset_name and dataset_name in paths_dict:
             logger.info(
                 f"Found {dataset_name} in the paths_dict, returning single Path."
@@ -169,7 +158,9 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
 
             return paths_dict[dataset_name]
 
+        paths_str = ",\n".join(list(paths_dict.keys()))
         logger.info(
-            f"Did not find {dataset_name} in the paths_dict, all found path keys: {list(paths_dict.keys())}"
+            f"Did not find {dataset_name} in the paths_dict, all found path keys: {paths_str}"
         )
+
         return paths_dict

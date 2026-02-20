@@ -91,11 +91,11 @@ def _generate_slekt_snr_view(alias: str, connection: db.DuckDBPyConnection) -> N
     query = f"""
         CREATE VIEW
             {alias} AS
-        SELECT
-            T2.snr AS snr,
-            T3.snr AS far_snr,
-            T4.snr AS mor_snr,
-            CONCAT(nudb_dataset_id, '>slekt_snr') AS nudb_dataset_id
+        SELECT DISTINCT
+            T2.snr                                           AS snr,
+            ANY_VALUE(T3.snr)                                AS far_snr,
+            ANY_VALUE(T4.snr)                                AS mor_snr,
+            ANY_VALUE(CONCAT(nudb_dataset_id, '>slekt_snr')) AS nudb_dataset_id
         FROM
             {slekt.alias} AS T1
 
@@ -116,6 +116,9 @@ def _generate_slekt_snr_view(alias: str, connection: db.DuckDBPyConnection) -> N
             {fnr2snr.alias} AS T4
         ON
             T1.mor_fnr = T4.fnr
+
+        GROUP BY
+            T2.snr
     """
 
     connection.sql(query)

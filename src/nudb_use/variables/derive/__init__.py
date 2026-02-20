@@ -14,6 +14,7 @@ from . import land
 from . import person_idents
 from . import registrert
 from . import registrert_foerste
+from . import utd_foreldres_utdnivaa
 from . import utd_hoeyeste
 from .derive_decorator import get_derive_function
 
@@ -33,6 +34,7 @@ from .nus_variants import utd_erforeldet_kode_nus
 from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
+from .utd_foreldres_utdnivaa import utd_foreldres_utdnivaa_16aar
 from .utd_hoeyeste import utd_hoeyeste_nus2000
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
@@ -40,6 +42,7 @@ from .utd_skoleaar import utd_skoleaar_slutt
 __all__ = [
     "uh_univ_eller_hoegskole",
     "utd_erforeldet_kode_nus",
+    "utd_foreldres_utdnivaa_16aar",
     "utd_hoeyeste_nus2000",
     "utd_hoeyeste_rangering",
     "utd_klassetrinn_hoey_nus",

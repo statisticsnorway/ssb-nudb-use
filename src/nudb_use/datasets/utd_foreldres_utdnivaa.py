@@ -1,7 +1,9 @@
 import duckdb as db
 
 
-def _generate_utd_sosbak_view(alias: str, connection: db.DuckDBPyConnection) -> None:
+def _generate_utd_foreldres_utdnivaa_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
     from nudb_use.datasets.nudb_data import NudbData
 
     slekt_snr = NudbData("slekt_snr")
@@ -29,7 +31,7 @@ def _generate_utd_sosbak_view(alias: str, connection: db.DuckDBPyConnection) -> 
                 WHEN mor_utd_hoeyeste_rangering IS NULL                      THEN far_nus2000
                 WHEN far_utd_hoeyeste_rangering > mor_utd_hoeyeste_rangering THEN far_nus2000
                 ELSE                                                              mor_nus2000 -- pick mor_nus2000 if better or equal to far_nus2000
-            END AS utd_sosbak
+            END AS utd_foreldres_utdnivaa_16aar
         FROM
             {slekt_snr.alias} AS T1
 
