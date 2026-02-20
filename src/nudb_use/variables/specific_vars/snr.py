@@ -156,17 +156,10 @@ def update_snr_with_snrkat(
             """
             with LoggerStack(f"Combining {merge_col_name} into {original_col_name}"):
                 if merge_col_name in df.columns:
-                    mask = (
-                        (df[original_col_name] != df[merge_col_name])
-                        & (df[merge_col_name].notna())
-                        & (df[merge_col_name].str.len().isin([7, 11]))
+                    # Comparing number of unique values to detect if duplicates might have arisen
+                    unique_count_df = df[[original_col_name, merge_col_name]].dropna(
+                        how="any"
                     )
-                    mask_sum = mask.sum()
-                    logger.info(
-                        f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2)}% of total rows."
-                    )
-                    
-                    unique_count_df = df[[original_col_name, merge_col_name]].dropna(how="any")
                     old_nunique = unique_count_df[original_col_name].nunique()
                     new_nunique = unique_count_df[merge_col_name].nunique()
                     if old_nunique != new_nunique:
@@ -178,6 +171,18 @@ def update_snr_with_snrkat(
                             f"{new_nunique} unique values inserted into {original_col_name} from {merge_col_name}."
                         )
 
+                    # Detect which rows we want to change on
+                    mask = (
+                        (df[original_col_name] != df[merge_col_name])
+                        & (df[merge_col_name].notna())
+                        & (df[merge_col_name].str.len().isin([7, 11]))
+                    )
+                    mask_sum = mask.sum()
+                    logger.info(
+                        f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2)}% of total rows."
+                    )
+
+                    # Do the actual combination of values
                     df.loc[mask, original_col_name] = df[merge_col_name]
                     df = df.drop(columns=merge_col_name)
                 return df
