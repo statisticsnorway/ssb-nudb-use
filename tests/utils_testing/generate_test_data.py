@@ -26,6 +26,27 @@ PREDEFINED_CODES_NEWNAME = {
 }
 
 
+# Monkeypatch some external variables into the config (for now)
+settings.variables.foedselsdato = settings.variables.pers_foedselsdato.copy()
+settings.variables.foedselsdato.renamed_from = None
+settings.variables.foedselsdato.name = "foedselsdato"
+
+settings.variables.kjoenn = settings.variables.pers_kjoenn.copy()
+settings.variables.kjoenn.renamed_from = None
+settings.variables.kjoenn.name = "kjoenn"
+
+settings.variables.mor_fnr = settings.variables.fnr.copy()
+settings.variables.mor_fnr.renamed_from = None
+settings.variables.mor_fnr.name = "mor_fnr"
+
+settings.variables.far_fnr = settings.variables.fnr.copy()
+settings.variables.far_fnr.renamed_from = None
+settings.variables.far_fnr.name = "far_fnr"
+
+settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
+settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
+
+
 def generate_test_variable(
     name: str,
     n: int = 100_000,
@@ -34,16 +55,24 @@ def generate_test_variable(
     seed: int = DEFAULT_SEED,
 ) -> tuple[str, pd.Series]:  # (newname, values)
 
-    if name not in settings.variables.keys():
-        raise ValueError(f"Unable to find '{name}' in config!")
-
     rng = np.random.default_rng(seed=seed)
-    metadata = settings.variables[name]
-    codelist = metadata.klass_codelist
-    length = metadata.length
-    dtype = metadata.dtype
 
-    renamed_from = metadata.renamed_from or []
+    if name in settings.variables.keys():
+        metadata = settings.variables[name]
+        codelist = metadata.klass_codelist
+        length = metadata.length
+        dtype = metadata.dtype
+        renamed_from = metadata.renamed_from or []
+        klass_codelist_from_date = metadata.klass_codelist_from_date
+
+    else:
+        logger.warning(f"Unable to find '{name}' in config!")
+        codelist = 0
+        length = [7]
+        dtype = "STRING"
+        renamed_from = []
+        klass_codelist_from_date = None
+
     has_codelist = codelist is not None and codelist != 0
     length_list = length or []
     has_length = bool(length_list)
@@ -61,7 +90,7 @@ def generate_test_variable(
         # Align generated codes with the same period logic the validator uses
         from_date, to_date = _resolve_date_range(
             klassid=int(codelist),
-            klass_codelist_from_date=metadata.klass_codelist_from_date,
+            klass_codelist_from_date=klass_codelist_from_date,
             data_time_start=None,
             data_time_end=None,
         )
@@ -194,3 +223,20 @@ def eksamen() -> YieldDataFrame:
 @pytest.fixture
 def eksamen_klasserrors() -> YieldDataFrame:
     yield generate_test_data("eksamen", add_klass_errors=True).copy(deep=True)
+
+
+@pytest.fixture
+def freg_situttak() -> YieldDataFrame:
+    yield generate_test_data("freg_situttak", add_old_cols=False, n=10_000).copy(
+        deep=True
+    )
+
+
+@pytest.fixture
+def snrkat() -> YieldDataFrame:
+    yield generate_test_data("snrkat", add_old_cols=False, n=10_000).copy(deep=True)
+
+
+@pytest.fixture
+def slekt() -> YieldDataFrame:
+    yield generate_test_data("slekt", add_old_cols=False, n=10_000).copy(deep=True)

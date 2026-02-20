@@ -1,9 +1,6 @@
-import gc
-
 import duckdb as db
 import pandas as pd
 
-from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 
@@ -40,35 +37,50 @@ def _generate_utd_hoeyeste_table(
     else:
         last_year = max(last_year, last_year_data)
 
-    years = list(range(last_year, first_year - 1, -1))
-    utd_hoeyeste_year = {}
+    base = eksamen_avslutta_hoeyeste_rangert
+    # Ensure datetime64[ns]
+    base["utd_hoeyeste_dato"] = pd.to_datetime(base["utd_hoeyeste_dato"])
 
-    with LoggerStack(f"Deriving `utd_hoeyeste` [{first_year}-{last_year}]."):
-        for i, year in enumerate(years):
+    last_year_data = int(base["utd_hoeyeste_dato"].max().year)
+    last_year = last_year_data if last_year is None else max(last_year, last_year_data)
 
-            logger.info(
-                f"Getting `utd_hoeyeste` for {year} in period {first_year}-{last_year}... [{100*(i+1)/len(years):6.2f}%]"
-            )
-            cutoff_date = pd.to_datetime(f"{year}-10-01")
+    years_df = pd.DataFrame(
+        {"utd_hoeyeste_aar": list(range(last_year, first_year - 1, -1))}
+    )
+    years_df["cutoff_date"] = pd.to_datetime(
+        years_df["utd_hoeyeste_aar"].astype(str) + "-10-01"
+    )
+    years_df["utd_hoeyeste_aar"] = years_df["utd_hoeyeste_aar"].astype(
+        "string[pyarrow]"
+    )
 
-            eksamen_avslutta_hoeyeste_rangert = eksamen_avslutta_hoeyeste_rangert[
-                eksamen_avslutta_hoeyeste_rangert["utd_hoeyeste_dato"] <= cutoff_date
-            ]
+    connection.register(
+        "_base", base[["snr", "nus2000", "utd_hoeyeste_dato", "utd_hoeyeste_rangering"]]
+    )
+    connection.register("_years", years_df)
 
-            gc.collect()
+    logger.info(f"Deriving `utd_hoeyeste` [{first_year}-{last_year}].")
 
-            utd_hoeyeste_year[year] = (
-                eksamen_avslutta_hoeyeste_rangert[
-                    ["snr", "nus2000", "utd_hoeyeste_rangering"]
-                ]
-                .groupby("snr", as_index=False)
-                .first()
-                .assign(utd_hoeyeste_aar=str(year))
-                .astype({"utd_hoeyeste_aar": "string[pyarrow]"})
-            )
+    query = f"""
+        CREATE TABLE
+            {alias} AS
+        SELECT
+            snr, nus2000, utd_hoeyeste_rangering, utd_hoeyeste_aar
+        FROM (
+          SELECT
+            y.utd_hoeyeste_aar,
+            b.snr,
+            b.nus2000,
+            b.utd_hoeyeste_rangering,
+            row_number() OVER (
+              PARTITION BY y.utd_hoeyeste_aar, b.snr
+              ORDER BY b.utd_hoeyeste_rangering DESC
+            ) AS rn
+          FROM _years y
+          JOIN _base b
+            ON b.utd_hoeyeste_dato <= y.cutoff_date
+        )
+        WHERE rn = 1
+    """
 
-    _utd_hoeyeste_pandas = pd.concat(utd_hoeyeste_year)
-    del utd_hoeyeste_year
-    gc.collect()
-
-    connection.execute(f"CREATE TABLE {alias} AS SELECT * FROM _utd_hoeyeste_pandas")
+    connection.execute(query)
