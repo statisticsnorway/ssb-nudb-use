@@ -69,7 +69,7 @@ def update_snr_with_snrkat(
         # Get snrkat contents
         want_cols = ["fnr", "snr_utgatt", "snr"]
         if update_fnr:
-            want_cols = ["fnr_naa"]
+            want_cols += ["fnr_naa"]
         snrkat = NudbData("snrkat").select(", ".join(want_cols)).df()
 
         df_lengths = {"read": len(df)}
@@ -165,9 +165,10 @@ def update_snr_with_snrkat(
                     logger.info(
                         f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2)}% of total rows."
                     )
-
-                    old_nunique = df[mask][original_col_name].nunique()
-                    new_nunique = df[mask][merge_col_name].nunique()
+                    
+                    unique_count_df = df[[original_col_name, merge_col_name]].dropna(how="any")
+                    old_nunique = unique_count_df[original_col_name].nunique()
+                    new_nunique = unique_count_df[merge_col_name].nunique()
                     if old_nunique != new_nunique:
                         logger.warning(
                             f"[DUPLICATES?] {old_nunique} -> {new_nunique}: Number of unique changed when {merge_col_name} -> {original_col_name}!"
