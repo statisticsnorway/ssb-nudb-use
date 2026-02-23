@@ -18,6 +18,14 @@ nudb\_use.datasets.eksamen module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.datasets.external module
+----------------------------------
+
+.. automodule:: nudb_use.datasets.external
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.datasets.igang module
 -------------------------------
 
@@ -26,10 +34,18 @@ nudb\_use.datasets.igang module
    :show-inheritance:
    :undoc-members:
 
-nudb\_use.datasets.nudb\_datasets module
+nudb\_use.datasets.nudb\_data module
+------------------------------------
+
+.. automodule:: nudb_use.datasets.nudb_data
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.datasets.nudb\_database module
 ----------------------------------------
 
-.. automodule:: nudb_use.datasets.nudb_datasets
+.. automodule:: nudb_use.datasets.nudb_database
    :members:
    :show-inheritance:
    :undoc-members:
@@ -38,6 +54,14 @@ nudb\_use.datasets.utd\_hoeyeste module
 ---------------------------------------
 
 .. automodule:: nudb_use.datasets.utd_hoeyeste
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.datasets.utils module
+-------------------------------
+
+.. automodule:: nudb_use.datasets.utils
    :members:
    :show-inheritance:
    :undoc-members:
