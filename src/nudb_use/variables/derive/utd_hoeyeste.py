@@ -40,17 +40,28 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     ].copy()
 
     # Sett sentinellverdier
-    df[nus2000] = df[nus2000].fillna("999999")
+    df[nus2000] = df[nus2000].astype("string[pyarrow]").fillna("999999")
     df[kltrinn2000] = (
         df[kltrinn2000].astype(STRING_DTYPE).fillna("00")
     )  # er klassetrinn ett heltall?
     df[uhgruppe] = (
         df[uhgruppe].astype(STRING_DTYPE).fillna("00")
     )  # 99 er en dårlig default fordi det betyr bachelor i kodelisten, men det er 99 som er bruk i oracle-koden
+    if df[regdato].isna().any():
+        raise ValueError("All rows need to have a school year")
     df[regdato] = (
         df[regdato].astype(STRING_DTYPE).fillna(VENSTRESENSUR)
     )  # Vi bør kanskje benytt venstresensur-dato ved manglende dato her?
 
+    stop_date_from_school_year = (
+        (df[regdato].astype("Int64") + 1).astype(STRING_DTYPE) + "-01-01"
+    ).astype("datetime64[s]")
+    df["utd_aktivitet_slutt"] = (
+        df["utd_aktivitet_slutt"]
+        .fillna(df["uh_eksamen_dato"])
+        .fillna(stop_date_from_school_year)
+    )
+  
     # Make sure NAs dont f-up our exam filter
     df["uh_eksamen_studpoeng"] = df["uh_eksamen_studpoeng"].fillna(0)
 
@@ -83,7 +94,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     trinn_plassering.loc[
         (
             (df[nus2000].str[0] == "3")
-            & (df[kltrinn2000].isin([10, 11]))
+            & (df[kltrinn2000].astype("Int64").isin([10, 11]))
             & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1975, month=10, day=1))
         )
         | (
@@ -97,13 +108,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 
     # Visse plasseringer sorteres etter dato, hvor nyere er bedre
     # Om det IKKE er å anse som en fullføring på UH, så venter vi med å tie-breake på dato
-    dato_kanskje = (
-        df["utd_aktivitet_slutt"]
-        .fillna(df["uh_eksamen_dato"])
-        .fillna(df["utd_aktivitet_slutt"])
-        .dt.strftime("%Y%m")
-        .copy()
-    )
+    dato_kanskje = df["utd_aktivitet_slutt"].dt.strftime("%Y%m").copy()
     # Vi skal plukke "den første gangen en eksamensrecord flipper over 60/120 studiepoeng"
     # Fra foregående aggregerings-logikk får vi bare sammenslåtte eksamensrecords hvor dette er sant
     # Siden dette er tilfelle verdisettes eksamensrecords med reversert dato, slik at eldre sammenslåtte eksamen-records verdsettes over nyere
