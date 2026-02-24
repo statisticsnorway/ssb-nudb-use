@@ -40,7 +40,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     ].copy()
 
     # Sett sentinellverdier
-    df[nus2000] = df[nus2000].astype("string[pyarrow]").fillna("999999")
+    df[nus2000] = df[nus2000].astype(STRING_DTYPE).fillna("999999")
     df[kltrinn2000] = (
         df[kltrinn2000].astype(STRING_DTYPE).fillna("00")
     )  # er klassetrinn ett heltall?
@@ -53,15 +53,19 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         df[regdato].astype(STRING_DTYPE).fillna(VENSTRESENSUR)
     )  # Vi bør kanskje benytt venstresensur-dato ved manglende dato her?
 
-    stop_date_from_school_year = (
-        (df[regdato].astype("Int64") + 1).astype(STRING_DTYPE) + "-01-01"
+    year_plus_one = (df[regdato].astype("Int64") + 1).astype("string[python]")
+    date_strings = year_plus_one.str.cat(
+        pd.Series("-01-01", index=df.index, dtype="string")
+    )
+    stop_date_from_school_year = pd.to_datetime(
+        date_strings, format="%Y-%m-%d", errors="coerce"
     ).astype("datetime64[s]")
     df["utd_aktivitet_slutt"] = (
         df["utd_aktivitet_slutt"]
         .fillna(df["uh_eksamen_dato"])
         .fillna(stop_date_from_school_year)
     )
-  
+
     # Make sure NAs dont f-up our exam filter
     df["uh_eksamen_studpoeng"] = df["uh_eksamen_studpoeng"].fillna(0)
 
@@ -113,7 +117,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     # Fra foregående aggregerings-logikk får vi bare sammenslåtte eksamensrecords hvor dette er sant
     # Siden dette er tilfelle verdisettes eksamensrecords med reversert dato, slik at eldre sammenslåtte eksamen-records verdsettes over nyere
     dato_kanskje.loc[trinn_plassering == "3"] = (
-        (999999 - dato_kanskje.astype("Int64")).astype("string[pyarrow]").str.zfill(6)
+        (999999 - dato_kanskje.astype("Int64")).astype(STRING_DTYPE).str.zfill(6)
     )
     # Innenfor "vanlig sammenligning" - sorterer vi ikke med dato, slik vi gjør på de andre prioritetene
     dato_kanskje.loc[trinn_plassering == "2"] = "000000"
