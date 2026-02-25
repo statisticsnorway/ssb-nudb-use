@@ -30,18 +30,22 @@ PREDEFINED_CODES_NEWNAME = {
 settings.variables.foedselsdato = settings.variables.pers_foedselsdato.copy()
 settings.variables.foedselsdato.renamed_from = None
 settings.variables.foedselsdato.name = "foedselsdato"
+settings.variables.foedselsdato.derived_from = []
 
 settings.variables.kjoenn = settings.variables.pers_kjoenn.copy()
 settings.variables.kjoenn.renamed_from = None
 settings.variables.kjoenn.name = "kjoenn"
+settings.variables.kjoenn.derived_from = []
 
 settings.variables.mor_fnr = settings.variables.fnr.copy()
 settings.variables.mor_fnr.renamed_from = None
 settings.variables.mor_fnr.name = "mor_fnr"
+settings.variables.mor_fnr.derived_from = []
 
 settings.variables.far_fnr = settings.variables.fnr.copy()
 settings.variables.far_fnr.renamed_from = None
 settings.variables.far_fnr.name = "far_fnr"
+settings.variables.far_fnr.derived_from = []
 
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
