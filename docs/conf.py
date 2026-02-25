@@ -14,8 +14,22 @@
 #
 import os
 import sys
+import warnings
 
 sys.path.insert(0, os.path.abspath("../src"))
+
+# Silence deprecation noise from myst-parser under newer Sphinx versions.
+try:
+    from sphinx.deprecation import RemovedInSphinx11Warning
+except Exception:
+    RemovedInSphinx11Warning = None
+
+if RemovedInSphinx11Warning is not None:
+    warnings.filterwarnings(
+        "ignore",
+        category=RemovedInSphinx11Warning,
+        module=r"myst_parser\..*",
+    )
 
 # -- Project information -----------------------------------------------------
 
