@@ -47,8 +47,14 @@ settings.variables.far_fnr.renamed_from = None
 settings.variables.far_fnr.name = "far_fnr"
 settings.variables.far_fnr.derived_from = []
 
+settings.variables.invkat = settings.variables.pers_invkat.copy()
+settings.variables.invkat.renamed_from = None
+settings.variables.invkat.name = "invkat"
+settings.variables.invkat.derived_from = []
+
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
+settings.datasets.innvbef.variables = ["snr", "invkat"]
 
 
 def generate_test_variable(
@@ -244,3 +250,8 @@ def snrkat() -> YieldDataFrame:
 @pytest.fixture
 def slekt() -> YieldDataFrame:
     yield generate_test_data("slekt", add_old_cols=False, n=10_000).copy(deep=True)
+
+
+@pytest.fixture
+def innvbef() -> YieldDataFrame:
+    yield generate_test_data("innvbef", add_old_cols=False, n=10_000).copy(deep=True)
