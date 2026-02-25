@@ -3,6 +3,8 @@ from nudb_config import settings
 
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
+__all__ = ["utd_foreldres_utdnivaa_16aar"]
+
 
 @wrap_derive
 def utd_foreldres_utdnivaa_16aar(
