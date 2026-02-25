@@ -55,6 +55,7 @@ settings.variables.invkat.derived_from = []
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
 settings.datasets.innvbef.variables = ["snr", "invkat"]
+settings.datasets.freg_situttak.variables = ["snr", "kjoenn", "foedselsdato"]
 
 
 def generate_test_variable(
@@ -182,6 +183,7 @@ def generate_test_data(
     add_non_nudb_vars: bool = True,
     add_bad_widths: bool = True,
     seed: int = DEFAULT_SEED,
+    unique_ids: tuple[str] | None = None,
 ) -> pd.DataFrame:
 
     variables = settings.datasets[dataset].variables
@@ -202,7 +204,12 @@ def generate_test_data(
         cols[newname] = values
         logger.info(f"Generation of {var} worked!")
 
-    return pd.DataFrame(cols)
+    out = pd.DataFrame(cols)
+
+    if unique_ids:
+        out = out.drop_duplicates(subset=unique_ids)
+
+    return out
 
 
 @pytest.fixture
@@ -237,9 +244,9 @@ def eksamen_klasserrors() -> YieldDataFrame:
 
 @pytest.fixture
 def freg_situttak() -> YieldDataFrame:
-    yield generate_test_data("freg_situttak", add_old_cols=False, n=10_000).copy(
-        deep=True
-    )
+    yield generate_test_data(
+        "freg_situttak", add_old_cols=False, n=10_000, unique_ids=("snr",)
+    ).copy(deep=True)
 
 
 @pytest.fixture
@@ -254,4 +261,6 @@ def slekt() -> YieldDataFrame:
 
 @pytest.fixture
 def innvbef() -> YieldDataFrame:
-    yield generate_test_data("innvbef", add_old_cols=False, n=10_000).copy(deep=True)
+    yield generate_test_data(
+        "innvbef", add_old_cols=False, n=10_000, unique_ids=("snr",)
+    ).copy(deep=True)

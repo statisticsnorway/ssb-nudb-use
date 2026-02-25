@@ -5,6 +5,7 @@ import pandas as pd
 
 import nudb_use
 from nudb_use.datasets import reset_nudb_database
+from nudb_use.metadata.nudb_config.variable_names import update_colnames
 from nudb_use.variables import derive
 
 
@@ -39,9 +40,14 @@ def test_pers_variables(
 ) -> None:
     patch_nudb_database(freg_situttak, innvbef, tmp_path, monkeypatch)
 
-    _tmp = (
+    result = (
         igang.copy()
+        .pipe(update_colnames)
         .pipe(derive.pers_invkat)
         .pipe(derive.pers_kjoenn)
         .pipe(derive.pers_foedselsdato)
     )
+
+    assert "pers_invkat" in result.columns
+    assert "pers_kjoenn" in result.columns
+    assert "pers_foedselsdato" in result.columns
