@@ -18,7 +18,7 @@ dependencies = [
     "ssb-nudb-config >=2026.2.7",
     "duckdb >=1.4.3",
     "Jinja2 >= 3.1.0",
-    "dapla-toolbelt-metadata (>=0.13.0,<0.14.0)"
+    "dapla-toolbelt-metadata >=0.13.0"
 ]
 
 [project.urls]
