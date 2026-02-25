@@ -35,12 +35,18 @@ def test_validate_path_returns_true_on_success(monkeypatch: pytest.MonkeyPatch) 
     assert paths_validate.validate_path("/tmp/a_p2021_v1.parquet") is True
 
 
-
 def test_validate_path_returns_false_on_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     report = DummyReport(
-        [DummyResult("/tmp/a.parquet", False, violations=["missing_period"], messages=["oops"])]
+        [
+            DummyResult(
+                "/tmp/a.parquet",
+                False,
+                violations=["missing_period"],
+                messages=["oops"],
+            )
+        ]
     )
     monkeypatch.setattr(paths_validate, "_get_single_report", lambda _: report)
 
@@ -51,9 +57,21 @@ def test_validate_path_raises_on_failure_when_requested(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     report = DummyReport(
-        [DummyResult("/tmp/a.parquet", False, violations=["missing_period"], messages=["oops"])]
+        [
+            DummyResult(
+                "/tmp/a.parquet",
+                False,
+                violations=["missing_period"],
+                messages=["oops"],
+            )
+        ]
     )
     monkeypatch.setattr(paths_validate, "_get_single_report", lambda _: report)
+    monkeypatch.setattr(
+        paths_validate,
+        "_make_errors_list",
+        lambda _report: [paths_validate.SsbPathValidationError("boom")],
+    )
 
     with pytest.raises(ExceptionGroup) as excinfo:
         paths_validate.validate_path("/tmp/a.parquet", raise_errors=True)
@@ -73,7 +91,10 @@ def test_validate_paths_returns_false_when_any_fail(
     )
     monkeypatch.setattr(paths_validate, "_get_single_report", lambda _: next(reports))
 
-    assert paths_validate.validate_paths(["/tmp/a_p2021_v1.parquet", "/tmp/b.parquet"]) is False
+    assert (
+        paths_validate.validate_paths(["/tmp/a_p2021_v1.parquet", "/tmp/b.parquet"])
+        is False
+    )
 
 
 def test_validate_paths_raises_all_errors(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -84,6 +105,11 @@ def test_validate_paths_raises_all_errors(monkeypatch: pytest.MonkeyPatch) -> No
         ]
     )
     monkeypatch.setattr(paths_validate, "_get_single_report", lambda _: next(reports))
+    monkeypatch.setattr(
+        paths_validate,
+        "_make_errors_list",
+        lambda _report: [paths_validate.SsbPathValidationError("boom")],
+    )
 
     with pytest.raises(ExceptionGroup) as excinfo:
         paths_validate.validate_paths(
