@@ -15,14 +15,15 @@ def _apply_pers320_mapping(
     name320 = name320 or name360
 
     metadata = settings.variables[name360]
-    join_keys = metadata.derived_join_keys
-    dataset = metadata.derived_uses_datasets[0]
+    join_keys = metadata.derived_join_keys or []
+    datasets = metadata.derived_uses_datasets
 
-    if len(metadata.derived_uses_datasets) > 1:
+    if not datasets or len(datasets) > 1:
         raise ValueError(
             f"Expected a single dataset, got: {metadata.derived_uses_datasets}"
         )
 
+    dataset = datasets[0]
     keys_str = ", ".join(join_keys)
 
     right = (
