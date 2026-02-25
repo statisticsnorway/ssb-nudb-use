@@ -5,6 +5,7 @@ from .utils_testing.generate_test_data import eksamen_klasserrors
 from .utils_testing.generate_test_data import freg_situttak
 from .utils_testing.generate_test_data import igang
 from .utils_testing.generate_test_data import igang_klasserrors
+from .utils_testing.generate_test_data import innvbef
 from .utils_testing.generate_test_data import slekt
 from .utils_testing.generate_test_data import snrkat
 
@@ -16,6 +17,7 @@ __all__ = [
     "freg_situttak",
     "igang",
     "igang_klasserrors",
+    "innvbef",
     "slekt",
     "snrkat",
 ]
