@@ -34,6 +34,20 @@ def _generate_vof_eierforhold_view(
         ;
     """
 
+    # Logikk i grunnskoledata
+    #        undersektor_col = 'undersektor_2014'
+    #
+    #    # Definer betingelser og tilhørende verdier
+    #    conditions = [
+    #        (df[undersektor_col] == "006"),
+    #        (df[undersektor_col] == "007"),
+    #        (df[undersektor_col] == "001"),
+    #        (df[undersektor_col] == "005"),
+    #        (df[undersektor_col].isna())
+    #    ]
+    #
+    #    values = ["4", "5", "3", "1", "3"]
+
     connection.sql(query)
 
 
