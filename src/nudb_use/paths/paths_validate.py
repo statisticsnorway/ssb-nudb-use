@@ -14,18 +14,18 @@ from nudb_use.nudb_logger import logger
 def generate_validation_report_dont_print(
     validation_results: list[ValidationResult],
 ) -> NamingStandardReport:
-    """Generate and a standard validation report.
+    """Generate a standard validation report.
 
     This function takes a list of `ValidationResult` objects and creates a
     `NamingStandardReport` instance.
 
     Args:
         validation_results: A list of ValidationResult objects that
-        contain the outcomes of the name standard checks.
+            contain the outcomes of the name standard checks.
 
     Returns:
         NamingStandardReport: An instance of `NamingStandardReport` containing
-        the validation results.
+            the validation results.
     """
     report = NamingStandardReport(validation_results=validation_results)
     return report
