@@ -30,21 +30,32 @@ PREDEFINED_CODES_NEWNAME = {
 settings.variables.foedselsdato = settings.variables.pers_foedselsdato.copy()
 settings.variables.foedselsdato.renamed_from = None
 settings.variables.foedselsdato.name = "foedselsdato"
+settings.variables.foedselsdato.derived_from = []
 
 settings.variables.kjoenn = settings.variables.pers_kjoenn.copy()
 settings.variables.kjoenn.renamed_from = None
 settings.variables.kjoenn.name = "kjoenn"
+settings.variables.kjoenn.derived_from = []
 
 settings.variables.mor_fnr = settings.variables.fnr.copy()
 settings.variables.mor_fnr.renamed_from = None
 settings.variables.mor_fnr.name = "mor_fnr"
+settings.variables.mor_fnr.derived_from = []
 
 settings.variables.far_fnr = settings.variables.fnr.copy()
 settings.variables.far_fnr.renamed_from = None
 settings.variables.far_fnr.name = "far_fnr"
+settings.variables.far_fnr.derived_from = []
+
+settings.variables.invkat = settings.variables.pers_invkat.copy()
+settings.variables.invkat.renamed_from = None
+settings.variables.invkat.name = "invkat"
+settings.variables.invkat.derived_from = []
 
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
+settings.datasets.innvbef.variables = ["snr", "invkat"]
+settings.datasets.freg_situttak.variables = ["snr", "kjoenn", "foedselsdato"]
 
 
 def generate_test_variable(
@@ -172,6 +183,7 @@ def generate_test_data(
     add_non_nudb_vars: bool = True,
     add_bad_widths: bool = True,
     seed: int = DEFAULT_SEED,
+    unique_ids: tuple[str] | None = None,
 ) -> pd.DataFrame:
 
     variables = settings.datasets[dataset].variables
@@ -192,7 +204,12 @@ def generate_test_data(
         cols[newname] = values
         logger.info(f"Generation of {var} worked!")
 
-    return pd.DataFrame(cols)
+    out = pd.DataFrame(cols)
+
+    if unique_ids:
+        out = out.drop_duplicates(subset=unique_ids)
+
+    return out
 
 
 @pytest.fixture
@@ -227,9 +244,9 @@ def eksamen_klasserrors() -> YieldDataFrame:
 
 @pytest.fixture
 def freg_situttak() -> YieldDataFrame:
-    yield generate_test_data("freg_situttak", add_old_cols=False, n=10_000).copy(
-        deep=True
-    )
+    yield generate_test_data(
+        "freg_situttak", add_old_cols=False, n=10_000, unique_ids=("snr",)
+    ).copy(deep=True)
 
 
 @pytest.fixture
@@ -240,3 +257,10 @@ def snrkat() -> YieldDataFrame:
 @pytest.fixture
 def slekt() -> YieldDataFrame:
     yield generate_test_data("slekt", add_old_cols=False, n=10_000).copy(deep=True)
+
+
+@pytest.fixture
+def innvbef() -> YieldDataFrame:
+    yield generate_test_data(
+        "innvbef", add_old_cols=False, n=10_000, unique_ids=("snr",)
+    ).copy(deep=True)
