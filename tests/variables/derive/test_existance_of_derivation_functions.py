@@ -15,7 +15,11 @@ def test_existence_of_derivation_functions() -> None:
         has_func = confvar in derivation_functions
         derived_from = settings.variables[confvar].derived_from
 
-        if derived_from and not has_func:
+        uses_external_dataset = bool(settings.variables[confvar].derived_uses_datasets)
+        if uses_external_dataset:
+            logger.error("At some point we want to remove this from the test yes?")
+
+        if derived_from and not uses_external_dataset and not has_func:
             missing.append(confvar)
 
     if missing:

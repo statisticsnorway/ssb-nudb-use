@@ -1,11 +1,34 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from dapla_metadata.standards import check_naming_standard
-from dapla_metadata.standards import generate_validation_report
 from dapla_metadata.standards.name_validator import NamingStandardReport
+from dapla_metadata.standards.name_validator import ValidationResult
 
 from nudb_use.exceptions.groups import raise_exception_group
+from nudb_use.nudb_logger import LoggerStack
+from nudb_use.nudb_logger import logger
+
+
+def generate_validation_report_dont_print(
+    validation_results: list[ValidationResult],
+) -> NamingStandardReport:
+    """Generate and a standard validation report.
+
+    This function takes a list of `ValidationResult` objects and creates a
+    `NamingStandardReport` instance.
+
+    Args:
+        validation_results: A list of ValidationResult objects that
+        contain the outcomes of the name standard checks.
+
+    Returns:
+        NamingStandardReport: An instance of `NamingStandardReport` containing
+        the validation results.
+    """
+    report = NamingStandardReport(validation_results=validation_results)
+    return report
 
 
 class SsbPathValidationError(Exception):
@@ -15,8 +38,18 @@ class SsbPathValidationError(Exception):
 
 
 def _get_single_report(path: str | Path) -> NamingStandardReport:
-    results = asyncio.run(check_naming_standard(path))
-    return generate_validation_report(results)
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        results = asyncio.run(check_naming_standard(path))
+    else:
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            return generate_validation_report_dont_print(
+                ex.submit(asyncio.run, check_naming_standard(path)).result()
+            )
+    return generate_validation_report_dont_print(
+        results,
+    )
 
 
 def _make_errors_list(report: NamingStandardReport) -> list[SsbPathValidationError]:
@@ -40,17 +73,22 @@ def validate_path(path: str | Path, raise_errors: bool = False) -> bool:
         bool: If we are not raising errors: the function returns True if no errors where found,
             False if we found errors.s
     """
-    report = _get_single_report(path)
+    with LoggerStack(f"Validationg the path {path}"):
+        report = _get_single_report(path)
 
-    # Constructing errors is hard work, so lets leave bool validations as early exists
-    if report.num_failures >= 1 and not raise_errors:
+        # Constructing errors is hard work, so lets leave bool validations as early exists
+        if report.num_failures >= 1 and not raise_errors:
+            logger.info(
+                "Found {report.num_failures} naming validation failures: {path}"
+            )
+            return False
+        elif report.num_failures == 0:
+            logger.info("0 naming validation failures.")
+            return True
+
+        # There should be errors here, because the num_failures is not 0
+        raise_exception_group(_make_errors_list(report))
         return False
-    elif report.num_failures == 0:
-        return True
-
-    # There should be errors here, because the num_failures is not 0
-    raise_exception_group(_make_errors_list(report))
-    return False
 
 
 def validate_paths(paths: list[str | Path], raise_errors: bool = False) -> bool:
@@ -70,8 +108,10 @@ def validate_paths(paths: list[str | Path], raise_errors: bool = False) -> bool:
         report = _get_single_report(path)
         if report.num_failures >= 1:
             bool_results.append(False)
+            logger.info("Found {report.num_failures} naming validation failures.")
             errored_reports.append(report)
         elif report.num_failures == 0:
+            logger.info("0 naming validation failures.")
             bool_results.append(True)
 
     if not raise_errors:
