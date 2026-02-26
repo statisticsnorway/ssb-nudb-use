@@ -21,6 +21,8 @@ from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_table
+from nudb_use.datasets.vof import _generate_vof_eierforhold_view
+from nudb_use.datasets.vof import _generate_vof_orgnr_bed2foretak_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 
@@ -51,6 +53,8 @@ class NudbDatabase:
             "_snr2alder16": _generate_snr2alder16_view,
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
+            "_vof_eierforhold": _generate_vof_eierforhold_view,
+            "_vof_orgnr_bed2foretak": _generate_vof_orgnr_bed2foretak_view,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
