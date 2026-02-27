@@ -151,10 +151,27 @@ def _prioritize_dates_from_param_or_config(
         from_dt = dateutil.parser.parse(from_date)
         to_dt = dateutil.parser.parse(to_date)
         if from_dt > to_dt:
-            raise ValueError(
-                f"Requested data window [{data_time_start}, {data_time_end}] does not overlap "
-                f"KLASS klassid={klassid} availability [{first_available_date}, {last_available_date}]. "
-                f"Computed from={from_date} to={to_date}."
+
+            first = dateutil.parser.parse(last_available_date)
+            last = dateutil.parser.parse(first_available_date)
+
+            # Keep from date in the limits
+            if from_dt < first:
+                from_date = first_available_date
+            if from_dt > last:
+                from_date = last_available_date
+
+            if to_dt > last:
+                to_date = last_available_date
+            if to_dt < first:
+                to_date = first_available_date
+
+            logger.warning(
+                f"Klass from date was lower than to date, we are pushing them inside the available range: {from_date} - {to_date}"
             )
+
+    # Klass-api does not like when both are sent, and are the same date
+    if from_date == to_date:
+        return from_date, None
 
     return from_date, to_date
