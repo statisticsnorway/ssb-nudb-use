@@ -13,24 +13,27 @@ def _generate_vof_eierforhold_view(
         -- KIRK i orgform skal ha eierforhold privat. undersektor med fra 2014 for å skille ut komm fylk --
         CREATE VIEW
             {alias} AS
+
         SELECT DISTINCT
             org_nr AS vof_orgnr_foretak,
+            orgnrbed AS bof_orgnrbed,
+            org_form,
+
             CASE
-                WHEN (org_form == 'KIRK')                                                          THEN '3'
-                WHEN (org_form == 'STAT' AND sektor_2014 == '6100')                                THEN '1'
-                WHEN (org_form == 'SÆR'  AND sektor_2014 == '6100'  AND undersektor_2014 == '005') THEN '1'
-                WHEN (org_form == 'KOMM' AND sektor_2014 == '6500'  AND undersektor_2014 == '006') THEN '4'
-                WHEN (org_form == 'KF'   AND sektor_2014 == '6500'  AND undersektor_2014 == '006') THEN '4'
-                WHEN (org_form == 'IKS'  AND sektor_2014 == '6500'  AND undersektor_2014 == '006') THEN '4'
-                WHEN (org_form == 'ORGL' AND sektor_2014 == '6500'  AND undersektor_2014 == '006') THEN '4'
-                WHEN (org_form == 'FYLK' AND sektor_2014 == '6500'  AND undersektor_2014 == '007') THEN '5'
-                ELSE                                                                                    '3'
+                WHEN undersektor_2014 == '001' THEN '3'
+                WHEN undersektor_2014 == '005' THEN '1'
+                WHEN undersektor_2014 == '006' THEN '4'
+                WHEN undersektor_2014 == '007' THEN '5'
+                ELSE                                '3'
             END AS vof_eierforhold
+
         FROM
             {vof_situttak.alias}
+
         WHERE
             vof_orgnr_foretak IS NOT NULL AND
-            orgnrbed          IS NULL
+            orgnrbed          IS NULL AND
+            org_form          IS NOT NULL
         ;
     """
 
