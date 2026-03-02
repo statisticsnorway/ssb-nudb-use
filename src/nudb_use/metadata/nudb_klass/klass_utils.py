@@ -154,20 +154,20 @@ def _prioritize_dates_from_param_or_config(
     to_date = _center_adjust(last_available_date, data_time_end, how="to")
 
     # What do we do if to_date is earlier than from_date?
-    to_date = _center_adjust(from_date, to_date, how="to")
+    to_date = _center_adjust(from_date, to_date, how="from")
 
     # What do we do if the dates now have passed the available date range?
     from_date = _center_adjust(from_date, last_available_date, how="to")
     to_date = _center_adjust(to_date, first_available_date, how="from")
 
+    logger.info(f"Prioritized dates for klass: {from_date=}, {to_date=}.")
+    logger.debug(
+        f"From date based on: {klass_codelist_from_date=}, {data_time_start=}, {first_available_date=}"
+    )
+    logger.debug(f"To date based on: {data_time_end=}, {last_available_date=}")
+
     # Klass-api does not like when both are sent, and are the same date
     if from_date == to_date:
         return from_date, None
-
-    logger.info(f"Prioritized dates for klass: {from_date=}, {to_date=}.")
-    logger.info(
-        f"From date based on: {klass_codelist_from_date=}, {data_time_start=}, {first_available_date=}"
-    )
-    logger.info(f"To date based on: {data_time_end=}, {last_available_date=}")
 
     return from_date, to_date
