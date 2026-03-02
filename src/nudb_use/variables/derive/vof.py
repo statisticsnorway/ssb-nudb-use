@@ -11,7 +11,7 @@ __all__ = ["vof_eierforhold", "vof_orgnr_foretak"]
 def vof_orgnr_foretak(df: pd.DataFrame) -> pd.Series:
     """Derive vof_orgnr_foretak."""
     metadata = settings.variables["vof_orgnr_foretak"]
-    datasets = metadata.derived_uses_dataset
+    datasets = metadata.derived_uses_datasets
 
     if not datasets:
         raise ValueError(f"Expected a single dataset name, got: {datasets}.")
@@ -19,18 +19,20 @@ def vof_orgnr_foretak(df: pd.DataFrame) -> pd.Series:
     dataset = datasets[0]
     catalogue = NudbData(dataset).df()
     orgnrbed_mapping = dict(
-        zip(catalogue["vof_orgnrbed"], catalogue["vof_orgnr_foretak"], strict=True)
+        zip(catalogue["bof_orgnrbed"], catalogue["vof_orgnr_foretak"], strict=True)
     )
 
     utd_orgnr = df["utd_orgnr"]
-    utd_orgnrbed = df["utd_orgnrbed"]
+    utd_orgnrbed = df["bof_orgnrbed"]
 
     is_foretak = utd_orgnr.notna() & ((utd_orgnr != utd_orgnrbed) | utd_orgnrbed.isna())
 
     utd_orgnr_foretak = utd_orgnr.copy()
     utd_orgnr_foretak[~is_foretak] = pd.NA
 
-    utd_orgnr_foretak = utd_orgnr_foretak.fillna(utd_orgnrbed.map(orgnrbed_mapping))
+    utd_orgnr_foretak = utd_orgnr_foretak.fillna(
+        utd_orgnrbed.map(orgnrbed_mapping)
+    ).fillna(pd.NA)
 
     return utd_orgnr_foretak
 
@@ -39,7 +41,7 @@ def vof_orgnr_foretak(df: pd.DataFrame) -> pd.Series:
 def vof_eierforhold(df: pd.DataFrame) -> pd.Series:
     """Derive vof_eierforhold."""
     metadata = settings.variables["vof_eierforhold"]
-    datasets = metadata.derived_uses_dataset
+    datasets = metadata.derived_uses_datasets
 
     if not datasets:
         raise ValueError(f"Expected a single dataset name, got: {datasets}.")
@@ -50,4 +52,4 @@ def vof_eierforhold(df: pd.DataFrame) -> pd.Series:
         zip(catalogue["vof_orgnr_foretak"], catalogue["vof_eierforhold"], strict=True)
     )
 
-    return df["vof_orgnr_foretak"].map(orgnrf_mapping)
+    return df["vof_orgnr_foretak"].map(orgnrf_mapping).fillna(pd.NA)

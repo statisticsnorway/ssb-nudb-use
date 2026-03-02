@@ -67,12 +67,12 @@ def _generate_vof_orgnr_bed2foretak_view(
         CREATE VIEW
             {alias} AS
         SELECT DISTINCT
-            orgnrbed AS vof_orgnrbed,
+            orgnrbed AS bof_orgnrbed,
             org_nr   AS vof_orgnr_foretak
         FROM
             {vof_situttak.alias}
         WHERE
-            vof_orgnrbed IS NOT NULL AND
+            bof_orgnrbed IS NOT NULL AND
             vof_orgnr_foretak IS NOT NULL
         ;
     """
