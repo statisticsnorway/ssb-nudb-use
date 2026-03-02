@@ -50,6 +50,30 @@ nudb\_use.datasets.nudb\_database module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.datasets.person module
+--------------------------------
+
+.. automodule:: nudb_use.datasets.person
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.datasets.snrkat module
+--------------------------------
+
+.. automodule:: nudb_use.datasets.snrkat
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.datasets.utd\_foreldres\_utdnivaa module
+--------------------------------------------------
+
+.. automodule:: nudb_use.datasets.utd_foreldres_utdnivaa
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.datasets.utd\_hoeyeste module
 ---------------------------------------
 

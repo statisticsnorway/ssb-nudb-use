@@ -25,3 +25,11 @@ nudb\_use.paths.path\_utils module
    :members:
    :show-inheritance:
    :undoc-members:
+
+nudb\_use.paths.paths\_validate module
+--------------------------------------
+
+.. automodule:: nudb_use.paths.paths_validate
+   :members:
+   :show-inheritance:
+   :undoc-members:

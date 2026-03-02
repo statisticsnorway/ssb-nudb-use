@@ -66,6 +66,14 @@ nudb\_use.variables.derive.nus\_variants module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.variables.derive.person module
+----------------------------------------
+
+.. automodule:: nudb_use.variables.derive.person
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.variables.derive.person\_idents module
 ------------------------------------------------
 
@@ -94,6 +102,14 @@ nudb\_use.variables.derive.uh\_univ\_eller\_hoegskole module
 ------------------------------------------------------------
 
 .. automodule:: nudb_use.variables.derive.uh_univ_eller_hoegskole
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.variables.derive.utd\_foreldres\_utdnivaa module
+----------------------------------------------------------
+
+.. automodule:: nudb_use.variables.derive.utd_foreldres_utdnivaa
    :members:
    :show-inheritance:
    :undoc-members:
