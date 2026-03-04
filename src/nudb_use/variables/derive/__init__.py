@@ -17,6 +17,7 @@ from . import registrert
 from . import registrert_foerste
 from . import utd_foreldres_utdnivaa
 from . import utd_hoeyeste
+from . import vof
 from .derive_decorator import get_derive_function
 
 derive_all_submodules = (
@@ -31,6 +32,7 @@ derive_all_submodules = (
     land,
     person_idents,
     person,
+    vof,
 )
 
 from .nus_variants import utd_erforeldet_kode_nus
@@ -44,6 +46,8 @@ from .utd_foreldres_utdnivaa import utd_foreldres_utdnivaa_16aar
 from .utd_hoeyeste import utd_hoeyeste_nus2000
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
+from .vof import vof_eierforhold
+from .vof import vof_orgnr_foretak
 
 __all__ = [
     "pers_foedselsdato",
@@ -57,6 +61,8 @@ __all__ = [
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
+    "vof_eierforhold",
+    "vof_orgnr_foretak",
 ]
 
 
