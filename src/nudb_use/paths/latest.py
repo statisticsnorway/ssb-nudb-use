@@ -9,17 +9,18 @@ from nudb_config import settings
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-
 ENV = "daplalab_mounted"
 
 SHARED_ROOT_EXTERNAL = settings.paths[ENV].get(
-    "shared_root_external", "/buckets/shared")
+    "shared_root_external", "/buckets/shared"
+)
 SHARED_UTDANNING_EXTERNAL = settings.paths[ENV].get(
-    "shared_utdanning_external", "/buckets/shared/utd-nudb/utdanning/")
+    "shared_utdanning_external", "/buckets/shared/utd-nudb/utdanning/"
+)
 SHARED_UTDANNING_INTERNAL = settings.paths[ENV].get(
-    "shared_utdanning_internal", "/buckets/delt-utdanning/nudb-data")
-PRODUKT = settings.paths[ENV].get(
-    "produkt", "/buckets/produkt/nudb-data/")
+    "shared_utdanning_internal", "/buckets/delt-utdanning/nudb-data"
+)
+PRODUKT = settings.paths[ENV].get("produkt", "/buckets/produkt/nudb-data/")
 
 POSSIBLE_PATHS = [
     Path(SHARED_UTDANNING_EXTERNAL),
@@ -79,7 +80,9 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
     ):
         datameta = settings.datasets[filename]
         if datameta.team and datameta.bucket and datameta.path_glob:
-            local_path = Path(f"{SHARED_ROOT_EXTERNAL}/{datameta.team}/{datameta.bucket}/")
+            local_path = Path(
+                f"{SHARED_ROOT_EXTERNAL}/{datameta.team}/{datameta.bucket}/"
+            )
             found_files = list(local_path.glob(datameta.path_glob))
             if found_files:
                 return found_files
