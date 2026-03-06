@@ -2,8 +2,7 @@ from nudb_config import settings
 
 
 def datasetname_teams_buckets(
-    teams_include: list[str] | None = None,
-    exclude_nudbs_indata: bool = True
+    teams_include: list[str] | None = None, exclude_nudbs_indata: bool = True
 ) -> dict[str, dict[str, str]]:
     """Get the dataset names, teams and buckets you should get permissions for, that nudb uses.
 
