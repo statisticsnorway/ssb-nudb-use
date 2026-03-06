@@ -13,6 +13,7 @@ from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
+from nudb_use.datasets.person import _generate_bokommune_16aar_snr
 from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
 from nudb_use.datasets.person import _generate_utd_person_view
@@ -51,6 +52,7 @@ class NudbDatabase:
             "_snr2alder16": _generate_snr2alder16_view,
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
+            "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:

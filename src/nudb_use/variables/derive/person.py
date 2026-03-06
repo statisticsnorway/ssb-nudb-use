@@ -6,7 +6,7 @@ from nudb_use.nudb_logger import logger
 
 from .derive_decorator import wrap_derive
 
-__all__ = ["pers_foedselsdato", "pers_invkat", "pers_kjoenn"]
+__all__ = ["pers_bokommune_16aar", "pers_foedselsdato", "pers_invkat", "pers_kjoenn"]
 
 
 def _apply_pers320_mapping(
@@ -46,6 +46,26 @@ def _apply_pers320_mapping(
 
 
 @wrap_derive
+def pers_bokommune_16aar(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive bokommune_16aar."""
+    return _apply_pers320_mapping(
+        left=df, name360="pers_bokommune_16aar", name320="komm_nr"
+    )
+
+
+@wrap_derive
+def pers_foedselsdato(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive pers_foedselsdato."""
+    return _apply_pers320_mapping(
+        left=df, name360="pers_foedselsdato", name320="foedselsdato"
+    )
+
+
+@wrap_derive
 def pers_invkat(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -59,13 +79,3 @@ def pers_kjoenn(  # noqa:DOC201
 ) -> pd.DataFrame:
     """Derive pers_kjoenn."""
     return _apply_pers320_mapping(left=df, name360="pers_kjoenn", name320="kjoenn")
-
-
-@wrap_derive
-def pers_foedselsdato(  # noqa:DOC201
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Derive pers_foedselsdato."""
-    return _apply_pers320_mapping(
-        left=df, name360="pers_foedselsdato", name320="foedselsdato"
-    )

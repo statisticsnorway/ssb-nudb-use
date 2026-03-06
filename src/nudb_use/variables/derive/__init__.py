@@ -36,6 +36,7 @@ derive_all_submodules = (
 from .nus_variants import utd_erforeldet_kode_nus
 from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
+from .person import pers_bokommune_16aar
 from .person import pers_foedselsdato
 from .person import pers_invkat
 from .person import pers_kjoenn
@@ -46,6 +47,7 @@ from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
 
 __all__ = [
+    "pers_bokommune_16aar",
     "pers_foedselsdato",
     "pers_invkat",
     "pers_kjoenn",

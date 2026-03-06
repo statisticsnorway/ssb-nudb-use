@@ -59,7 +59,7 @@ def patch_nudb_database(
 
     # legg inn i config at alle registreringer trenger flere (potensielt) dato-kolonner
     monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
-    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT", shared_root)
+    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT_EXTERNAL", shared_root)
 
 
 def test_nudbdata(

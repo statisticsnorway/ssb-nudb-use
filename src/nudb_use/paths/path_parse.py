@@ -27,7 +27,7 @@ def get_periods_from_path(
         ValueError: If there is no period parts in the path.
     """
     info = DaplaDatasetPathInfo(path)
-    if info.contains_data_until is None or len(info._period_strings) > 2:
+    if info.contains_data_until is None or len(info.period_strings) > 2:
         raise ValueError(
             "All paths should have period parts mah dude, and no more than two?"
         )
