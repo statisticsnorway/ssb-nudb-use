@@ -28,7 +28,7 @@ def patch_nudb_database(
     freg_situttak.to_parquet(freg_dir / "freg_situasjonsuttak_p2026-01-31_v1.parquet")
     innvbef.to_parquet(innvbef_dir / "innvbef_p2024-12-31_v1.parquet")
 
-    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT", shared_root)
+    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT_EXTERNAL", shared_root)
 
 
 def test_pers_variables(

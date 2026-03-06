@@ -151,3 +151,31 @@ def _generate_snr2alder16_view(alias: str, connection: db.DuckDBPyConnection) ->
     """
 
     connection.sql(query)
+
+
+def _generate_bokommune_16aar_snr(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    from nudb_use.datasets.nudb_data import NudbData
+
+    bokomm = NudbData("bokommune_16aar_fnr")
+    fnr2snr = NudbData("_snrkat_fnr2snr")
+
+    query = f"""
+        CREATE VIEW {alias} AS
+        SELECT
+            s.snr,
+            b.komm_nr
+        FROM (
+            SELECT fnr, komm_nr
+            FROM {bokomm.alias}
+        ) AS b
+        LEFT JOIN (
+            SELECT fnr, snr
+            FROM {fnr2snr.alias}
+        ) AS s
+        ON b.fnr = s.fnr
+        ;
+        """
+
+    connection.sql(query)
