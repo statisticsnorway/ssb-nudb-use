@@ -1,6 +1,6 @@
 [project]
 name = "ssb-nudb-use"
-version = "2026.3.1"  # Year.Month.Patch - So the last number is not day of month, but patch number within month
+version = "2026.3.2"  # Year.Month.Patch - So the last number is not day of month, but patch number within month
 description = "NUDB Use - is a usage-package for the Norwegian National Education Database cloud-data. Both for data-consumers and data-deliverers"
 authors = [{ name = "Carl F. Corneil", email = "cfc@ssb.no" }, { name = "Kjell Slupphaug", email = "pph@ssb.no" }, { name = "Markus Storeide", email = "rku@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, Education statistics Department (360)" }]
@@ -18,7 +18,7 @@ dependencies = [
     "duckdb >=1.4.3",
     "pydantic >=2.12.4",
     "requests >=2.32.5",
-    "Jinja2 >= 3.1.0",
+    "Jinja2 >=3.1.0",
 ]
 
 [project.urls]
