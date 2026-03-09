@@ -27,8 +27,8 @@ def _generate_eksamen_aggregated_view(
             utd_skoleaar_start,
             uh_studienivaa,
             CAST(uh_eksamen_ergjentak AS BOOLEAN) AS uh_eksamen_ergjentak,
-            utd_orgnr,
-            bof_orgnrbed,
+            orgnrbed,
+            orgnr_foretak,
             uh_antall_deleksamener,
             uh_antall_deleksamener_bestatt,
             fnr,
@@ -50,9 +50,8 @@ def _generate_eksamen_aggregated_view(
             utd_skoleaar_start,
             uh_studienivaa,
             CAST(uh_eksamen_ergjentak AS BOOLEAN) AS uh_eksamen_ergjentak,
-            utd_orgnr,
-            bof_orgnrbed,
-
+            orgnrbed,
+            orgnr_foretak,
             COUNT(*) AS uh_antall_deleksamener,
             SUM(UPPER(uh_eksamen_karakter) NOT IN {FAILED_KARAKTER_CODES}) AS uh_antall_deleksamener_bestatt,
             FIRST(fnr) AS fnr,                                     -- may not be unique per snr
@@ -71,8 +70,8 @@ def _generate_eksamen_aggregated_view(
             utd_skoleaar_start,
             uh_studienivaa,
             uh_eksamen_ergjentak,
-            utd_orgnr,
-            bof_orgnrbed,
+            orgnrbed,
+            orgnr_foretak,
             EXTRACT(YEAR FROM uh_eksamen_dato) -- used to seperate semesters
     """
     query = f"""
