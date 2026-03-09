@@ -8,7 +8,7 @@ from nudb_use.exceptions.groups import warn_exception_group
 from nudb_use.nudb_logger import LoggerStack
 
 _BOOL_LITERALS = {"True", "False"}
-_SKIP_COLUMNS = ["snr", "fnr", "utd_orgnr", "bof_orgnrbed"]
+_SKIP_COLUMNS = ["snr", "fnr", "orgnrbed", "orgnr_foretak"]
 
 
 def check_bool_string_columns(
