@@ -119,8 +119,8 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     dato_kanskje.loc[trinn_plassering == "3"] = (
         (999999 - dato_kanskje.astype("Int64")).astype(STRING_DTYPE).str.zfill(6)
     )
-    # Innenfor "vanlig sammenligning" - sorterer vi ikke med dato, slik vi gjør på de andre prioritetene
-    dato_kanskje.loc[trinn_plassering == "2"] = "000000"
+    # Innenfor "vanlig sammenligning" og mellom grader - sorterer vi ikke med dato, slik vi gjør på de andre prioritetene
+    dato_kanskje.loc[trinn_plassering.isin(["2", "4"])] = "000000"
     rangering += dato_kanskje
 
     # Første siffer nus
@@ -144,7 +144,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 
     # Vi tar med dato som en tie-breaker, dvs. høyere dato er bedre? Selv om man tar sånn ca. den samme utdanningen igjen???
     # rangering += df[regdato].dt.strftime("%Y%m").fillna(VENSTRESENSUR)
-    rangering += df[regdato].astype(STRING_DTYPE)
+    rangering += df["utd_aktivitet_slutt"].dt.strftime(r"%Y%m")
 
     # Hele nuskoden som tiebreaker, litt rart å ta med 1. siffer, når denne allerede er del av rangeringstallet fra før...
     # Og dette betyr at vi rangerer opp "99"-koder, som egentlig er litt feil sånn faglig, men akk vel, la oss rekreere fra Oracle...
