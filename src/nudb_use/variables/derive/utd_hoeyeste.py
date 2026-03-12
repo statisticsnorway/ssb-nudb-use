@@ -2,10 +2,12 @@ import datetime as dt
 
 import pandas as pd
 from nudb_config import settings
+from numpy import dtype as np_dtype
+from numpy import generic as np_generic
+from pandas.api.extensions import ExtensionDtype
+from pandas.api.types import pandas_dtype
 
 from nudb_use.datasets import NudbData
-from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
-from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
@@ -17,7 +19,9 @@ kltrinn2000 = "utd_klassetrinn"
 uhgruppe = "uh_gruppering_nus"
 regdato = "utd_skoleaar_start"  # Potensielt skummelt med tanke på likhet?
 VENSTRESENSUR = settings.constants.venstresensur
-STRING_DTYPE = settings.constants.datadoc_pandas_dtype_mapping.STRING
+STRING_DTYPE: ExtensionDtype | np_dtype[np_generic] = pandas_dtype(
+    settings.constants.datadoc_pandas_dtype_mapping.STRING
+)
 VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 
 
@@ -75,8 +79,11 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     ######################################
 
     eksamener_120_maske = (df["uh_eksamen_dato"].notna()) | (
-        (df["uh_eksamen_studpoeng"].notna()) & (df["uh_eksamen_studpoeng"] > 0)
-        & (~df[uhgruppe].isin(VIDEREUTDANNING_UHGRUPPE))  # By excluding these, these exams will act as full degrees, matching old code
+        (df["uh_eksamen_studpoeng"].notna())
+        & (df["uh_eksamen_studpoeng"] > 0)
+        & (
+            ~df[uhgruppe].isin(VIDEREUTDANNING_UHGRUPPE)
+        )  # By excluding these, these exams will act as full degrees, matching old code
     )  # Trenger en måte å skille eksamensrader fra avslutta rader
 
     # Trinn-plassering, best til dårligst:
