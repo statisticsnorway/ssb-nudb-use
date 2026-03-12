@@ -16,8 +16,9 @@ nus2000 = "nus2000"
 kltrinn2000 = "utd_klassetrinn"
 uhgruppe = "uh_gruppering_nus"
 regdato = "utd_skoleaar_start"  # Potensielt skummelt med tanke på likhet?
-VENSTRESENSUR = "1970"
-STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
+VENSTRESENSUR = settings.constants.venstresensur
+STRING_DTYPE = settings.constants.datadoc_pandas_dtype_mapping.STRING
+VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 
 
 @wrap_derive
@@ -58,7 +59,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
         pd.Series("-01-01", index=df.index, dtype="string")
     )
     stop_date_from_school_year = pd.to_datetime(
-        date_strings, format="%Y-%m-%d", errors="coerce"
+        date_strings, format=r"%Y-%m-%d", errors="coerce"
     ).astype("datetime64[s]")
     df["utd_aktivitet_slutt"] = (
         df["utd_aktivitet_slutt"]
@@ -73,13 +74,14 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     # Bygge rangeringstall - høyt er bra #
     ######################################
 
-    eksamener_maske = (df["uh_eksamen_dato"].notna()) | (
+    eksamener_120_maske = (df["uh_eksamen_dato"].notna()) | (
         (df["uh_eksamen_studpoeng"].notna()) & (df["uh_eksamen_studpoeng"] > 0)
+        & (~df[uhgruppe].isin(VIDEREUTDANNING_UHGRUPPE))  # By excluding these, these exams will act as full degrees, matching old code
     )  # Trenger en måte å skille eksamensrader fra avslutta rader
 
     # Trinn-plassering, best til dårligst:
-    # 4: avslutta grad UH
-    # 3: Eksamensrecords på UH som tilsier grad
+    # 4: avslutta grad UH + videreutdannings-eksamens-sammenslåinger (60 studiepoeng)
+    # 3: Eksamensrecords på UH som tilsier grad på 120 studiepoeng
     # 2: Annet
     # 1: VG1 eller VG2, som ikke tilsier ferdig på vgs
     # 0: Ukjent nus2000
@@ -87,11 +89,11 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     trinn_plassering: pd.Series = pd.Series("2", index=df.index)
     # Om det er en avslutning på høyere nivå (uten studiepoeng) - så ansees det alltid som noe som skal erstattes av det som er nytt
     trinn_plassering.loc[
-        df[nus2000].str[0].isin(["6", "7", "8"]) & (~eksamener_maske)
+        df[nus2000].str[0].isin(["6", "7", "8"]) & (~eksamener_120_maske)
     ] = "4"
     # Om det er en rad med studiepoeng
     trinn_plassering.loc[
-        df[nus2000].str[0].isin(["6", "7", "8"]) & (eksamener_maske)
+        df[nus2000].str[0].isin(["6", "7", "8"]) & (eksamener_120_maske)
     ] = "3"
     # Fullføringer på VGS på lavere nivå, nus starter på 3, ansees som DÅRLIGERE enn alt, inkludert grunnskole?
     # Hardkoding på disse er potensielt allerede gjort til nuskode 201199?
@@ -112,7 +114,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 
     # Visse plasseringer sorteres etter dato, hvor nyere er bedre
     # Om det IKKE er å anse som en fullføring på UH, så venter vi med å tie-breake på dato
-    dato_kanskje = df["utd_aktivitet_slutt"].dt.strftime("%Y%m").copy()
+    dato_kanskje = df["utd_aktivitet_slutt"].dt.strftime(r"%Y%m").copy()
     # Vi skal plukke "den første gangen en eksamensrecord flipper over 60/120 studiepoeng"
     # Fra foregående aggregerings-logikk får vi bare sammenslåtte eksamensrecords hvor dette er sant
     # Siden dette er tilfelle verdisettes eksamensrecords med reversert dato, slik at eldre sammenslåtte eksamen-records verdsettes over nyere
