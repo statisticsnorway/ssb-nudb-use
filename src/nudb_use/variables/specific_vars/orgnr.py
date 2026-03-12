@@ -13,7 +13,7 @@ def cleanup_orgnr_bedrift_foretak(df: pd.DataFrame) -> pd.DataFrame:
     orgnrbed_combine: pd.Series = pd.Series(pd.NA, index=df.index)
     orgnr_foretak_combine: pd.Series = pd.Series(pd.NA, index=df.index)
 
-    cols_split_priority_order: list[str] = ["orgnrbed", "orgnr_foretak", "orgnr", "utd_orgnr"]
+    cols_split_priority_order: list[str] = ["orgnr", "utd_orgnr", "orgnrbed", "orgnr_foretak"]
 
     # Split up existing columns
     for col in cols_split_priority_order:
@@ -41,9 +41,9 @@ def cleanup_orgnr_bedrift_foretak(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _split_orgnr_col(s: pd.Series) -> tuple[pd.Series, pd.Series]:
-    
-
-    return orgnrbed, orgnr_foretak
+    df_orgnrbed = NudbData("_vof_unique_orgnrbed").df()
+    mask = s.isin(df_orgnrbed["orgnrbed"])
+    return s[mask], s[~mask]
 
 
 def _find_orgnr_foretak_vof(s: pd.Series) -> pd.Series:
@@ -52,6 +52,3 @@ def _find_orgnr_foretak_vof(s: pd.Series) -> pd.Series:
 
 def _find_orgnrbed_enkelbedforetak_vof(s: pd.Series) -> pd.Series:
     return s
-
-@functools.lrucache(1)
-def 
