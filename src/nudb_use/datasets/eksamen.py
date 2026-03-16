@@ -131,7 +131,9 @@ def _generate_eksamen_hoeyeste_table(
 
     # Per definition all exam records that are not videreutdanninger will get 6 as the first digit
     # Even if the exams have nivaa 7. The last two digits should be 99
-    sub_eksamen.loc[~is_vidutd, "nus2000"] = "6" + sub_eksamen.loc[~is_vidutd, "nus2000"].str[1:4] + "99"
+    sub_eksamen.loc[~is_vidutd, "nus2000"] = (
+        "6" + sub_eksamen.loc[~is_vidutd, "nus2000"].str[1:4] + "99"
+    )
 
     connection.sql(f"""
         CREATE TABLE
