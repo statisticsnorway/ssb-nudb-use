@@ -1,9 +1,12 @@
 import duckdb as db
+from nudb_config import settings
 
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.datasets.utils import _select_if_contains_index_col_0
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.latest import latest_shared_path
+
+VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 
 
 def _generate_eksamen_aggregated_view(
@@ -115,28 +118,22 @@ def _generate_eksamen_hoeyeste_table(
             nus2000_nivaa IN ['6', '7'];
     """).df()
 
+    # Derive uh_gruppering
     sub_eksamen = uh_gruppering_nus(sub_eksamen)
-    sub_eksamen["_uh_gruppering_pool"] = (
-        sub_eksamen["uh_gruppering_nus"]
-        .map(
-            {
-                "18": "18",
-                "19": "19",
-                "20": "20",
-                "21": "21",
-                "22": "22",
-                "23": "23",
-                "66": "66",
-                "67": "67",
-            }
-        )
-        .fillna("99")
-    )
+    # Create helper variable
+    sub_eksamen["_uh_gruppering_pool"] = sub_eksamen["uh_gruppering_nus"].copy()
+    is_vidutd = sub_eksamen["_uh_gruppering_pool"].isin(VIDEREUTDANNING_UHGRUPPE)
+    # Set helper variable to 99 in cases where not videreutdanninger
+    sub_eksamen.loc[
+        ~is_vidutd,
+        "_uh_gruppering_pool",
+    ] = "99"
 
-    # Per definition all exam records will get 6 as the first digit
+    # Per definition all exam records that are not videreutdanninger will get 6 as the first digit
     # Even if the exams have nivaa 7. The last two digits should be 99
-    # This might be different for bhu...
-    sub_eksamen["nus2000"] = "6" + sub_eksamen["nus2000"].str[1:4] + "99"
+    sub_eksamen.loc[~is_vidutd, "nus2000"] = (
+        "6" + sub_eksamen.loc[~is_vidutd, "nus2000"].str[1:4] + "99"
+    )
 
     connection.sql(f"""
         CREATE TABLE
