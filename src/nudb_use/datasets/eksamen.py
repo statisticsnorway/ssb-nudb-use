@@ -118,18 +118,20 @@ def _generate_eksamen_hoeyeste_table(
             nus2000_nivaa IN ['6', '7'];
     """).df()
 
+    # Derive uh_gruppering
     sub_eksamen = uh_gruppering_nus(sub_eksamen)
-
+    # Create helper variable
     sub_eksamen["_uh_gruppering_pool"] = sub_eksamen["uh_gruppering_nus"].copy()
+    is_vidutd = sub_eksamen["_uh_gruppering_pool"].isin(VIDEREUTDANNING_UHGRUPPE)
+    # Set helper variable to 99 in cases where not videreutdanninger
     sub_eksamen.loc[
-        ~sub_eksamen["_uh_gruppering_pool"].isin(VIDEREUTDANNING_UHGRUPPE),
+        ~is_vidutd,
         "_uh_gruppering_pool",
     ] = "99"
 
-    # Per definition all exam records will get 6 as the first digit
+    # Per definition all exam records that are not videreutdanninger will get 6 as the first digit
     # Even if the exams have nivaa 7. The last two digits should be 99
-    # This might be different for bhu...
-    sub_eksamen["nus2000"] = "6" + sub_eksamen["nus2000"].str[1:4] + "99"
+    sub_eksamen.loc[~is_vidutd, "nus2000"] = "6" + sub_eksamen.loc[~is_vidutd, "nus2000"].str[1:4] + "99"
 
     connection.sql(f"""
         CREATE TABLE
