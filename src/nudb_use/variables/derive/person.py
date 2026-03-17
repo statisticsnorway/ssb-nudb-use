@@ -7,20 +7,20 @@ from nudb_use.nudb_logger import logger
 from .derive_decorator import wrap_derive
 
 __all__ = [
-    "pers_bokommune",
     "pers_bokommune_16aar",
-    "pers_bydel",
+    "pers_bokommune_nr",
+    "pers_bydel_nr",
     "pers_foedeland",
     "pers_foedselsdato",
     "pers_foerste_bosattdato",
     "pers_fra_land",
-    "pers_grunnkrets",
+    "pers_gkrets_nr",
     "pers_innflyttingsdato",
-    "pers_innvandringsgrunn",
-    "pers_innvandringskategori",
+    "pers_inngrunn1",
+    "pers_invkat",
     "pers_kjoenn",
-    "pers_landbakgrunn_land",
-    "pers_statsborgerskap_land",
+    "pers_landbak3gen",
+    "pers_statsborgerskap",
 ]
 
 
@@ -89,48 +89,48 @@ def pers_bokommune_16aar(  # noqa:DOC201
 
 
 @wrap_derive
-def pers_bokommune(  # noqa:DOC201
+def pers_bokommune_nr(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive pers_bokommune."""
-    return _apply_pers320_mapping(left=df, name360="pers_bokommune", name320="komm_nr")
-
-
-@wrap_derive
-def pers_grunnkrets(  # noqa:DOC201
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Derive pers_grunnkrets."""
+    """Derive pers_bokommune_nr."""
     return _apply_pers320_mapping(
-        left=df, name360="pers_grunnkrets", name320="gkrets_nr"
+        left=df, name360="pers_bokommune_nr", name320="komm_nr"
     )
 
 
 @wrap_derive
-def pers_bydel(  # noqa:DOC201
+def pers_gkrets_nr(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive pers_bydel."""
-    return _apply_pers320_mapping(left=df, name360="pers_bydel", name320="bydel_nr")
-
-
-@wrap_derive
-def pers_innvandringskategori(  # noqa:DOC201
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Derive pers_innvandringskategori."""
+    """Derive pers_gkrets_nr."""
     return _apply_pers320_mapping(
-        left=df, name360="pers_innvandringskategori", name320="invkat"
+        left=df, name360="pers_gkrets_nr", name320="gkrets_nr"
     )
 
 
 @wrap_derive
-def pers_innvandringsgrunn(  # noqa:DOC201
+def pers_bydel_nr(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive pers_innvandringsgrunn."""
+    """Derive pers_bydel_nr."""
+    return _apply_pers320_mapping(left=df, name360="pers_bydel_nr", name320="bydel_nr")
+
+
+@wrap_derive
+def pers_invkat(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive pers_invkat."""
+    return _apply_pers320_mapping(left=df, name360="pers_invkat", name320="invkat")
+
+
+@wrap_derive
+def pers_inngrunn1(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive pers_inngrunn1."""
     return _apply_pers320_mapping(
-        left=df, name360="pers_innvandringsgrunn", name320="inngrunn1"
+        left=df, name360="pers_inngrunn1", name320="inngrunn1"
     )
 
 
@@ -155,12 +155,12 @@ def pers_innflyttingsdato(  # noqa:DOC201
 
 
 @wrap_derive
-def pers_statsborgerskap_land(  # noqa:DOC201
+def pers_statsborgerskap(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive pers_statsborgerskap_land."""
+    """Derive pers_statsborgerskap."""
     return _apply_pers320_mapping(
-        left=df, name360="pers_statsborgerskap_land", name320="statsborgerskap"
+        left=df, name360="pers_statsborgerskap", name320="statsborgerskap"
     )
 
 
@@ -183,10 +183,10 @@ def pers_fra_land(  # noqa:DOC201
 
 
 @wrap_derive
-def pers_landbakgrunn_land(  # noqa:DOC201
+def pers_landbak3gen(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive pers_landbakgrunn_land."""
+    """Derive pers_landbak3gen."""
     return _apply_pers320_mapping(
-        left=df, name360="pers_landbakgrunn_land", name320="landbak3gen"
+        left=df, name360="pers_landbak3gen", name320="landbak3gen"
     )
