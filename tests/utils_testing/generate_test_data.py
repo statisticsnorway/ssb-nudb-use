@@ -47,10 +47,12 @@ settings.variables.far_fnr.renamed_from = None
 settings.variables.far_fnr.name = "far_fnr"
 settings.variables.far_fnr.derived_from = []
 
-settings.variables.invkat = settings.variables.pers_invkat.copy()
-settings.variables.invkat.renamed_from = None
-settings.variables.invkat.name = "invkat"
-settings.variables.invkat.derived_from = []
+settings.variables.pers_innvandringskategori = (
+    settings.variables.pers_innvandringskategori.copy()
+)
+settings.variables.pers_innvandringskategori.renamed_from = None
+settings.variables.pers_innvandringskategori.name = "pers_innvandringskategori"
+settings.variables.pers_innvandringskategori.derived_from = []
 
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]
@@ -60,7 +62,7 @@ settings.datasets.freg_situttak.variables = ["snr", "kjoenn", "foedselsdato"]
 
 def generate_test_variable(
     name: str,
-    n: int = 100_000,
+    n: int = 50_000,
     add_klass_errors: bool = False,
     add_old_cols: bool = True,
     seed: int = DEFAULT_SEED,

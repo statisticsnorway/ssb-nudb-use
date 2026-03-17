@@ -4,7 +4,7 @@ import pandas as pd
 from nudb_config import settings
 
 from nudb_use.datasets import NudbData
-from nudb_use.datasets.nudb_database import _NUDB_DATABASE
+from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
 
@@ -141,7 +141,7 @@ def get_source_data(
     )
 
     logger.notice(f"SQL query:\n{union_sql}")  # type: ignore[attr-defined]
-    connection = _NUDB_DATABASE.get_connection()
+    connection = nudb_database.get_connection()
 
     if df_left is None:
         return connection.execute(union_sql).df()

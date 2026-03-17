@@ -43,11 +43,11 @@ def test_pers_variables(
     result = (
         igang.copy()
         .pipe(update_colnames)
-        .pipe(derive.pers_invkat)
+        .pipe(derive.pers_innvandringskategori)
         .pipe(derive.pers_kjoenn)
         .pipe(derive.pers_foedselsdato)
     )
 
-    assert "pers_invkat" in result.columns
+    assert "pers_innvandringskategori" in result.columns
     assert "pers_kjoenn" in result.columns
     assert "pers_foedselsdato" in result.columns
