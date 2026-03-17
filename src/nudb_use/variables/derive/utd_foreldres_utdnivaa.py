@@ -4,7 +4,7 @@ from nudb_config import settings
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
-__all__ = ["utd_foreldres_utdnivaa_16aar"]
+__all__ = ["utd_foreldres_utdnivaa_16aar", "utd_hoeyeste_mor_nus2000", "utd_hoeyeste_far_nus2000"]
 
 
 @wrap_derive
