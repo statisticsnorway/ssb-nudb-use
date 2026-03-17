@@ -20,17 +20,17 @@ def _generate_utd_foreldres_utdnivaa_view(
             T1.far_snr AS far_snr,
             T1.mor_snr AS mor_snr,
 
-            T3.nus2000 AS far_nus2000,
+            T3.nus2000 AS utd_hoeyeste_far_nus2000,
             T3.utd_hoeyeste_rangering AS far_utd_hoeyeste_rangering,
 
-            T4.nus2000 AS mor_nus2000,
+            T4.nus2000 AS utd_hoeyeste_mor_nus2000,
             T4.utd_hoeyeste_rangering AS mor_utd_hoeyeste_rangering,
 
             CASE
-                WHEN far_utd_hoeyeste_rangering IS NULL                      THEN mor_nus2000 -- if mor_utd_hoeyeste_rangering is NULL then we just get NULL
-                WHEN mor_utd_hoeyeste_rangering IS NULL                      THEN far_nus2000
-                WHEN far_utd_hoeyeste_rangering > mor_utd_hoeyeste_rangering THEN far_nus2000
-                ELSE                                                              mor_nus2000 -- pick mor_nus2000 if better or equal to far_nus2000
+                WHEN far_utd_hoeyeste_rangering IS NULL                      THEN utd_hoeyeste_mor_nus2000 -- if mor_utd_hoeyeste_rangering is NULL then we just get NULL
+                WHEN mor_utd_hoeyeste_rangering IS NULL                      THEN utd_hoeyeste_far_nus2000
+                WHEN far_utd_hoeyeste_rangering > mor_utd_hoeyeste_rangering THEN utd_hoeyeste_far_nus2000
+                ELSE                                                              utd_hoeyeste_mor_nus2000 -- pick utd_hoeyeste_mor_nus2000 if better or equal to far_nus2000
             END AS utd_foreldres_utdnivaa_16aar
         FROM
             {slekt_snr.alias} AS T1
