@@ -29,6 +29,7 @@ def utd_foreldres_utdnivaa_16aar(df: pd.DataFrame) -> pd.DataFrame:
 
 @wrap_derive
 def utd_hoeyeste_mor_nus2000(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive `utd_hoeyeste_mor_nus2000`."""
     merge_keys = settings.variables.utd_hoeyeste_mor_nus2000.derived_join_keys
 
     utd_mor_nus2000_df = (
@@ -41,6 +42,7 @@ def utd_hoeyeste_mor_nus2000(df: pd.DataFrame) -> pd.DataFrame:
 
 @wrap_derive
 def utd_hoeyeste_far_nus2000(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive `utd_hoeyeste_far_nus2000`."""
     merge_keys = settings.variables.utd_hoeyeste_far_nus2000.derived_join_keys
 
     utd_mor_nus2000_df = (
