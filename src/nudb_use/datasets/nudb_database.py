@@ -45,6 +45,8 @@ class _NudbDatabase:
 
     def __init__(self) -> None:
         self._connection: db.DuckDBPyConnection = db.connect(":memory:")
+        self._duckdb_temp_dir: tempfile.TemporaryDirectory[str] | None = None
+        self._duckdb_temp_dir_path: Path | None = None
 
         self._dataset_generators: dict[str, GeneratorFunc] = {
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
@@ -92,7 +94,6 @@ class _NudbDatabase:
         self,
         memory_limit: str = "32GB",
         threads: int = 4,
-        temp_directory: str | Path = "/var/tmp/duckdb_tmp",
         max_temp_directory_size: str = "55GiB",
         preserve_insertion_order: bool = True,
     ) -> None:
@@ -102,20 +103,15 @@ class _NudbDatabase:
             memory_limit: Maximum memory DuckDB may use, by default duckdb uses 80% of available RAM,
                 this may cause crashes if you are making pandas dataframes etc.
             threads: Number of execution threads. This should probably match your CPU m / 1000.
-            temp_directory: Directory for spill-to-disk operations. /var/tmp is a good spot on ubuntu-based machines.
             max_temp_directory_size: Maximum size of temp spill directory.
                 Duckdb default is 90% of remaining free space. This may cause crashes if something else is using the disk...
             preserve_insertion_order: Whether to preserve insertion order (uses more memory if True).
                 Can save memory if you set it to False. Because this can scramble row order, sort on all columns later...
         """
-        temp_directory = Path(temp_directory)
-        temp_directory.mkdir(parents=True, exist_ok=True)
-        file = tempfile.TemporaryFile(dir=temp_directory, mode="w+")
         conf_string = f"""
             SET memory_limit = '{memory_limit}';
             SET threads = {threads}");
             SET preserve_insertion_order = {str(preserve_insertion_order).lower()};
-            SET temp_directory = '{str(file).as_posix()}';
             SET max_temp_directory_size = '{max_temp_directory_size}';
         """
         logger.info("Setting duckdb config with settings-string:\n%s", conf_string)
@@ -133,7 +129,6 @@ class _NudbDatabase:
         settings: list[str] = [
             "memory_limit",
             "threads",
-            "temp_directory",
             "max_temp_directory_size",
             "preserve_insertion_order",
         ]
