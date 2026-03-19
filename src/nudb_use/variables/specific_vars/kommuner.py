@@ -91,7 +91,7 @@ def correct_kommune_single_values(
             "0300": "0301",
             "2100": "2111",
             "2500": "2580",
-            "2400": "2580",  # VIGOs "utland"
+            "2400": "2580",  # VIGOs "alle uspesifiserte grunnskoler?"
             "0025": "2580",  # Utland ifølge UH?
             "1025": "2580",  # Utland ifølge UH?
             "2025": "2580",  # Utland ifølge UH?
