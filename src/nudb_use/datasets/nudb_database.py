@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -109,11 +110,12 @@ class _NudbDatabase:
         """
         temp_directory = Path(temp_directory)
         temp_directory.mkdir(parents=True, exist_ok=True)
+        file = tempfile.TemporaryFile(dir=temp_directory, mode="w+")
         conf_string = f"""
             SET memory_limit = '{memory_limit}';
             SET threads = {threads}");
             SET preserve_insertion_order = {str(preserve_insertion_order).lower()};
-            SET temp_directory = '{temp_directory.as_posix()}';
+            SET temp_directory = '{str(file).as_posix()}';
             SET max_temp_directory_size = '{max_temp_directory_size}';
         """
         logger.info("Setting duckdb config with settings-string:\n%s", conf_string)
