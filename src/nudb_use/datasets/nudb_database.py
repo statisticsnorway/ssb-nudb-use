@@ -123,7 +123,10 @@ class _NudbDatabase:
         """Log and return current DuckDB configuration settings.
 
         Returns:
-            Dictionary of key DuckDB runtime settings (that we care about).
+            dict[str, Any]: Dictionary of key DuckDB runtime settings (that we care about).
+
+        Raises:
+            RunTimeError: If we fail getting the Duckdb settings when putting them in the dict.
         """
         settings: list[str] = [
             "memory_limit",
