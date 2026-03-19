@@ -164,7 +164,9 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     if len(nchar) > 1:
         raise ValueError(f"Rank numbers have different numbers of digits!\n{nchar}")
     elif (rangering.str.slice(0, 1) == "0").any():
-        logger.warning("Rank numbers have leading zeros! This means data contains nus2000 = 999999")
+        logger.warning(
+            "Rank numbers have leading zeros! This means data contains nus2000 = 999999"
+        )
     elif not rangering.str.isdigit().all():
         raise ValueError("Rank numbers are not all digits!")
 
