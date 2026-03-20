@@ -27,7 +27,16 @@ def _generate_utd_hoeyeste_table(
             utd_hoeyeste_dato=lambda df: df["utd_aktivitet_slutt"].fillna(
                 df["uh_eksamen_dato"]
             )
-        )[["snr", "nus2000", "utd_hoeyeste_dato", "utd_hoeyeste_rangering"]]
+        )[
+            [
+                "snr",
+                "nus2000",
+                "utd_hoeyeste_dato",
+                "utd_hoeyeste_rangering",
+                "utd_datakilde",
+                "utd_klassetrinn",
+            ]
+        ]
     )
 
     last_year_data = eksamen_avslutta_hoeyeste_rangert["utd_hoeyeste_dato"].max().year
@@ -55,7 +64,17 @@ def _generate_utd_hoeyeste_table(
     )
 
     connection.register(
-        "_base", base[["snr", "nus2000", "utd_hoeyeste_dato", "utd_hoeyeste_rangering"]]
+        "_base",
+        base[
+            [
+                "snr",
+                "nus2000",
+                "utd_hoeyeste_dato",
+                "utd_hoeyeste_rangering",
+                "utd_datakilde",
+                "utd_klassetrinn",
+            ]
+        ],
     )
     connection.register("_years", years_df)
 
@@ -65,16 +84,28 @@ def _generate_utd_hoeyeste_table(
         CREATE TABLE
             {alias} AS
         SELECT
-            snr, nus2000, utd_hoeyeste_rangering, utd_hoeyeste_aar
+            snr,
+            nus2000,
+            utd_hoeyeste_rangering,
+            utd_hoeyeste_aar,
+            utd_datakilde,
+            utd_klassetrinn
         FROM (
           SELECT
             y.utd_hoeyeste_aar,
             b.snr,
             b.nus2000,
+            b.utd_datakilde,
+            b.utd_klassetrinn,
             b.utd_hoeyeste_rangering,
             row_number() OVER (
               PARTITION BY y.utd_hoeyeste_aar, b.snr
-              ORDER BY b.utd_hoeyeste_rangering DESC
+              ORDER BY
+                b.utd_hoeyeste_rangering DESC,
+                (b.utd_klassetrinn IS NOT NULL) DESC,
+                (b.utd_datakilde IS NOT NULL) DESC,
+                b.utd_hoeyeste_dato DESC,
+                b.nus2000 DESC
             ) AS rn
           FROM _years y
           JOIN _base b
