@@ -11,6 +11,9 @@ def test_find_file_custom_dir(tmp_path: Path) -> None:
     filepath = fullpath / "tmp.parquet"
     filepath.write_text("hello world!", encoding="utf-8")
 
+    # Patch the global path list to only use the test directory
+    latest.POSSIBLE_PATHS = [semipath]
+
     latest._add_delt_path(semipath)
     result = latest._get_available_files()[0]
 
