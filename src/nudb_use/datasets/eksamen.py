@@ -38,6 +38,7 @@ def _generate_eksamen_aggregated_view(
             uh_eksamen_dato,
             uh_eksamen_karakter,
             uh_eksamen_studpoeng,
+            utd_datakilde,
             CONCAT(nudb_dataset_id, '>eksamen_aggregated') AS nudb_dataset_id
         FROM
             {nudb_eksamen.alias}
@@ -55,10 +56,12 @@ def _generate_eksamen_aggregated_view(
             CAST(uh_eksamen_ergjentak AS BOOLEAN) AS uh_eksamen_ergjentak,
             orgnrbed,
             orgnr_foretak,
+
             COUNT(*) AS uh_antall_deleksamener,
             SUM(UPPER(uh_eksamen_karakter) NOT IN {FAILED_KARAKTER_CODES}) AS uh_antall_deleksamener_bestatt,
             FIRST(fnr) AS fnr,                                     -- may not be unique per snr
             MAX(uh_eksamen_dato) AS uh_eksamen_dato,               -- pick the date of the last exam
+            FIRST(utd_datakilde) as utd_datakilde,
             FIRST(uh_eksamen_karakter) AS uh_eksamen_karakter,     -- Think we used to just pick random before. Carl: 'Using `MAX(uh_eksamen_karakter)` is too correct'
             SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
             CONCAT(FIRST(nudb_dataset_id), '>eksamen_aggregated') AS nudb_dataset_id
@@ -97,6 +100,7 @@ def _generate_eksamen_hoeyeste_table(
     from nudb_use.variables.derive import (  # type: ignore[attr-defined]
         uh_gruppering_nus,
     )
+    from nudb_use.variables.derive import utd_klassetrinn_lav_nus
 
     # `uh_gruppering_nus` is generated dynamically at runtime
 
@@ -108,6 +112,7 @@ def _generate_eksamen_hoeyeste_table(
             utd_skoleaar_start,
             uh_eksamen_dato,
             uh_eksamen_studpoeng,
+            utd_datakilde,
             nudb_dataset_id
         FROM
             {NudbData("eksamen_aggregated").alias}
@@ -117,6 +122,11 @@ def _generate_eksamen_hoeyeste_table(
             uh_eksamen_studpoeng IS NOT NULL AND
             nus2000_nivaa IN ['6', '7'];
     """).df()
+
+    # Derive utd_klassetrinn from nus2000 and klass (lowest)
+    sub_eksamen = utd_klassetrinn_lav_nus(sub_eksamen).rename(
+        columns={"utd_klassetrinn_lav_nus": "utd_klassetrinn"}
+    )
 
     # Derive uh_gruppering
     sub_eksamen = uh_gruppering_nus(sub_eksamen)
@@ -146,6 +156,8 @@ def _generate_eksamen_hoeyeste_table(
             uh_eksamen_dato,
             utd_skoleaar_start,
             uh_gruppering_nus,
+            utd_datakilde,
+            utd_klassetrinn,
             _uh_gruppering_pool
 
         FROM (
@@ -172,6 +184,8 @@ def _generate_eksamen_hoeyeste_table(
                 uh_eksamen_dato,
                 utd_skoleaar_start,
                 uh_gruppering_nus,
+                utd_datakilde,
+                utd_klassetrinn,
                 _uh_gruppering_pool
 
             FROM (
@@ -181,7 +195,10 @@ def _generate_eksamen_hoeyeste_table(
                     _uh_gruppering_pool,
                     utd_skoleaar_start,
 
+
                     FIRST(nus2000 ORDER BY uh_eksamen_studpoeng) AS nus2000,
+                    FIRST(utd_datakilde ORDER BY uh_eksamen_studpoeng) AS utd_datakilde,
+                    FIRST(utd_klassetrinn ORDER BY uh_eksamen_studpoeng) AS utd_klassetrinn,
                     SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
                     MAX(uh_eksamen_dato) AS uh_eksamen_dato,
                     FIRST(uh_gruppering_nus ORDER BY uh_eksamen_studpoeng) AS uh_gruppering_nus,
@@ -216,6 +233,8 @@ def _generate_eksamen_avslutta_hoeyeste_view(
                 uh_eksamen_dato,
                 uh_eksamen_studpoeng,
                 uh_gruppering_nus,
+                utd_datakilde,
+                utd_klassetrinn,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
             FROM
                 {NudbData("eksamen_hoeyeste").alias}
@@ -227,6 +246,7 @@ def _generate_eksamen_avslutta_hoeyeste_view(
                 utd_aktivitet_slutt,
                 utd_klassetrinn,
                 uh_gruppering_nus,
+                utd_datakilde,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
             FROM
                 {NudbData("avslutta_fullfoert").alias}

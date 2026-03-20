@@ -110,7 +110,7 @@ class _NudbDatabase:
         """
         conf_string = f"""
             SET memory_limit = '{memory_limit}';
-            SET threads = {threads}");
+            SET threads = {threads};
             SET preserve_insertion_order = {str(preserve_insertion_order).lower()};
             SET max_temp_directory_size = '{max_temp_directory_size}';
         """
