@@ -1,12 +1,15 @@
 from typing import TypeGuard
 
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 
 BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
-ALLNUMERIC_7DIGIT_THRESHOLD_PERCENT = 5.0
+ALLNUMERIC_7DIGIT_THRESHOLD_PERCENT = (
+    settings.constants.snr_allnumeric_7digit_threshold_percent
+)
 
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger

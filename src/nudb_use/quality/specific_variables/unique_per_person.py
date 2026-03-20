@@ -1,6 +1,7 @@
 """Validations ensuring certain columns are unique per person."""
 
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import LoggerStack
@@ -10,7 +11,7 @@ from .utils import add_err2list
 from .utils import get_column
 from .utils import require_series_present
 
-UNIQUE_PER_PERSON_COLS = ["pers_kjoenn", "pers_foedselsdato", "gr_grunnskolepoeng"]
+UNIQUE_PER_PERSON_COLS = settings.constants.unique_per_person_cols
 
 
 def check_unique_per_person(
