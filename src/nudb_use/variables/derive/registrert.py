@@ -1,4 +1,5 @@
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
@@ -19,24 +20,24 @@ __all__ = [
 ]
 
 
+def parse_range_string(rng_str: str) -> range:
+    start, end = map(int, rng_str.split("-"))
+    return range(start, end + 1)
+
+
 # Would be nice if these were complete in klass instead - the variant on nus is not complete?
 PRG_RANGES_RANGES: dict[str, list[range]] = {
     "studiespess": [
-        range(1, 2),  # this is not a mistake -> [1, 2) -> [1]
-        range(21, 24),
-        range(60, 65),
+        parse_range_string(r)
+        for r in settings.constants.vg_utdprogram_ranges_studiespess
     ],
     "yrkesfag": [
-        range(3, 20),
-        range(30, 43),
-        range(50, 51),  # this is not a mistake -> [50, 51) -> [50]
-        range(70, 84),
-        range(98, 100),
+        parse_range_string(r) for r in settings.constants.vg_utdprogram_ranges_yrkesfag
     ],
 }
 PRG_RANGES: dict[str, list[str]] = {}
 for k, v in PRG_RANGES_RANGES.items():
-    PRG_RANGES[k] = [y for rng in v for y in [str(n).zfill(2) for n in rng]]
+    PRG_RANGES[k] = [str(n).zfill(2) for rng in v for n in rng]
 
 
 @wrap_derive

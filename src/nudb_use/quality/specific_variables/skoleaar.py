@@ -1,6 +1,7 @@
 """Validations for the skoleaar time variables."""
 
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import LoggerStack
@@ -8,7 +9,7 @@ from nudb_use.nudb_logger import logger
 
 from .utils import add_err2list
 
-SANE_SKOLAAR_RANGE = [1969, 2050]
+SANE_SKOLAAR_RANGE = settings.constants.sane_skoleaar_range
 
 
 def check_skoleaar(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:

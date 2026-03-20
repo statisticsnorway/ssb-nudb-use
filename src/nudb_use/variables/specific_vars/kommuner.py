@@ -2,14 +2,14 @@ import datetime
 
 import klass
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use import LoggerStack
 from nudb_use import logger
 
-EXTRA_KOMMNR = {
-    "2580": "360s definerte Utland",
-    "2111": "Longyearbyen arealplanområde",
-}
+EXTRA_KOMMNR = settings.constants.extra_municipality_nr
+
+MISSING_UTD_SKOLEKOM = settings.constants.missing_vals.utd_skolekom
 
 
 def keep_only_valid_kommune_codes(
@@ -27,7 +27,9 @@ def keep_only_valid_kommune_codes(
     """
     with LoggerStack("Keeping valid kommune-codes."):
         komm_col = komm_col.copy()
-        amount_missing_pre_empty = ((komm_col.isna()) | (komm_col == "9999")).sum()
+        amount_missing_pre_empty = (
+            (komm_col.isna()) | (komm_col == MISSING_UTD_SKOLEKOM)
+        ).sum()
         if to_date is None:
             to_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
         else:
@@ -49,11 +51,13 @@ def keep_only_valid_kommune_codes(
         # Det er noen som har "99" etter gyldig fylke, disse byttes til "00"
         komm_col.loc[komm_col.str.endswith("99")] = komm_col.str[:2] + "00"
         # Om denne oppstod nå, så korrigerer vi den tilbake
-        komm_col.loc[komm_col == "9900"] = "9999"
+        komm_col.loc[komm_col == "9900"] = MISSING_UTD_SKOLEKOM
         behold_komm_maske = komm_col.isin(kommuner_alle_aar)
 
         komm_col.loc[~behold_komm_maske] = pd.NA
-        amount_missing_post_empty = ((komm_col.isna()) | (komm_col == "9999")).sum()
+        amount_missing_post_empty = (
+            (komm_col.isna()) | (komm_col == MISSING_UTD_SKOLEKOM)
+        ).sum()
         logger.info(
             f"Emptying kommunenr-ene {list(komm_col[~behold_komm_maske].unique())}. Removed kommunenummer from { round((amount_missing_post_empty - amount_missing_pre_empty) / len(komm_col) * 100, 2)}% of the rows."
         )
@@ -85,7 +89,7 @@ def correct_kommune_single_values(
             raise ValueError(
                 f"Found some weird kommune-values in {col_name}: {col_temp[weird_ones].unique()} - fix these first? Sentinel-value is `9999` not missing."
             )
-        missing_val = "9999"
+        missing_val = MISSING_UTD_SKOLEKOM
         col_temp = col_temp.fillna(missing_val)
         mapping = {
             "0300": "0301",
