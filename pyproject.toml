@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dynamic = ["classifiers"]
 dependencies = [
-    "ssb-nudb-config >=2026.3.10",
+    "ssb-nudb-config >=2026.3.12",
     "ssb-klass-python >=1.0.4",
     "ssb-fagfunksjoner >=1.1.4",
     "dapla-toolbelt-metadata >=0.13.0",
