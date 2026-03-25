@@ -163,6 +163,12 @@ def _generate_bokommune_16aar_snr(
     )
     fnr2snr = NudbData("_snrkat_fnr2snr")
 
+    # Deduplicate to one row per person (snr): first keep the earliest
+    # innflyttingsdato within each (snr, komm_nr) pair as the first record of
+    # living in that municipality, then choose a single kommune per snr by
+    # prioritizing the most recent innflyttingsdato across different komm_nr
+    # values and using higher alderu_ved_innflytting and komm_nr as tie-breakers.
+    # We prioritize higher komm_nr, because newer standards have a tendency for higher komm_nr
     query = f"""
         CREATE VIEW
             {alias} AS
@@ -186,7 +192,7 @@ def _generate_bokommune_16aar_snr(
                 *,
                 ROW_NUMBER() OVER (
                     PARTITION BY snr, komm_nr
-                    ORDER BY innflyttingsdato DESC NULLS LAST
+                    ORDER BY innflyttingsdato ASC NULLS LAST
                 ) AS snr_komm_rank
             FROM
                 joined
