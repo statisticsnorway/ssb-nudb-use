@@ -59,7 +59,7 @@ def keep_only_valid_kommune_codes(
             (komm_col.isna()) | (komm_col == MISSING_UTD_SKOLEKOM)
         ).sum()
         logger.info(
-            f"Emptying kommunenr-ene {list(komm_col[~behold_komm_maske].unique())}. Removed kommunenummer from { round((amount_missing_post_empty - amount_missing_pre_empty) / len(komm_col) * 100, 2)}% of the rows."
+            f"Emptying kommunenr-ene {list(komm_col[~behold_komm_maske].unique())}. Removed kommunenummer from { round((amount_missing_post_empty - amount_missing_pre_empty) / len(komm_col) * 100 if len(komm_col) else 0.00, 2)}% of the rows."
         )
         return komm_col
 

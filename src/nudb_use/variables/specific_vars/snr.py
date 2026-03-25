@@ -200,7 +200,7 @@ def _merge_and_log(
         )
         mask_sum = mask.sum()
         logger.info(
-            f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2)}% of total rows."
+            f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2) if len(df) else 0.00}% of total rows."
         )
 
         df["new_col"] = df[original_col_name].copy()
@@ -393,7 +393,7 @@ def generate_uuid_for_snr_with_fnr_col(
 
         amount_na_post_first_fill = int(invalid_after.sum())
         diff_first_fill = amount_na_pre_first_fill - amount_na_post_first_fill
-        percent_diff = round(100 * diff_first_fill / len(df), 2) if len(df) else 0.0
+        percent_diff = round(100 * diff_first_fill / len(df), 2) if len(df) else 0.00
 
         logger.info(
             f"Filled {percent_diff}% of `{snr_col}` with UUIDs based on unique, non-missing values in `{fnr_col}`"
