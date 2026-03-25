@@ -158,24 +158,62 @@ def _generate_bokommune_16aar_snr(
 ) -> None:
     from nudb_use.datasets.nudb_data import NudbData
 
-    bokomm = NudbData("bokommune_16aar_fnr")
+    bokomm = NudbData("bokommune_16aar_fnr").select(
+        "fnr, komm_nr, innflyttingsdato, alderu_ved_innflytting"
+    )
     fnr2snr = NudbData("_snrkat_fnr2snr")
 
     query = f"""
-        CREATE VIEW {alias} AS
+        CREATE VIEW
+            {alias} AS
+        WITH joined AS (
+            SELECT
+                s.snr,
+                b.komm_nr,
+                b.innflyttingsdato,
+                b.alderu_ved_innflytting
+            FROM
+                {bokomm.alias} AS b
+            LEFT JOIN
+                {fnr2snr.alias} AS s
+            ON
+                b.fnr = s.fnr
+            WHERE
+                s.snr IS NOT NULL
+        ),
+        dedup_snr_komm AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY snr, komm_nr
+                    ORDER BY innflyttingsdato DESC NULLS LAST
+                ) AS snr_komm_rank
+            FROM
+                joined
+        ),
+        dedup_snr AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY snr
+                    ORDER BY
+                        innflyttingsdato DESC NULLS LAST,
+                        alderu_ved_innflytting DESC NULLS LAST,
+                        komm_nr DESC NULLS LAST
+                ) AS snr_rank
+            FROM
+                dedup_snr_komm
+            WHERE
+                snr_komm_rank = 1
+        )
         SELECT
-            s.snr,
-            b.komm_nr
-        FROM (
-            SELECT fnr, komm_nr
-            FROM {bokomm.alias}
-        ) AS b
-        LEFT JOIN (
-            SELECT fnr, snr
-            FROM {fnr2snr.alias}
-        ) AS s
-        ON b.fnr = s.fnr
-        ;
-        """
+            snr,
+            komm_nr,
+            innflyttingsdato
+        FROM
+            dedup_snr
+        WHERE
+            snr_rank = 1;
+    """
 
     connection.sql(query)

@@ -192,6 +192,10 @@ def _merge_and_log(
     with LoggerStack(f"Combining {merge_col_name} into {original_col_name}"):
         if merge_col_name not in df.columns:
             return df, False
+        if original_col_name not in df.columns:
+            logger.info(f"Creating missing {original_col_name} from {merge_col_name}.")
+            df[original_col_name] = df[merge_col_name]
+            return df.drop(columns=[merge_col_name]), False
 
         mask = (
             (df[original_col_name] != df[merge_col_name])
@@ -244,7 +248,7 @@ def _apply_merged_columns(
         tuple[pd.DataFrame, bool]: The updated dataframe and a flag indicating
             whether the caller should return immediately.
     """
-    merge_plan = [
+    merge_plan: list[tuple[str, str]] = [
         ("snr_from_fnr", snr_col_name),
         ("snr_from_snr", snr_col_name),
         ("fnr_from_fnr", fnr_col_name),

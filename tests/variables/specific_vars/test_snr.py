@@ -166,3 +166,66 @@ def test_update_snr_with_snrkat_remaps_and_preserves_snr(
     assert result.loc[result["fnr"] == "7KFQKZih4ha", "snr"].item() == "NEW0001"
     assert result.loc[result["fnr"] == "Qbbf3dWfake", "snr"].item() == "NEWKHT1"
     assert result.loc[result["fnr"] == "OjtKRx5fake", "snr"].item() == "NEWKHT1"
+
+
+def test_update_snr_with_snrkat_creates_missing_snr_column(
+    monkeypatch: Any,
+) -> None:
+    df = pd.DataFrame({"fnr": ["7KFQKZih4ha", "unknown"]})
+
+    snrkat = pd.DataFrame(
+        {
+            "fnr": ["7KFQKZih4ha"],
+            "snr_utgatt": ["OLD0001"],
+            "snr": ["NEW0001"],
+        }
+    )
+
+    class FakeNudbData:
+        def __init__(self, name: str) -> None:
+            assert name == "snrkat"
+
+        def select(self, _cols: str) -> FakeNudbData:
+            return self
+
+        def df(self) -> pd.DataFrame:
+            return snrkat
+
+    monkeypatch.setattr(snr_module, "NudbData", FakeNudbData)
+
+    result = update_snr_with_snrkat(df)
+
+    assert result.columns.tolist() == ["fnr", "snr"]
+    assert result.loc[0, "snr"] == "NEW0001"
+    assert pd.isna(result.loc[1, "snr"])
+
+
+def test_update_snr_with_snrkat_works_without_fnr_column(
+    monkeypatch: Any,
+) -> None:
+    df = pd.DataFrame({"snr": ["OLD0001", "unknown"]})
+
+    snrkat = pd.DataFrame(
+        {
+            "fnr": ["7KFQKZih4ha"],
+            "snr_utgatt": ["OLD0001"],
+            "snr": ["NEW0001"],
+        }
+    )
+
+    class FakeNudbData:
+        def __init__(self, name: str) -> None:
+            assert name == "snrkat"
+
+        def select(self, _cols: str) -> FakeNudbData:
+            return self
+
+        def df(self) -> pd.DataFrame:
+            return snrkat
+
+    monkeypatch.setattr(snr_module, "NudbData", FakeNudbData)
+
+    result = update_snr_with_snrkat(df)
+
+    assert result.columns.tolist() == ["snr"]
+    assert result["snr"].tolist() == ["NEW0001", "unknown"]

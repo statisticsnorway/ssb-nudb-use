@@ -102,7 +102,7 @@ def fillna_by_priority(
         ok = first_col.notna()
         if ok.sum():
             nchanged = (second_col[ok] != first_col[ok]).sum()
-            pchanged = 100 * nchanged / ok.sum()
+            pchanged = 100 * nchanged / ok.sum() if ok.sum() else 0.0
             logger.info(
                 f"{nchanged} ({pchanged:.2f}%) rows with different values were discarded when combining new (derived) values with priority `{priority}`."
             )
@@ -147,7 +147,7 @@ def wrap_derive(
     """
 
     def get_filling_pct(x: pd.Series) -> float:
-        return 100 * x.notna().sum() / len(x)
+        return 100 * x.notna().sum() / len(x) if len(x) else 0.0
 
     def get_pct_string(p: float) -> str:
         return f"{p:.2f}%"

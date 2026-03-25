@@ -249,7 +249,7 @@ def join_variable_data(
 
         k = dupes.sum()
         n = df_right.shape[0]
-        pct = 100 * k / n
+        pct = 100 * k / n if n else 0.0
 
         logger.warning(f"Dropping {k}/{n} rows ({pct:.2f}%)")
 
