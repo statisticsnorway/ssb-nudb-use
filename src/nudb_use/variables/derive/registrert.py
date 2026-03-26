@@ -15,6 +15,7 @@ __all__ = [
     "uh_erhoeyereutd_registrering",
     "uh_ermaster_registrering",
     "vg_erstudiespess_registrering",
+    "vg_ervgo_erutdprogram_registrering",
     "vg_ervgo_registrering",
     "vg_eryrkesfag_registrering",
 ]
@@ -57,6 +58,19 @@ def vg_ervgo_registrering(  # noqa:DOC201
 ) -> pd.Series:
     """Derive vg_ervgo_registrering from nus2000, as a boolean filter for registrations on vg-level."""
     bool_mask: pd.Series = df["nus2000"].str[0].isin(["3", "4"]).astype(BOOL_DTYPE)
+    return bool_mask
+
+
+@wrap_derive
+def vg_ervgo_erutdprogram_registrering(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive vg_ervgo_erutdprogram_registrering from nus2000 and vg_utdprogram, as a boolean filter for registrations on vg-level."""
+    bool_mask: pd.Series = (
+        df["nus2000"].str[0].isin(["3", "4"]).astype(BOOL_DTYPE)
+        & (df["vg_utdprogram"].notna())
+        & (df["vg_utdprogram"].str.strip() != "")
+    )
     return bool_mask
 
 

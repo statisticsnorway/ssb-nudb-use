@@ -77,7 +77,8 @@ def grade_cell_by_time_col(df: pd.DataFrame, time_col: str) -> Styler:
     """
 
     def na_percent(x: pd.Series) -> str:
-        return f"{(100 - 100 * float(x.isna().sum() / len(x))):0.2f}%"
+        percent = 100 - (100 * float(x.isna().sum() / len(x) if len(x) else 0.0))
+        return f"{percent:0.2f}%"
 
     styled: Styler = (
         df.groupby(time_col)
