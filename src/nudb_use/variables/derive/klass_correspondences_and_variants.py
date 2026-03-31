@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 import pandas as pd
+import polars as pl
 from nudb_config import settings
 
 from nudb_use.metadata.nudb_klass.correspondence import klass_correspondence_to_mapping
@@ -14,22 +15,33 @@ __all__ = []
 
 
 def _map_klass_correspondence(
-    df: pd.DataFrame, corresponds_to: str, varname: str
-) -> pd.Series:
+    corresponds_to: str, varname: str
+) -> pl.Expr:
     """Map `corresponds_to` through the KLASS correspondence defined for `varname`."""
+
     var_meta = settings.variables[varname]
-    return df[corresponds_to].map(klass_correspondence_to_mapping(var_meta))
+    mapping = klass_correspondence_to_mapping(var_meta)
+    
+    x = pl.col(corresponds_to)
+    y = x.replace_strict(mapping, default=None).alias(varname)
+
+    return y
 
 
-def _map_klass_variant(df: pd.DataFrame, variant_of: str, varname: str) -> pd.Series:
+def _map_klass_variant(variant_of: str, varname: str) -> pl.Expr:
     """Map `variant_of` through the KLASS variant defined for `varname`."""
     var_meta = settings.variables[varname]
-    return df[variant_of].map(klass_variant_search_term_mapping(var_meta))
+    mapping = klass_variant_search_term_mapping(var_meta)
+    
+    x = pl.col(variant_of)
+    y = x.replace_strict(mapping, default=None).alias(varname)
+
+    return y
 
 
 def _generate_klass_derive_function(
     varname: str,
-) -> Callable[[pd.DataFrame], pd.DataFrame] | None:
+) -> Callable[[pl.LazyFrame], pl.LazyFrame] | None:
     # we assume variable_label has the form <variable-name>_label
     var_meta = settings.variables[varname]
 
@@ -49,14 +61,14 @@ def _generate_klass_derive_function(
         return None
     elif is_variant:
 
-        def basefunc(df: pd.DataFrame) -> pd.Series:
-            return _map_klass_variant(df, variant_of=derived_from[0], varname=varname)
+        def basefunc(_lf: pl.LazyFrame) -> pl.Expr:
+            return _map_klass_variant(variant_of=derived_from[0], varname=varname)
 
     elif is_correspondence:
 
-        def basefunc(df: pd.DataFrame) -> pd.Series:
+        def basefunc(_lf: pl.LazyFrame) -> pd.Series:
             return _map_klass_correspondence(
-                df, corresponds_to=derived_from[0], varname=varname
+                corresponds_to=derived_from[0], varname=varname
             )
 
     basefunc.__doc__ = f"""Derive '{varname}' from '{derived_from}'."""

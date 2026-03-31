@@ -9,13 +9,11 @@ from nudb_use.paths.latest import latest_shared_path
 VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 
 
-def _generate_eksamen_aggregated_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
+def _generate_eksamen_aggregated_view() -> pl.LazyFrame:
     from nudb_use.datasets.nudb_data import NudbData
 
     nudb_eksamen = NudbData("eksamen")
-    FAILED_KARAKTER_CODES = ["F", "H", "T", "X"]
+    FAILED_KARAKTER_CODES = ("F", "H", "T", "X")
 
     # We have to review this logic a bit
     # this is quite a naive approach
@@ -41,7 +39,7 @@ def _generate_eksamen_aggregated_view(
             utd_datakilde,
             CONCAT(nudb_dataset_id, '>eksamen_aggregated') AS nudb_dataset_id
         FROM
-            {nudb_eksamen.alias}
+            EKSAMEN
         WHERE
             utd_skoleaar_start < '2014'
     """
@@ -66,7 +64,7 @@ def _generate_eksamen_aggregated_view(
             SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
             CONCAT(FIRST(nudb_dataset_id), '>eksamen_aggregated') AS nudb_dataset_id
         FROM
-            {nudb_eksamen.alias}
+            EKSAMEN
         WHERE
             utd_skoleaar_start >= '2014'
         GROUP BY
@@ -81,21 +79,19 @@ def _generate_eksamen_aggregated_view(
             EXTRACT(YEAR FROM uh_eksamen_dato) -- used to seperate semesters
     """
     query = f"""
-        CREATE VIEW {alias} AS (
+        (
             {query_select_before_2014}
-        ) UNION ALL BY NAME(
+        ) UNION ALL BY NAME (
             {query_aggregate_after_2014}
         );
     """
 
-    logger.debug(f"DUCKDB QUERY:\n{query}")
+    logger.debug(f"SQL QUERY:\n{query}")
 
-    connection.sql(query)
+    return pl.SQLContext(EKSAMEN=nudb_eksamen.data).execute(query)
 
 
-def _generate_eksamen_hoeyeste_table(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
+def _generate_eksamen_hoeyeste_view() -> pl.LazyFrame:
     from nudb_use.datasets.nudb_data import NudbData
     from nudb_use.variables.derive import (  # type: ignore[attr-defined]
         uh_gruppering_nus,
@@ -103,49 +99,54 @@ def _generate_eksamen_hoeyeste_table(
     from nudb_use.variables.derive import utd_klassetrinn_lav_nus
 
     # `uh_gruppering_nus` is generated dynamically at runtime
-
-    sub_eksamen = connection.sql(f"""
-        SELECT
-            snr,
-            nus2000,
-            SUBSTR(nus2000, 1, 1) AS nus2000_nivaa,
-            utd_skoleaar_start,
-            uh_eksamen_dato,
-            uh_eksamen_studpoeng,
-            utd_datakilde,
-            nudb_dataset_id
-        FROM
-            {NudbData("eksamen_aggregated").alias}
-        WHERE
-            NOT uh_eksamen_ergjentak AND
-            uh_eksamen_studpoeng > 0 AND
-            uh_eksamen_studpoeng IS NOT NULL AND
-            nus2000_nivaa IN ['6', '7'];
-    """).df()
+    eksamen_aggregated = NudbData("eksamen_aggregated")
+    
+    sub_eksamen = (
+        pl.SQLContext(EKSAMEN_AGGREGATED=eksamen_aggregated.data)
+        .execute(f"""
+            SELECT
+                snr,
+                nus2000,
+                utd_skoleaar_start,
+                uh_eksamen_dato,
+                uh_eksamen_studpoeng,
+                utd_datakilde,
+                nudb_dataset_id
+            FROM
+                EKSAMEN_AGGREGATED
+            WHERE
+                NOT uh_eksamen_ergjentak AND
+                uh_eksamen_studpoeng > 0 AND
+                uh_eksamen_studpoeng IS NOT NULL AND
+                SUBSTR(nus2000, 1, 1) IN ('6', '7');
+        """
+        )
+    )
 
     # Derive utd_klassetrinn from nus2000 and klass (lowest)
     sub_eksamen = utd_klassetrinn_lav_nus(sub_eksamen).rename(
-        columns={"utd_klassetrinn_lav_nus": "utd_klassetrinn"}
+        {"utd_klassetrinn_lav_nus": "utd_klassetrinn"}
     )
 
     # Derive uh_gruppering
-    sub_eksamen = uh_gruppering_nus(sub_eksamen)
-    # Create helper variable
-    sub_eksamen["_uh_gruppering_pool"] = sub_eksamen["uh_gruppering_nus"].copy()
-    is_vidutd = sub_eksamen["_uh_gruppering_pool"].isin(VIDEREUTDANNING_UHGRUPPE)
-    # Set helper variable to 99 in cases where not videreutdanninger
-    sub_eksamen.loc[
-        ~is_vidutd,
-        "_uh_gruppering_pool",
-    ] = "99"
-
-    # Per definition all exam records that are not videreutdanninger will get 6 as the first digit
-    # Even if the exams have nivaa 7. The last two digits should be 99
-    sub_eksamen.loc[~is_vidutd, "nus2000"] = (
-        "6" + sub_eksamen.loc[~is_vidutd, "nus2000"].str[1:4] + "99"
+    sub_eksamen = (
+        uh_gruppering_nus(sub_eksamen)
+        .with_columns(
+            is_vidutd = pl.col("_uh_gruppering_pool").is_in(VIDEREUTDANNING_UHGRUPPE),
+            _uh_gruppering_pool = (
+                pl.when(pl.col("is_vidutd"))
+                .then(pl.col("uh_gruppering_nus"))
+                .otherwise(pl.lit("99"))
+            ),
+            nus2000 = (
+                pl.when(pl.col("is_vidutd"))
+                .then(pl.col("nus2000"))
+                .otherwise(pl.lit("6") + pl.col("nus2000").str.slice(1, 3) + pl.lit("99"))
+            )
+        )
     )
 
-    connection.sql(f"""
+    return pl.SQLContext(SUB_EKSAMEN=sub_eksamen).execute(f"""
         CREATE TABLE
             {alias} AS
         SELECT
@@ -205,7 +206,7 @@ def _generate_eksamen_hoeyeste_table(
                     FIRST(nudb_dataset_id) AS nudb_dataset_id
 
                 FROM
-                    sub_eksamen
+                    SUB_EKSAMEN
 
                 GROUP BY
                     snr, _uh_gruppering_pool, utd_skoleaar_start

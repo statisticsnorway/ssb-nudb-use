@@ -71,7 +71,7 @@ class NudbData:
         str | Any
     ]:  # always returns list[str] but mypy struggles with STRING_DTYPE
         """Get available columns in dataset."""
-        return self.data.collect_schema().columns
+        return self.data.collect_schema().names()
 
     def _copy_attributes_from_existing(self, other: "NudbData") -> None:
         self.name = other.name

@@ -5,29 +5,33 @@ from nudb_use.datasets.utils import _select_if_contains_index_col_0
 from nudb_use.paths.latest import latest_shared_path
 
 
-def _generate_avslutta_view() -> None:
+def _generate_avslutta_view() -> pl.LazyFrame:
     last_key, last_path = latest_shared_path("avslutta")
 
     query = f"""
     SELECT
-        {_select_if_contains_index_col_0(last_path)},
-        'avslutta' AS nudb_dataset_id
+        {_select_if_contains_index_col_0(last_path)}
     FROM
         read_parquet('{last_path}')
     """
 
-    return pl.sql(query)
+    data_id = pl.col("nudb_dataset_id").fill_null(pl.lit("")) + pl.lit(">avslutta")
+    
+    return (
+        pl.sql(query)
+        .with_columns(nudb_dataset_id = data_id)
+    )
 
 
-def _generate_avslutta_fullfoert_table(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
+def _generate_avslutta_fullfoert_view() -> pl.LazyFrame:
     from nudb_use.datasets import NudbData
     from nudb_use.variables.derive import (  # type: ignore[attr-defined]
         uh_gruppering_nus,
     )
 
-    query = f"""
+    avslutta = NudbData("avslutta")
+    
+    fullfoert = pl.SQLContext(avslutta=avslutta.data).execute(f"""
         SELECT
             snr,
             nus2000,
@@ -38,15 +42,9 @@ def _generate_avslutta_fullfoert_table(
             utd_datakilde,
             CONCAT(nudb_dataset_id, '>avslutta_fullfoert') AS nudb_dataset_id
         FROM
-            {NudbData("avslutta").alias}
+            avslutta
         WHERE
             utd_fullfoertkode == '8';
-    """
+    """)
 
-    _avslutta_fullfoert_pandas = connection.sql(query).df().pipe(uh_gruppering_nus)
-
-    create_table = f"""
-        CREATE TABLE {alias} AS SELECT * FROM _avslutta_fullfoert_pandas
-    """
-
-    connection.execute(create_table)
+    return uh_gruppering_nus(fullfoert)

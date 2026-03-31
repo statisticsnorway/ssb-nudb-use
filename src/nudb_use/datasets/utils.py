@@ -6,7 +6,7 @@ def _parquet_contains_index_col_0(
     path: Path
 ) -> bool:
     try:
-        columns = pl.scan_parquet(path).collect_schema().columns
+        columns = pl.Series(pl.scan_parquet(path).collect_schema().names())
     except Exception:
         return False
     return bool((columns == "__index_level_0__").any())

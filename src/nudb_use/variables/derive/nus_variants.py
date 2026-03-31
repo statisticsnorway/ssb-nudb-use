@@ -1,15 +1,16 @@
 import pandas as pd
+import polars as pl
 
 from .derive_decorator import wrap_derive
 
 
 @wrap_derive
 def utd_klassetrinn_lav_nus(  # noqa:DOC201
-    df: pd.DataFrame,
-) -> pd.Series:
+    _lf: pl.LazyFrame,
+) -> pl.Series:
     """Derive utd_klassetrinn_lav_hoey_nus from nus2000."""
-    utd_klassetrinn_lav_hoey_nus: pd.Series = df["utd_klassetrinn_lav_hoey_nus"]
-    return utd_klassetrinn_lav_hoey_nus.str.split("-", n=1, expand=True)[0]
+    utd_klassetrinn_lav_hoey_nus: pl.Expr = pl.col("utd_klassetrinn_lav_hoey_nus")
+    return utd_klassetrinn_lav_hoey_nus.str.split_exact("-", 1).struct.field("field_0")
 
 
 @wrap_derive
@@ -17,8 +18,8 @@ def utd_klassetrinn_hoey_nus(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive utd_klassetrinn_lav_hoey_nus from nus2000."""
-    utd_klassetrinn_lav_hoey_nus: pd.Series = df["utd_klassetrinn_lav_hoey_nus"]
-    return utd_klassetrinn_lav_hoey_nus.str.split("-", n=1, expand=True)[1]
+    utd_klassetrinn_lav_hoey_nus: pl.Expr = pl.col("utd_klassetrinn_lav_hoey_nus")
+    return utd_klassetrinn_lav_hoey_nus.str.split_exact("-", 1).struct.field("field_1")
 
 
 @wrap_derive

@@ -6,6 +6,7 @@ from typing import ParamSpec
 from typing import Protocol
 
 import pandas as pd
+import polars as pl
 from nudb_config import settings
 
 import nudb_use.variables.derive as derive
@@ -16,7 +17,7 @@ from nudb_use.variables.derive.all_data_helpers import get_source_data
 from nudb_use.variables.derive.all_data_helpers import join_variable_data
 
 P = ParamSpec("P")
-
+TMP_COL = "_TMP_VALUES"
 
 class WrappedDerive(Protocol[P]):
     """Arg types for the wrap_derive decorator."""
@@ -67,10 +68,10 @@ def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
 
 
 def fillna_by_priority(
-    newvals: pd.Series | None,
-    oldvals: pd.Series | None,
+    name: str,
+    lf: pl.LazyFrame,
     priority: Literal["old", "new"] = "old",
-) -> pd.Series | None:
+) -> pl.LazyFrame:
     """Fill missing values in prioritized order when a column already exists.
 
     Args:
@@ -84,49 +85,21 @@ def fillna_by_priority(
     Raises:
         ValueError: If you are sending in a non-specific Literal for the priority-arg.
     """
-    if newvals is None:
-        logger.info("Newvals is None, just returning oldvals.")
-        return oldvals
-    if oldvals is None:
-        logger.info("Oldvals is None, just returning newvals.")
-        return newvals
-
-    if priority not in ["new", "old"]:
-        raise ValueError("priority must be either 'old' or 'new'!")
-
-    def perc_changed(
-        first_col: pd.Series,
-        second_col: pd.Series,
-        priority: Literal["old", "new"] = "old",
-    ) -> None:
-        ok = first_col.notna()
-        if ok.sum():
-            nchanged = (second_col[ok] != first_col[ok]).sum()
-            pchanged = 100 * nchanged / ok.sum() if ok.sum() else 0.0
-            logger.info(
-                f"{nchanged} ({pchanged:.2f}%) rows with different values were discarded when combining new (derived) values with priority `{priority}`."
-            )
-        else:
-            logger.info(
-                "No existing values in the second column, so nothing was overwritten."
-            )
 
     if priority == "old":
         logger.info("Filling missing values in existing variable...")
-        out = oldvals.fillna(newvals)
-        perc_changed(newvals, out)
-        return out
-
-    # priority == "new":
-    logger.info("Filling missing values in derived variable with existing ones...")
-    out = newvals.fillna(oldvals)
-    perc_changed(oldvals, out)
-
-    return out
+        x = pl.col(TMP_COL)
+        y = pl.col(name)
+    else: # priority == "new":
+        logger.info("Filling missing values in derived variable with existing ones...")
+        x = pl.col(name)
+        y = pl.col(TMP_COL)
+        
+    return lf.with_columns(x.fill_null(y).alias(name))
 
 
 def wrap_derive(
-    basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series | pd.DataFrame],
+    basefunc: Callable[Concatenate[pl.LazyFrame, P], pd.Series | pl.LazyFrame],
 ) -> WrappedDerive[P]:
     """Decorator for derive functions that enforces config metadata and logging.
 
@@ -146,7 +119,10 @@ def wrap_derive(
         NudbDerivedFromNotFoundError: No matching entry can be found in the config for the function name.
     """
 
-    def get_filling_pct(x: pd.Series) -> float:
+    def get_filling_pct(x: pd.Series | pl.Series) -> float:
+        if isinstance(x, pl.Series):
+            x = x.to_pandas()
+
         return 100 * x.notna().sum() / len(x) if len(x) else 0.0
 
     def get_pct_string(p: float) -> str:
@@ -162,20 +138,29 @@ def wrap_derive(
         )
 
     def wrapper(
-        df: pd.DataFrame,
+        df: pd.DataFrame | pl.LazyFrame,
         priority: Literal["old", "new"] = "old",
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
 
+
         with LoggerStack(f"Deriving {name} from {', '.join(derived_from)}..."):
             logger.debug(f"Source code for {name}:\n{inspect.getsource(basefunc)}")
 
-            available = set(df.columns)
+            if isinstance(df, pl.LazyFrame):
+                eager = False
+                lf = df
+            elif isinstance(df, pd.DataFrame):
+                eager = True
+                lf = pl.from_pandas(df).lazy()
+
+            available = set(lf.collect_schema().names())
             need = set(derived_from)
 
             missing = need - available
             have = [x for x in need if x in available]
+            
             if have:
                 logger.info(
                     f"Already have these columns, not deriving them again (if they are derivable): {have}"
@@ -192,7 +177,7 @@ def wrap_derive(
                 derive_func = get_derive_function(missing_var)
 
                 if derive_func:
-                    df = derive_func(df, *args, priority=priority_literal, **kwargs)
+                    lf = derive_func(lf, *args, priority=priority_literal, **kwargs)
 
                 if missing_var in df.columns:
                     missing -= {missing_var}
@@ -201,36 +186,43 @@ def wrap_derive(
                 logger.warning(
                     f"Unable to derive {name}, missing: {', '.join(list(need))}!"
                 )
-                return df
+                return df if eager else lf
 
-            exists = name in df.columns
+            exists = name in lf.collect_schema().names()
+
+            fill_pct0 = None
             if exists:
-                oldvals = df[name]
-                fill_pct0 = get_filling_pct(oldvals)
-                logger.info(
-                    f"Filling degree before deriving variable: {get_pct_string(fill_pct0)}"
-                )
-            else:
-                oldvals = None
-                fill_pct0 = None
+                lf = lf.rename({name: TMP_COL})
+                
+                if eager:
+                    fill_pct0 = get_filling_pct(df[name])
+                    logger.info(
+                        f"Filling degree before deriving variable: {get_pct_string(fill_pct0)}"
+                    )
+            
             try:
                 logger.debug(
                     "All `derived_from` variables are available, running basefunc"
                 )
                 result = basefunc(df, *args, **kwargs)
 
-                if isinstance(result, pd.DataFrame):
+                if isinstance(result, pl.LazyFrame):
                     logger.notice(  # type: ignore[attr-defined]
-                        "Basefunc returned a dataframe! Ignoring `priority` argument..."
+                        "Basefunc returned a frame! Ignoring `priority` argument..."
                     )
 
                     # clean up
-                    df = result
-                    newvals = df[name]
+                    lf = result
+
+                    columns = result.collect_schema().names()
+
+                    if TMP_COL in columns:
+                        lf = lf.drop(TMP_COL)
+
                     exists = False
 
-                elif isinstance(result, pd.Series):
-                    newvals = result
+                elif isinstance(result, pl.Expr):
+                    lf = lf.with_columns(result.alias(name))
 
                 else:
                     raise TypeError(
@@ -238,30 +230,32 @@ def wrap_derive(
                     )
 
                 if exists:
-                    newvals_filled = fillna_by_priority(
-                        oldvals=oldvals, newvals=newvals, priority=priority_literal
-                    )
-                    if newvals_filled is None:
-                        return df
-                    newvals = newvals_filled
-
-                fill_pct1 = get_filling_pct(newvals)
-                logger.info(
-                    f"Filling degree after deriving variable: {get_pct_string(fill_pct1)}"
-                )
-                if fill_pct0 and fill_pct1 < fill_pct0:
-                    logger.warning(
-                        f"Filling degree for {name} went down by {get_pct_string(fill_pct0 - fill_pct1)} after deriving it againg"
+                    lf = fillna_by_priority(
+                        lf=lf, name=name, priority=priority_literal
                     )
 
-                df[name] = newvals
-                return df
+                if eager:
+                    df = lf.collect().to_pandas()
+                    
+                    fill_pct1 = get_filling_pct(df[name])
+                    logger.info(
+                        f"Filling degree after deriving variable: {get_pct_string(fill_pct1)}"
+                    )
+                    if fill_pct0 and fill_pct1 < fill_pct0:
+                        logger.warning(
+                            f"Filling degree for {name} went down by {get_pct_string(fill_pct0 - fill_pct1)} after deriving it againg"
+                        )
+    
+                    return df
+
+                else:
+                    return lf
 
             except Exception as err:
                 logger.warning(
                     f"Derivation of {name} failed, returning data as is!\nMessage: {err}"
                 )
-                return df
+                return df if eager else lf
 
     wrapper.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""
