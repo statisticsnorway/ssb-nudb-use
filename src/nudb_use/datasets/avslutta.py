@@ -22,34 +22,41 @@ def _generate_avslutta_view(alias: str, connection: db.DuckDBPyConnection) -> No
     connection.sql(query)
 
 
-def _generate_avslutta_fullfoert_table(
+def _generate_avslutta_fullfoert_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     from nudb_use.datasets import NudbData
-    from nudb_use.variables.derive import (  # type: ignore[attr-defined]
-        uh_gruppering_nus,
-    )
 
     query = f"""
+        CREATE VIEW
+            {alias} AS
+
         SELECT
-            snr,
-            nus2000,
-            utd_skoleaar_start,
-            utd_aktivitet_slutt,
-            utd_klassetrinn,
-            utd_fullfoertkode,
-            utd_datakilde,
-            CONCAT(nudb_dataset_id, '>avslutta_fullfoert') AS nudb_dataset_id
-        FROM
-            {NudbData("avslutta").alias}
-        WHERE
-            utd_fullfoertkode == '8';
+            T1.*,
+            T2.uh_gruppering_nus
+
+        FROM (
+
+            SELECT
+                snr,
+                nus2000,
+                utd_skoleaar_start,
+                utd_aktivitet_slutt,
+                utd_klassetrinn,
+                utd_fullfoertkode,
+                utd_datakilde,
+                CONCAT(nudb_dataset_id, '>avslutta_fullfoert') AS nudb_dataset_id
+            FROM
+                {NudbData("avslutta").alias}
+            WHERE
+                utd_fullfoertkode == '8'
+
+        ) AS T1
+
+        LEFT JOIN
+            {NudbData("nuskat").alias} AS T2
+        ON
+            T1.nus2000 = T2.nus2000;
     """
 
-    _avslutta_fullfoert_pandas = connection.sql(query).df().pipe(uh_gruppering_nus)
-
-    create_table = f"""
-        CREATE TABLE {alias} AS SELECT * FROM _avslutta_fullfoert_pandas
-    """
-
-    connection.execute(create_table)
+    connection.execute(query)

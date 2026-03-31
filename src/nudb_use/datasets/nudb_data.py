@@ -54,6 +54,7 @@ class NudbData:
 
             self._select = "*"
             self._where = ""
+            self._limit = ""
 
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
@@ -92,12 +93,16 @@ class NudbData:
         self.generator = other.generator
         self._select = other._select
         self._where = other._where
+        self._limit = other._limit
 
     def _get_query(self) -> str:
         query = f"SELECT\n\t{self._select}\nFROM\n\t{self.alias}"
 
         if self._where:
             query += f"\nWHERE\n\t{self._where}"
+
+        if self._limit:
+            query += f"\nLIMIT\n\t{self._limit}"
 
         return query
 
@@ -111,20 +116,25 @@ class NudbData:
             is_view:  {self.is_view}
             select:   {self._select}
             where:    {self._where}
+            limit:    {self._limit}
         """
 
     def where(self, expr: str) -> "NudbData":
         """Specify (inner part) of the WHERE statement in SQL query."""
         out = copy.copy(self)
         out._where = expr
-        out._select = self._select
         return out
 
     def select(self, expr: str) -> "NudbData":
         """Specify (inner part) of the SELECT statement in SQL query."""
         out = copy.copy(self)
         out._select = expr
-        out._where = self._where
+        return out
+
+    def limit(self, expr: str) -> "NudbData":
+        """Specify (inner part) of the LIMIT statement in SQL query."""
+        out = copy.copy(self)
+        out._limit = expr
         return out
 
     def __repr__(self) -> str:

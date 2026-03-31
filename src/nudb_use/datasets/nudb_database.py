@@ -9,13 +9,14 @@ from typing import Any
 import duckdb as db
 
 import nudb_use.datasets.external as external_datasets
-from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_table
+from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_view
 from nudb_use.datasets.avslutta import _generate_avslutta_view
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
 from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
-from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
+from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
+from nudb_use.datasets.nuskat import _generate_nuskat_table
 from nudb_use.datasets.person import _generate_bokommune_16aar_snr
 from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
@@ -52,9 +53,10 @@ class _NudbDatabase:
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
-            "avslutta_fullfoert": _generate_avslutta_fullfoert_table,
+            "avslutta_fullfoert": _generate_avslutta_fullfoert_view,
             "igang": _generate_igang_view,
-            "eksamen_hoeyeste": _generate_eksamen_hoeyeste_table,
+            "nuskat": _generate_nuskat_table,
+            "eksamen_hoeyeste": _generate_eksamen_hoeyeste_view,
             "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
             "utd_hoeyeste": _generate_utd_hoeyeste_table,
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
