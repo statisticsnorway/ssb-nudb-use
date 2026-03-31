@@ -5,10 +5,10 @@ from typing import Any
 from typing import cast
 
 import pandas as pd
+import polars as pl
 
 from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
-from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
@@ -41,10 +41,6 @@ class NudbData:
                 raise ValueError("Unrecognized NUDB dataset!")
 
             self.name: str = name
-            if "alias" in kwargs:
-                self.alias: str = kwargs["alias"]
-            else:
-                self.alias = _default_alias_from_name(name)
             self.exists: bool = False
             self.is_view: bool = False
 
@@ -54,19 +50,19 @@ class NudbData:
 
             self._select = "*"
             self._where = ""
+            self.data = None
 
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
 
     def _attach(self) -> None:
-        self.generator(alias=self.alias, connection=nudb_database.get_connection())
-        self.is_view = _is_view(self.alias)
-        self.exists = _is_in_database(self.alias)
+        self.data = self.generator()
 
-        if self.exists:
-            nudb_database._datasets[self.name] = self
-        else:
+        nudb_database._datasets[self.name] = self
+        self.exists = _is_in_database(self.name)
+        
+        if not self.exists:
             logger.critical(f"Failed to attach {self.name} to database!")
 
     def get_available_cols(
@@ -75,26 +71,18 @@ class NudbData:
         str | Any
     ]:  # always returns list[str] but mypy struggles with STRING_DTYPE
         """Get available columns in dataset."""
-        if self.exists:
-            return _fetch_string_column(
-                f"DESCRIBE {self.alias}",
-                "column_name",
-            )
-        else:
-            logger.warning(f"{self.name} is not available in duckdb database!")
-            return []
+        return self.data.collect_schema().columns
 
     def _copy_attributes_from_existing(self, other: "NudbData") -> None:
         self.name = other.name
-        self.alias = other.alias
-        self.is_view = other.is_view
         self.exists = other.exists
         self.generator = other.generator
         self._select = other._select
         self._where = other._where
+        self.data = other.data
 
     def _get_query(self) -> str:
-        query = f"SELECT\n\t{self._select}\nFROM\n\t{self.alias}"
+        query = f"SELECT\n\t{self._select}\nFROM\n\tSELF"
 
         if self._where:
             query += f"\nWHERE\n\t{self._where}"
@@ -106,9 +94,7 @@ class NudbData:
         return f"""
         NUDB DATASET:
             name:     {self.name}
-            alias:    {self.alias}
             exists:   {self.exists}
-            is_view:  {self.is_view}
             select:   {self._select}
             where:    {self._where}
         """
@@ -117,58 +103,42 @@ class NudbData:
         """Specify (inner part) of the WHERE statement in SQL query."""
         out = copy.copy(self)
         out._where = expr
-        out._select = self._select
+        
+        out.data = pl.SQLContext(SELF = self.data).execute(
+            f"""SELECT * FROM SELF
+                WHERE {out._where}
+            """
+        )
+        
         return out
 
     def select(self, expr: str) -> "NudbData":
         """Specify (inner part) of the SELECT statement in SQL query."""
         out = copy.copy(self)
         out._select = expr
-        out._where = self._where
+
+        out.data = pl.SQLContext(SELF = self.data).execute(
+            f"SELECT {out._select} FROM SELF"
+        )
+        
         return out
 
     def __repr__(self) -> str:
         """Get string representation of NUDB dataset."""
         return self.__str__()
 
+    def lf(self) -> pl.LazyFrame:
+        """Return dataset as a polars LazyFrame."""
+        return self.data
+        
     def df(self) -> pd.DataFrame:
         """Return dataset as a pandas DataFrame."""
-        query = self._get_query()
-        return nudb_database.get_connection().sql(query).df()
+        return self.data.collect().to_pandas()
 
     def sql(self, expr: str) -> Any:
         """Use sql method of database connection."""
-        return nudb_database.get_connection().sql(expr)
-
-    def execute(self, expr: str) -> Any:
-        """Use execute method of database connection."""
-        return nudb_database.get_connection().execute(expr)
+        return pl.SQLContext(SELF = self.data).execute(expr)
 
 
-def _is_view(alias: str) -> bool:
-    views = _fetch_string_column(
-        "SELECT view_name FROM duckdb_views()",
-        "view_name",
-    )
-
-    return alias in views
-
-
-def _is_in_database(alias: str) -> bool:
-    return _is_table(alias) or _is_view(alias)
-
-
-def _is_table(alias: str) -> bool:
-    tables = _fetch_string_column(
-        "SHOW TABLES",
-        "name",
-    )
-
-    return alias in tables
-
-
-def _fetch_string_column(sql: str, column_name: str) -> list[str]:
-    series = (
-        nudb_database.get_connection().sql(sql).df()[column_name].astype(STRING_DTYPE)
-    )
-    return list(cast("pd.Series[str]", series))
+def _is_in_database(name: str) -> bool:
+    return name in nudb_database._datasets.keys()
