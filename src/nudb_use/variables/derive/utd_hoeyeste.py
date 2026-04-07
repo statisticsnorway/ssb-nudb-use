@@ -8,16 +8,14 @@ from pandas.api.extensions import ExtensionDtype
 from pandas.api.types import pandas_dtype
 
 from nudb_use.datasets import NudbData
+from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
+from nudb_use.variables.derive.utils import _on_syntax_from_merge_keys
 
 __all__ = ["utd_hoeyeste_nus2000", "utd_hoeyeste_rangering"]
 
-# column renames
-nus2000 = "nus2000"
-kltrinn2000 = "utd_klassetrinn"
-uhgruppe = "uh_gruppering_nus"
-regdato = "utd_skoleaar_start"  # Potensielt skummelt med tanke på likhet?
+
 VENSTRESENSUR = settings.constants.venstresensur
 STRING_DTYPE: ExtensionDtype | np_dtype[np_generic] = pandas_dtype(
     settings.constants.datadoc_pandas_dtype_mapping.STRING
@@ -28,149 +26,32 @@ VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 @wrap_derive
 def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     """Derive `utd_hoyeste_rangering`."""
-    # Før vi kommer hit bør "df" være en sammenslåing av eksamen og avslutta, hvor vi kun har beholdt fullføringer og sammenslåtte eksamen-ikke-gjentak-rader med studiepoeng?
-    # Det gjøres spesielle ting med at grunnskole blir satt til født_dato + 16 år, istedenfor at det er venstrejustert rundt omkring...
+    df = df.reset_index(drop=True).reset_index(
+        names="__index_level_0"
+    )  # drop twice in case of MultiIndex...
+    con = nudb_database.get_connection()
+    con.register("tmp_df_rangering", df)
 
-    # immutability guard will not be needed in pandas 3 - variables we depend on
-    df = df[
-        [
-            nus2000,
-            kltrinn2000,
-            uhgruppe,
-            regdato,
-            "uh_eksamen_studpoeng",
-            "uh_eksamen_dato",
-            "utd_aktivitet_slutt",
-        ]
-    ].copy()
+    result = con.sql("""
+        SELECT
+            UTD_HOEYESTE_RANGERING(
+                nus2000,
+                uh_eksamen_dato,
+                uh_eksamen_studpoeng,
+                uh_gruppering_nus,
+                utd_aktivitet_slutt,
+                utd_klassetrinn,
+                utd_skoleaar_start
+        ) AS rangering
 
-    # Sett sentinellverdier
-    df[nus2000] = df[nus2000].astype(STRING_DTYPE).fillna("999999")
-    df[kltrinn2000] = (
-        df[kltrinn2000].astype(STRING_DTYPE).fillna("00")
-    )  # er klassetrinn ett heltall?
-    df[uhgruppe] = (
-        df[uhgruppe].astype(STRING_DTYPE).fillna("00")
-    )  # 99 er en dårlig default fordi det betyr bachelor i kodelisten, men det er 99 som er bruk i oracle-koden
-    if df[regdato].isna().any():
-        raise ValueError("All rows need to have a school year")
-    df[regdato] = (
-        df[regdato].astype(STRING_DTYPE).fillna(VENSTRESENSUR)
-    )  # Vi bør kanskje benytt venstresensur-dato ved manglende dato her?
+        FROM
+            tmp_df_rangering
 
-    year_plus_one = (df[regdato].astype("Int64") + 1).astype("string[python]")
-    date_strings = year_plus_one.str.cat(
-        pd.Series("-01-01", index=df.index, dtype="string")
-    )
-    stop_date_from_school_year = pd.to_datetime(
-        date_strings, format=r"%Y-%m-%d", errors="coerce"
-    ).astype("datetime64[s]")
-    df["utd_aktivitet_slutt"] = (
-        df["utd_aktivitet_slutt"]
-        .fillna(df["uh_eksamen_dato"])
-        .fillna(stop_date_from_school_year)
-    )
+        ORDER BY
+            __index_level_0 ASC;
+    """).df()
 
-    # Make sure NAs dont f-up our exam filter
-    df["uh_eksamen_studpoeng"] = df["uh_eksamen_studpoeng"].fillna(0)
-
-    ######################################
-    # Bygge rangeringstall - høyt er bra #
-    ######################################
-
-    eksamener_120_maske = (df["uh_eksamen_dato"].notna()) | (
-        (df["uh_eksamen_studpoeng"].notna())
-        & (df["uh_eksamen_studpoeng"] > 0)
-        & (
-            ~df[uhgruppe].isin(VIDEREUTDANNING_UHGRUPPE)
-        )  # By excluding these, these exams will act as full degrees, matching old code
-    )  # Trenger en måte å skille eksamensrader fra avslutta rader
-
-    # Trinn-plassering, best til dårligst:
-    # 4: avslutta grad UH + videreutdannings-eksamens-sammenslåinger (60 studiepoeng)
-    # 3: Eksamensrecords på UH som tilsier grad på 120 studiepoeng
-    # 2: Annet
-    # 1: VG1 eller VG2, som ikke tilsier ferdig på vgs
-    # 0: Ukjent nus2000
-
-    trinn_plassering: pd.Series = pd.Series("2", index=df.index)
-    # Om det er en avslutning på høyere nivå (uten studiepoeng) - så ansees det alltid som noe som skal erstattes av det som er nytt
-    trinn_plassering.loc[
-        df[nus2000].str[0].isin(["6", "7", "8"]) & (~eksamener_120_maske)
-    ] = "4"
-    # Om det er en rad med studiepoeng
-    trinn_plassering.loc[
-        df[nus2000].str[0].isin(["6", "7", "8"]) & (eksamener_120_maske)
-    ] = "3"
-    # Fullføringer på VGS på lavere nivå, nus starter på 3, ansees som DÅRLIGERE enn alt, inkludert grunnskole?
-    # Hardkoding på disse er potensielt allerede gjort til nuskode 201199?
-    trinn_plassering.loc[
-        (
-            (df[nus2000].str[0] == "3")
-            & (df[kltrinn2000].astype("Int64").isin([10, 11]))
-            & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1975, month=10, day=1))
-        )
-        | (
-            (df[nus2000].str[0] == "3")
-            & (df["utd_aktivitet_slutt"] >= dt.datetime(year=1995, month=10, day=1))
-        )
-    ] = "1"
-    # Nus som starter på 3, skal ansees som bedre en ukjent nus2000.
-    trinn_plassering.loc[df[nus2000] == "999999"] = "0"
-    rangering: pd.Series = trinn_plassering
-
-    # Visse plasseringer sorteres etter dato, hvor nyere er bedre
-    # Om det IKKE er å anse som en fullføring på UH, så venter vi med å tie-breake på dato
-    dato_kanskje = df["utd_aktivitet_slutt"].dt.strftime(r"%Y%m").copy()
-    # Vi skal plukke "den første gangen en eksamensrecord flipper over 60/120 studiepoeng"
-    # Fra foregående aggregerings-logikk får vi bare sammenslåtte eksamensrecords hvor dette er sant
-    # Siden dette er tilfelle verdisettes eksamensrecords med reversert dato, slik at eldre sammenslåtte eksamen-records verdsettes over nyere
-    dato_kanskje.loc[trinn_plassering == "3"] = (
-        (999999 - dato_kanskje.astype("Int64")).astype(STRING_DTYPE).str.zfill(6)
-    )
-    # Innenfor "vanlig sammenligning" og mellom grader - sorterer vi ikke med dato, slik vi gjør på de andre prioritetene
-    dato_kanskje.loc[trinn_plassering.isin(["2", "4"])] = "000000"
-    rangering += dato_kanskje
-
-    # Første siffer nus
-    rangering += (
-        (df[nus2000].str[0].astype("Int64") + 1).astype(STRING_DTYPE).str[-1]
-    )  # Cycles nus2000 starts with 9 to 0
-
-    # Klassetrinn tilsier ett høyere nivå
-    rangering += df[kltrinn2000].astype(STRING_DTYPE).str.zfill(2).str[-2:]
-
-    # Allmenfag, generelle saker ansees som dårligere - ting med uoppgitte fagfelt kan ende her ifølge NUDB-team
-    generelle = pd.Series("1", index=rangering.index)
-    generelle.loc[df[nus2000].str[1] == "0"] = "0"
-    rangering += generelle
-
-    # Annet enn PPU og forberedende prøver er bra
-    uhgruppe_tall = pd.Series("9", index=rangering.index)
-    uhgruppe_tall.loc[df[uhgruppe] == "01"] = "0"  # Forberedende prøver er dårlig
-    uhgruppe_tall.loc[df[uhgruppe] == "23"] = "1"  # PPU er nesten like dårlig
-    rangering += uhgruppe_tall
-
-    # Vi tar med dato som en tie-breaker, dvs. høyere dato er bedre? Selv om man tar sånn ca. den samme utdanningen igjen???
-    # rangering += df[regdato].dt.strftime("%Y%m").fillna(VENSTRESENSUR)
-    rangering += df["utd_aktivitet_slutt"].dt.strftime(r"%Y%m")
-
-    # Hele nuskoden som tiebreaker, litt rart å ta med 1. siffer, når denne allerede er del av rangeringstallet fra før...
-    # Og dette betyr at vi rangerer opp "99"-koder, som egentlig er litt feil sånn faglig, men akk vel, la oss rekreere fra Oracle...
-    rangering += df[nus2000]
-
-    nchar = rangering.dropna().str.len().unique()
-
-    if len(nchar) > 1:
-        raise ValueError(f"Rank numbers have different numbers of digits!\n{nchar}")
-    elif (rangering.str.slice(0, 1) == "0").any():
-        logger.warning(
-            "Rank numbers have leading zeros! This means data contains nus2000 = 999999"
-        )
-    elif not rangering.str.isdigit().all():
-        raise ValueError("Rank numbers are not all digits!")
-
-    return rangering
+    return result["rangering"]
 
 
 @wrap_derive
@@ -178,31 +59,56 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
     """Derive `utd_hoyeste_nus2000`."""
     df = df.copy()
 
+    varname = "utd_hoeyeste_nus2000"
+    if varname in df.columns:
+        logger.warning(f"{varname} already exists... Replacing it!")
+        df = df.drop(columns=varname)
+
     merge_keys_raw = settings.variables.utd_hoeyeste_nus2000.derived_join_keys
     merge_keys = merge_keys_raw or []
 
-    if year_col:
-        df[year_col] = df[year_col].astype(STRING_DTYPE)
-        merge_keys += ["utd_hoeyeste_aar"]
-        first_year = int(df[year_col].min())
-        last_year = int(df[year_col].max())
-    else:
-        first_year = dt.datetime.now().year
-        last_year = first_year
+    year_col_right = "utd_hoeyeste_aar"
+    if not year_col:
+        year_col = year_col_right
+        df[year_col] = str(dt.datetime.now().year())
 
-    utd_hoeyeste_df = (
-        NudbData(
-            "utd_hoeyeste",
-            first_year=first_year,
-            last_year=last_year,
-            valid_snrs=pd.Series(df["snr"].unique()),
+    df[year_col_right] = df[year_col].astype(STRING_DTYPE)
+
+    if year_col_right not in merge_keys:
+        merge_keys += [year_col_right]
+
+    utd_hoeyeste = NudbData("utd_hoeyeste")
+    df = df.rename(columns={year_col: "utd_hoeyeste_aar"})
+
+    con = nudb_database.get_connection()
+    con.register("_tmp_df", df)
+
+    result = con.sql(f"""
+        SELECT
+            *
+        FROM
+            _tmp_df AS T1
+        LEFT JOIN (
+            SELECT
+                {', '.join(merge_keys)},
+                nus2000 AS {varname}
+            FROM
+                {utd_hoeyeste.alias}
+            -- WHERE
+            --     snr IN T1.snr AND
+            --     {year_col_right} IN T1.{year_col_right}
+        ) AS T2
+        ON
+            {_on_syntax_from_merge_keys(merge_keys)}
+    """).df()
+
+    if result.shape[0] > df.shape[0]:
+        logger.warning(
+            f"Number of observations grew from {df.shape[0]} to {result.shape[0]}!"
         )
-        .df()
-        .rename(columns={"nus2000": "utd_hoeyeste_nus2000"})
-    )
+    elif result.shape[0] < df.shape[0]:
+        logger.warning(
+            f"Number of observations decreased from {df.shape[0]} to {result.shape[0]}!"
+        )
 
-    logger.info(f"utd_hoeyeste_df.head(50):\n{utd_hoeyeste_df.head(50)}")
-
-    return df.rename(columns={year_col: "utd_hoeyeste_aar"}).merge(
-        utd_hoeyeste_df, on=merge_keys, how="left", validate="m:1"
-    )
+    return result

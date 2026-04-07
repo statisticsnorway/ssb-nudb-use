@@ -13,7 +13,7 @@ def _parquet_columns(path: Path, connection: db.DuckDBPyConnection) -> set[str]:
             "column_name"
         ]
     except Exception:
-        return {}
+        return set()
 
     return set(columns)
 
