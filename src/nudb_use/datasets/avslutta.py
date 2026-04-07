@@ -1,7 +1,7 @@
 import duckdb as db
 
 from nudb_use.datasets.utils import _default_alias_from_name
-from nudb_use.datasets.utils import _select_if_contains_index_col_0
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.paths.latest import latest_shared_path
 
 
@@ -13,8 +13,7 @@ def _generate_avslutta_view(alias: str, connection: db.DuckDBPyConnection) -> No
     CREATE VIEW
         {alias} AS
     SELECT
-        {_select_if_contains_index_col_0(last_path, connection)},
-        'avslutta' AS nudb_dataset_id
+        {_nudb_data_select_all(last_path, connection, 'avslutta')}
     FROM
         read_parquet('{last_path}')
     """

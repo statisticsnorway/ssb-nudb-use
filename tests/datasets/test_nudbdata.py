@@ -13,7 +13,7 @@ from nudb_use.datasets.nudb_data import _is_in_database
 from nudb_use.datasets.nudb_data import _is_table
 from nudb_use.datasets.nudb_data import _is_view
 from nudb_use.datasets.utils import _default_alias_from_name
-from nudb_use.datasets.utils import _select_if_contains_index_col_0
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.metadata.nudb_config.variable_names import update_colnames
 
 
@@ -115,7 +115,7 @@ def test_utils_select_and_alias(tmp_path: Path) -> None:
     pd.DataFrame({"a": [1, 2]}).to_parquet(without_index, index=False)
     database = nudb_database_module._NudbDatabase()
     connection = database.get_connection()
-    assert _select_if_contains_index_col_0(without_index, connection) == "*"
+    assert _nudb_data_select_all(without_index, connection) == "*"
     assert _default_alias_from_name("test-data") == "NUDB_DATA_TEST_DATA"
     del database
 

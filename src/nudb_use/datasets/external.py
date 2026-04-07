@@ -5,7 +5,7 @@ from nudb_config import settings
 
 from nudb_use import LoggerStack
 from nudb_use.datasets.utils import _default_alias_from_name
-from nudb_use.datasets.utils import _select_if_contains_index_col_0
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.paths.latest import latest_shared_path
 
 __all__ = []
@@ -32,7 +32,7 @@ def _generate_view(
         CREATE VIEW
             {use_alias} AS
         SELECT
-            {_select_if_contains_index_col_0(last_path, connection)},
+            {_nudb_data_select_all(last_path, connection)},
             '{dataset_name}' AS nudb_dataset_id
         FROM
             read_parquet('{last_path}')
