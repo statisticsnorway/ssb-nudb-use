@@ -12,6 +12,30 @@ EXTRA_KOMMNR = settings.constants.extra_municipality_nr
 MISSING_UTD_SKOLEKOM = settings.constants.missing_vals.utd_skolekom
 
 
+def fix_kommune_codes(
+    df: pd.DataFrame,
+    col_name: str = "utd_skolekom",
+    from_date: str = "1960-01-01",
+    to_date: str | None = None,
+) -> pd.DataFrame:
+    """Run the kommunefixing functions in the correct order, first correct to single values, then keep only valid codes.
+
+    Args:
+        df: The dataframe to mutate the kommune-column in.
+        col_name: The string-name of the kommune-column we want to correct.
+        from_date: The date we should include valid kommune-codes from.
+        to_date: The date we should include valid kommune-codes until. If set to None, defaults to todays-date.
+
+    Returns:
+        pd.DataFrame: The modified dataframe with the corrected column.
+    """
+    result = correct_kommune_single_values(df, col_name=col_name)
+    result[col_name] = keep_only_valid_kommune_codes(
+        result[col_name], from_date=from_date, to_date=to_date
+    )
+    return result
+
+
 def keep_only_valid_kommune_codes(
     komm_col: pd.Series, from_date: str = "1960-01-01", to_date: str | None = None
 ) -> pd.Series:
