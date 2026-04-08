@@ -35,12 +35,12 @@ def _generate_utd_hoeyeste_view(
     query = f"""
         CREATE VIEW {alias} AS
 
-        WITH base AS (
+        WITH T0 AS (
             SELECT
                 snr,
                 nus2000,
                 COALESCE(utd_aktivitet_slutt, uh_eksamen_dato) AS utd_hoeyeste_dato,
-                utd_hoeyeste_rangering(
+                UTD_HOEYESTE_RANGERING(
                     nus2000,
                     uh_eksamen_dato,
                     uh_eksamen_studpoeng,
@@ -51,14 +51,21 @@ def _generate_utd_hoeyeste_view(
                 ) AS utd_hoeyeste_rangering,
                 utd_datakilde,
                 utd_klassetrinn,
-                UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar,
+                UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar
+            FROM
+                {eksamen_avslutta_hoeyeste.alias}
+        ),
+
+        T1 AS (
+            SELECT
+                *,
                 MAX(utd_hoeyeste_rangering) OVER (
                     PARTITION BY snr
                     ORDER BY utd_hoeyeste_aar
                     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 ) AS cmax_utd_hoeyeste_rangering
             FROM
-                {eksamen_avslutta_hoeyeste.alias}
+                T0
         )
 
         SELECT
@@ -70,7 +77,7 @@ def _generate_utd_hoeyeste_view(
             utd_hoeyeste_rangering,
             nus2000 AS utd_hoeyeste_nus2000
         FROM
-            base
+            T1
         WHERE
             utd_hoeyeste_rangering==cmax_utd_hoeyeste_rangering
     """
