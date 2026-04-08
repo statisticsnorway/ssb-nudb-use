@@ -4,7 +4,7 @@ import pandas as pd
 
 from .derive_decorator import wrap_derive
 
-PYARROW_STRING: Literal["string[pyarrow]"] = "string[pyarrow]"
+STRING_DTYPE: Literal["string[pyarrow]"] = "string[pyarrow]"
 
 
 @wrap_derive
@@ -14,8 +14,8 @@ def utd_skoleaar_slutt(  # noqa: DOC201, DOC501
     """Derive utd_skoleaar_slutt from utd_skoleaar_start."""
     # We consider 4-digit strings to be valid, or empty cells
     valid_mask = (
-        (df["utd_skoleaar_start"].astype(PYARROW_STRING).str.len() == 4)
-        & (df["utd_skoleaar_start"].astype(PYARROW_STRING).str.isdigit())
+        (df["utd_skoleaar_start"].astype(STRING_DTYPE).str.len() == 4)
+        & (df["utd_skoleaar_start"].astype(STRING_DTYPE).str.isdigit())
     ) | (df["utd_skoleaar_start"].isna())
     if not valid_mask.all():
         unique_invalid = df[~valid_mask]["utd_skoleaar_start"].unique()
