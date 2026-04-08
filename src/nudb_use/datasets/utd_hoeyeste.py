@@ -9,7 +9,6 @@ def _generate_utd_hoeyeste_table(
     connection: db.DuckDBPyConnection,
     first_year: int = 1970,
     last_year: int | None = None,
-    valid_snrs: None | pd.Series = None,
 ) -> None:
     from nudb_use.datasets.nudb_data import NudbData
     from nudb_use.variables.derive import utd_hoeyeste_rangering

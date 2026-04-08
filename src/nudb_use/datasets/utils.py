@@ -26,7 +26,7 @@ def _nudb_data_select_all(
 ) -> str:
 
     cols = _parquet_columns(path, connection)
-    exclude_in_cols = tuple(set(exclude) & cols)
+    exclude_in_cols = () if exclude is None else tuple(set(exclude) & cols)
     excluding_id = "nudb_dataset_id" in exclude_in_cols
 
     select = "*"
