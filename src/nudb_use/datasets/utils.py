@@ -22,7 +22,7 @@ def _nudb_data_select_all(
     path: Path,
     connection: db.DuckDBPyConnection,
     dataset: str | None = None,
-    exclude: tuple[str] | None = ["__index_level_0__", "nudb_dataset_id"],
+    exclude: tuple[str] | None = ("__index_level_0__", "nudb_dataset_id"),
 ) -> str:
     cols = _parquet_columns(path, connection)
     exclude_in_cols = tuple(set(exclude) & cols) if exclude is not None else tuple()
