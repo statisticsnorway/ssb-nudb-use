@@ -11,14 +11,13 @@ from nudb_use.datasets import NudbData
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
-from nudb_use.variables.derive.utils import _on_syntax_from_merge_keys
 
 __all__ = ["utd_hoeyeste_nus2000", "utd_hoeyeste_rangering"]
 
 
 VENSTRESENSUR = settings.constants.venstresensur
-STRING_DTYPE: ExtensionDtype | np_dtype[np_generic] = pandas_dtype(
-    settings.constants.datadoc_pandas_dtype_mapping.STRING
+INTEGER_DTYPE: ExtensionDtype | np_dtype[np_generic] = pandas_dtype(
+    settings.constants.datadoc_pandas_dtype_mapping.INTEGER
 )
 VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 
@@ -70,9 +69,9 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
     year_col_right = "utd_hoeyeste_aar"
     if not year_col:
         year_col = year_col_right
-        df[year_col] = str(dt.datetime.now().year())
+        df[year_col] = dt.datetime.now().year
 
-    df[year_col_right] = df[year_col].astype(STRING_DTYPE)
+    df[year_col_right] = df[year_col].astype(INTEGER_DTYPE)
 
     if year_col_right not in merge_keys:
         merge_keys += [year_col_right]
@@ -85,21 +84,15 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
 
     result = con.sql(f"""
         SELECT
-            *
+            T1.*,
+            T2.utd_hoeyeste_nus2000 AS {varname}
         FROM
             _tmp_df AS T1
-        LEFT JOIN (
-            SELECT
-                {', '.join(merge_keys)},
-                nus2000 AS {varname}
-            FROM
-                {utd_hoeyeste.alias}
-            -- WHERE
-            --     snr IN T1.snr AND
-            --     {year_col_right} IN T1.{year_col_right}
-        ) AS T2
+        ASOF LEFT JOIN
+            {utd_hoeyeste.alias} AS T2
         ON
-            {_on_syntax_from_merge_keys(merge_keys)}
+            T1.snr = T2.snr AND
+            T2.{year_col_right} <= T1.{year_col_right};
     """).df()
 
     if result.shape[0] > df.shape[0]:

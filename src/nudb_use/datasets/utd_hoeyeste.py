@@ -33,7 +33,8 @@ def _generate_utd_hoeyeste_view(
     logger.info(f"Deriving `utd_hoeyeste` [{first_year}-{last_year}] as view.")
 
     query = f"""
-        CREATE OR REPLACE VIEW {alias} AS
+        CREATE VIEW {alias} AS
+
         WITH base AS (
             SELECT
                 snr,
@@ -49,46 +50,29 @@ def _generate_utd_hoeyeste_view(
                     utd_skoleaar_start
                 ) AS utd_hoeyeste_rangering,
                 utd_datakilde,
-                utd_klassetrinn
+                utd_klassetrinn,
+                UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar,
+                MAX(utd_hoeyeste_rangering) OVER (
+                    PARTITION BY snr
+                    ORDER BY utd_hoeyeste_aar
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) AS cmax_utd_hoeyeste_rangering
             FROM
                 {eksamen_avslutta_hoeyeste.alias}
-        ),
-        years AS (
-            SELECT
-                year::VARCHAR AS utd_hoeyeste_aar,
-                MAKE_DATE(year, 10, 1) AS cutoff_date
-            FROM generate_series({first_year}, {last_year}) AS t(year)
-        ),
-        ranked AS (
-            SELECT
-                y.utd_hoeyeste_aar,
-                b.snr,
-                b.nus2000,
-                b.utd_datakilde,
-                b.utd_klassetrinn,
-                b.utd_hoeyeste_rangering,
-                ROW_NUMBER() OVER (
-                    PARTITION BY y.utd_hoeyeste_aar, b.snr
-                    ORDER BY
-                        b.utd_hoeyeste_rangering DESC,
-                        (b.utd_klassetrinn IS NOT NULL) DESC,
-                        (b.utd_datakilde IS NOT NULL) DESC,
-                        b.utd_hoeyeste_dato DESC,
-                        b.nus2000 DESC
-                ) AS rn
-            FROM years y
-            JOIN base b
-              ON b.utd_hoeyeste_dato <= y.cutoff_date
         )
+
         SELECT
             snr,
-            nus2000,
-            utd_hoeyeste_rangering,
-            utd_hoeyeste_aar,
             utd_datakilde,
-            utd_klassetrinn
-        FROM ranked
-        WHERE rn = 1
+            utd_klassetrinn,
+            utd_hoeyeste_dato,
+            utd_hoeyeste_aar,
+            utd_hoeyeste_rangering,
+            nus2000 AS utd_hoeyeste_nus2000
+        FROM
+            base
+        WHERE
+            utd_hoeyeste_rangering==cmax_utd_hoeyeste_rangering
     """
 
     connection.execute(query)

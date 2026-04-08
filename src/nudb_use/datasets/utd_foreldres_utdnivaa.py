@@ -13,17 +13,17 @@ def _generate_utd_foreldres_utdnivaa_view(
     query = f"""
         CREATE VIEW
             {alias} AS
-        SELECT
+        SELECT DISTINCT
             T1.snr AS snr,
             T2.pers_foedselsdato AS pers_foedselsdato,
             T2.pers_aar_16 AS pers_aar_16,
             T1.far_snr AS far_snr,
             T1.mor_snr AS mor_snr,
 
-            T3.nus2000 AS utd_hoeyeste_far_nus2000,
+            T3.utd_hoeyeste_nus2000 AS utd_hoeyeste_far_nus2000,
             T3.utd_hoeyeste_rangering AS far_utd_hoeyeste_rangering,
 
-            T4.nus2000 AS utd_hoeyeste_mor_nus2000,
+            T4.utd_hoeyeste_nus2000 AS utd_hoeyeste_mor_nus2000,
             T4.utd_hoeyeste_rangering AS mor_utd_hoeyeste_rangering,
 
             CASE
@@ -40,17 +40,17 @@ def _generate_utd_foreldres_utdnivaa_view(
         ON
             T1.snr = T2.snr
 
-        LEFT JOIN
+        ASOF LEFT JOIN
             {utd_hoeyeste.alias} AS T3
         ON
             T1.far_snr = T3.snr AND
-            T2.pers_aar_16 = T3.utd_hoeyeste_aar
+            T3.utd_hoeyeste_aar <= T2.pers_aar_16
 
-        LEFT JOIN
+        ASOF LEFT JOIN
             {utd_hoeyeste.alias} AS T4
         ON
             T1.mor_snr = T4.snr AND
-            T2.pers_aar_16 = T4.utd_hoeyeste_aar
+            T4.utd_hoeyeste_aar <= T2.pers_aar_16;
     """
 
     connection.sql(query)

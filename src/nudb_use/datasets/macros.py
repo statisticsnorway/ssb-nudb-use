@@ -78,6 +78,13 @@ _DUCKDB_MACROS = f"""
     lpad(CAST(999999 - CAST(DATE2STR(x) AS INTEGER) AS VARCHAR), 6, '0');
 
 
+{_MACRO} UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS
+    CASE
+        WHEN MONTH(utd_hoeyeste_dato) <= 10 THEN YEAR(utd_hoeyeste_dato)
+                                            ELSE YEAR(utd_hoeyeste_dato) + 1
+    END;
+
+
 {_MACRO} UTD_HOEYESTE_RANGERING_PREPPED_LAST(
     nus2000,
     nivaa2000,
