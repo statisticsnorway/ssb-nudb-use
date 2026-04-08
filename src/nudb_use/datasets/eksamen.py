@@ -2,7 +2,7 @@ import duckdb as db
 from nudb_config import settings
 
 from nudb_use.datasets.utils import _default_alias_from_name
-from nudb_use.datasets.utils import _select_if_contains_index_col_0
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.latest import latest_shared_path
 
@@ -93,59 +93,48 @@ def _generate_eksamen_aggregated_view(
     connection.sql(query)
 
 
-def _generate_eksamen_hoeyeste_table(
+def _generate_eksamen_hoeyeste_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
     from nudb_use.datasets.nudb_data import NudbData
-    from nudb_use.variables.derive import (  # type: ignore[attr-defined]
-        uh_gruppering_nus,
-    )
-    from nudb_use.variables.derive import utd_klassetrinn_lav_nus
 
     # `uh_gruppering_nus` is generated dynamically at runtime
 
-    sub_eksamen = connection.sql(f"""
+    query_1 = f"""
         SELECT
-            snr,
-            nus2000,
-            SUBSTR(nus2000, 1, 1) AS nus2000_nivaa,
-            utd_skoleaar_start,
-            uh_eksamen_dato,
-            uh_eksamen_studpoeng,
-            utd_datakilde,
-            nudb_dataset_id
+            T1.snr,
+            T1.utd_skoleaar_start,
+            T1.uh_eksamen_dato,
+            T1.uh_eksamen_studpoeng,
+            T1.utd_datakilde,
+            T1.nudb_dataset_id,
+            T2.utd_klassetrinn_lav_nus AS utd_klassetrinn,
+            T2.uh_gruppering_nus,
+            uh_gruppering_nus IN {VIDEREUTDANNING_UHGRUPPE} AS is_vidutd,
+
+            CASE WHEN is_vidutd THEN uh_gruppering_nus ELSE '99'
+            END AS _uh_gruppering_pool,
+
+            CASE WHEN is_vidutd THEN T1.nus2000
+            ELSE CONCAT('6', SUBSTR(T1.nus2000, 2, 3), '99')
+            END AS nus2000
+
         FROM
-            {NudbData("eksamen_aggregated").alias}
+            {NudbData("eksamen_aggregated").alias} AS T1
+
+        LEFT JOIN
+            {NudbData("nuskat").alias} AS T2
+        ON
+            T1.nus2000 = T2.nus2000
+
         WHERE
             NOT uh_eksamen_ergjentak AND
             uh_eksamen_studpoeng > 0 AND
             uh_eksamen_studpoeng IS NOT NULL AND
-            nus2000_nivaa IN ['6', '7'];
-    """).df()
+            SUBSTR(T1.nus2000, 1, 1) IN ['6', '7']
+    """
 
-    # Derive utd_klassetrinn from nus2000 and klass (lowest)
-    sub_eksamen = utd_klassetrinn_lav_nus(sub_eksamen).rename(
-        columns={"utd_klassetrinn_lav_nus": "utd_klassetrinn"}
-    )
-
-    # Derive uh_gruppering
-    sub_eksamen = uh_gruppering_nus(sub_eksamen)
-    # Create helper variable
-    sub_eksamen["_uh_gruppering_pool"] = sub_eksamen["uh_gruppering_nus"].copy()
-    is_vidutd = sub_eksamen["_uh_gruppering_pool"].isin(VIDEREUTDANNING_UHGRUPPE)
-    # Set helper variable to 99 in cases where not videreutdanninger
-    sub_eksamen.loc[
-        ~is_vidutd,
-        "_uh_gruppering_pool",
-    ] = "99"
-
-    # Per definition all exam records that are not videreutdanninger will get 6 as the first digit
-    # Even if the exams have nivaa 7. The last two digits should be 99
-    sub_eksamen.loc[~is_vidutd, "nus2000"] = (
-        "6" + sub_eksamen.loc[~is_vidutd, "nus2000"].str[1:4] + "99"
-    )
-
-    connection.sql(f"""
+    query_2 = f"""
         CREATE TABLE
             {alias} AS
         SELECT
@@ -204,8 +193,9 @@ def _generate_eksamen_hoeyeste_table(
                     FIRST(uh_gruppering_nus ORDER BY uh_eksamen_studpoeng) AS uh_gruppering_nus,
                     FIRST(nudb_dataset_id) AS nudb_dataset_id
 
-                FROM
-                    sub_eksamen
+                FROM (
+                    {query_1}
+                )
 
                 GROUP BY
                     snr, _uh_gruppering_pool, utd_skoleaar_start
@@ -216,7 +206,10 @@ def _generate_eksamen_hoeyeste_table(
         WHERE
             (_uh_gruppering_pool != '99' AND uh_eksamen_studpoeng >= 60) OR
             uh_eksamen_studpoeng >= 120;
-    """)
+    """
+
+    logger.debug(f"QUERY:\n{query_2}")
+    connection.execute(query_2)
 
 
 def _generate_eksamen_avslutta_hoeyeste_view(
@@ -267,8 +260,7 @@ def _generate_eksamen_view(alias: str, connection: db.DuckDBPyConnection) -> Non
     CREATE VIEW
         {alias} AS
     SELECT
-        {_select_if_contains_index_col_0(last_path, connection)},
-        'eksamen' AS nudb_dataset_id
+        {_nudb_data_select_all(last_path, connection, 'eksamen')}
     FROM
         read_parquet('{last_path}')
     """

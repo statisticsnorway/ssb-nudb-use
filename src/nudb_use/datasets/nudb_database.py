@@ -9,13 +9,15 @@ from typing import Any
 import duckdb as db
 
 import nudb_use.datasets.external as external_datasets
-from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_table
+from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_view
 from nudb_use.datasets.avslutta import _generate_avslutta_view
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
 from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
-from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_table
+from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
+from nudb_use.datasets.macros import _DUCKDB_MACROS
+from nudb_use.datasets.nuskat import _generate_nuskat_table
 from nudb_use.datasets.person import _generate_bokommune_16aar_snr
 from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
@@ -24,7 +26,7 @@ from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
 from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
-from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_table
+from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger
@@ -45,6 +47,7 @@ class _NudbDatabase:
 
     def __init__(self) -> None:
         self._connection: db.DuckDBPyConnection = db.connect(":memory:")
+        self._connection.execute(_DUCKDB_MACROS)
         self._duckdb_temp_dir: tempfile.TemporaryDirectory[str] | None = None
         self._duckdb_temp_dir_path: Path | None = None
 
@@ -52,11 +55,12 @@ class _NudbDatabase:
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
-            "avslutta_fullfoert": _generate_avslutta_fullfoert_table,
+            "avslutta_fullfoert": _generate_avslutta_fullfoert_view,
             "igang": _generate_igang_view,
-            "eksamen_hoeyeste": _generate_eksamen_hoeyeste_table,
+            "nuskat": _generate_nuskat_table,
+            "eksamen_hoeyeste": _generate_eksamen_hoeyeste_view,
             "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
-            "utd_hoeyeste": _generate_utd_hoeyeste_table,
+            "utd_hoeyeste": _generate_utd_hoeyeste_view,
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "slekt_snr": _generate_slekt_snr_view,
             "_snr2alder16": _generate_snr2alder16_view,
@@ -76,6 +80,7 @@ class _NudbDatabase:
     def _reset(self) -> None:
         self._connection.close()
         self._connection = db.connect(":memory:")
+        self._connection.execute(_DUCKDB_MACROS)
         self._datasets = {}
 
     def __del__(self) -> None:

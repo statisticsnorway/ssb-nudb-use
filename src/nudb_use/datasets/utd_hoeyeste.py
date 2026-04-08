@@ -1,117 +1,83 @@
 import duckdb as db
-import pandas as pd
 
 from nudb_use.nudb_logger import logger
 
 
-def _generate_utd_hoeyeste_table(
+def _generate_utd_hoeyeste_view(
     alias: str,
     connection: db.DuckDBPyConnection,
     first_year: int = 1970,
     last_year: int | None = None,
-    valid_snrs: None | pd.Series = None,
 ) -> None:
-    from nudb_use.datasets.nudb_data import NudbData
-    from nudb_use.variables.derive import utd_hoeyeste_rangering
+    from nudb_use.datasets import NudbData
 
-    def keep_valid_snrs(df: pd.DataFrame) -> pd.DataFrame:
-        return df[df["snr"].isin(valid_snrs)] if (valid_snrs is not None) else df
+    eksamen_avslutta_hoeyeste = NudbData("eksamen_avslutta_hoeyeste")
 
-    eksamen_avslutta_hoeyeste_rangert = (
-        NudbData("eksamen_avslutta_hoeyeste")
-        .df()
-        .pipe(keep_valid_snrs)
-        .pipe(utd_hoeyeste_rangering)
-        .sort_values(by="utd_hoeyeste_rangering", ascending=False)
-        .assign(
-            utd_hoeyeste_dato=lambda df: df["utd_aktivitet_slutt"].fillna(
-                df["uh_eksamen_dato"]
-            )
-        )[
-            [
-                "snr",
-                "nus2000",
-                "utd_hoeyeste_dato",
-                "utd_hoeyeste_rangering",
-                "utd_datakilde",
-                "utd_klassetrinn",
-            ]
-        ]
-    )
+    # Find the latest year present in the source after computing the derived date
+    last_year_data = connection.sql(f"""
+        SELECT
+            EXTRACT(
+                YEAR FROM MAX(COALESCE(utd_aktivitet_slutt, uh_eksamen_dato))
+            )::INTEGER AS last_year_data
+        FROM
+            {eksamen_avslutta_hoeyeste.alias};
+        """).df()["last_year_data"].iloc[0]
 
-    last_year_data = eksamen_avslutta_hoeyeste_rangert["utd_hoeyeste_dato"].max().year
+    if last_year_data is None:
+        raise ValueError("No data found in `eksamen_avslutta_hoeyeste`.")
 
-    if not last_year:
-        last_year = last_year_data
-    else:
-        last_year = max(last_year, last_year_data)
-
-    base = eksamen_avslutta_hoeyeste_rangert
-    # Ensure datetime64[ns]
-    base["utd_hoeyeste_dato"] = pd.to_datetime(base["utd_hoeyeste_dato"])
-
-    last_year_data = int(base["utd_hoeyeste_dato"].max().year)
     last_year = last_year_data if last_year is None else max(last_year, last_year_data)
 
-    years_df = pd.DataFrame(
-        {"utd_hoeyeste_aar": list(range(last_year, first_year - 1, -1))}
-    )
-    years_df["cutoff_date"] = pd.to_datetime(
-        years_df["utd_hoeyeste_aar"].astype(str) + "-10-01"
-    )
-    years_df["utd_hoeyeste_aar"] = years_df["utd_hoeyeste_aar"].astype(
-        "string[pyarrow]"
-    )
-
-    connection.register(
-        "_base",
-        base[
-            [
-                "snr",
-                "nus2000",
-                "utd_hoeyeste_dato",
-                "utd_hoeyeste_rangering",
-                "utd_datakilde",
-                "utd_klassetrinn",
-            ]
-        ],
-    )
-    connection.register("_years", years_df)
-
-    logger.info(f"Deriving `utd_hoeyeste` [{first_year}-{last_year}].")
+    logger.info(f"Deriving `utd_hoeyeste` [{first_year}-{last_year}] as view.")
 
     query = f"""
-        CREATE TABLE
-            {alias} AS
+        CREATE VIEW {alias} AS
+
+        WITH T0 AS (
+            SELECT
+                snr,
+                nus2000,
+                COALESCE(utd_aktivitet_slutt, uh_eksamen_dato) AS utd_hoeyeste_dato,
+                UTD_HOEYESTE_RANGERING(
+                    nus2000,
+                    uh_eksamen_dato,
+                    uh_eksamen_studpoeng,
+                    uh_gruppering_nus,
+                    utd_aktivitet_slutt,
+                    utd_klassetrinn,
+                    utd_skoleaar_start
+                ) AS utd_hoeyeste_rangering,
+                utd_datakilde,
+                utd_klassetrinn,
+                UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar
+            FROM
+                {eksamen_avslutta_hoeyeste.alias}
+        ),
+
+        T1 AS (
+            SELECT
+                *,
+                MAX(utd_hoeyeste_rangering) OVER (
+                    PARTITION BY snr
+                    ORDER BY utd_hoeyeste_aar
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) AS cmax_utd_hoeyeste_rangering
+            FROM
+                T0
+        )
+
         SELECT
             snr,
-            nus2000,
-            utd_hoeyeste_rangering,
-            utd_hoeyeste_aar,
             utd_datakilde,
-            utd_klassetrinn
-        FROM (
-          SELECT
-            y.utd_hoeyeste_aar,
-            b.snr,
-            b.nus2000,
-            b.utd_datakilde,
-            b.utd_klassetrinn,
-            b.utd_hoeyeste_rangering,
-            row_number() OVER (
-              PARTITION BY y.utd_hoeyeste_aar, b.snr
-              ORDER BY
-                b.utd_hoeyeste_rangering DESC,
-                (b.utd_klassetrinn IS NOT NULL) DESC,
-                (b.utd_datakilde IS NOT NULL) DESC,
-                b.utd_hoeyeste_dato DESC,
-                b.nus2000 DESC
-            ) AS rn
-          FROM _years y
-          JOIN _base b
-            ON b.utd_hoeyeste_dato <= y.cutoff_date
-        )
-        WHERE rn = 1
+            utd_klassetrinn,
+            utd_hoeyeste_dato,
+            utd_hoeyeste_aar,
+            utd_hoeyeste_rangering,
+            nus2000 AS utd_hoeyeste_nus2000
+        FROM
+            T1
+        WHERE
+            utd_hoeyeste_rangering==cmax_utd_hoeyeste_rangering
     """
 
     connection.execute(query)
