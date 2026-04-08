@@ -59,7 +59,7 @@ def _derive_utd_foreldres_utdnivaa_var(
             T2.{varname}
         FROM
             _tmp_df AS T1
-        ASOF LEFT JOIN
+        LEFT JOIN
             {utd_foreldres_utdnivaa.alias} AS T2
         ON
            T1.snr = T2.snr;
