@@ -224,4 +224,8 @@ def test_update_snr_with_snrkat_accepts_supported_join_column_combinations(
     result = update_snr_with_snrkat(df)
 
     assert result.columns.tolist() == expected_columns
-    assert result["snr"].tolist() == expected_snr
+    pd.testing.assert_series_equal(
+        result["snr"].reset_index(drop=True),
+        pd.Series(expected_snr, name="snr"),
+        check_dtype=False,
+    )
