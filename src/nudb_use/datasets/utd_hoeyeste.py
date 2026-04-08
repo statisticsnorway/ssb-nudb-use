@@ -1,5 +1,4 @@
 import duckdb as db
-import pandas as pd
 
 from nudb_use.nudb_logger import logger
 
