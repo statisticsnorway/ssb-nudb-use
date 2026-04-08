@@ -29,13 +29,13 @@ def test_keep_only_valid_kommune_codes(monkeypatch: Any) -> None:
 
     input_series = pd.Series(
         [
-            "0301",
+            "0300",
             "1103",
             "1100",
             "1199",
             "9999",
             "1234",
-            "2580",
+            "2599",
             "2111",
             "9900",
         ]
@@ -45,13 +45,13 @@ def test_keep_only_valid_kommune_codes(monkeypatch: Any) -> None:
         input_series, from_date="2000-01-01", to_date="2000-12-31"
     )
 
-    assert result[0] == "0301"
+    assert result[0] == "0399"
     assert result[1] == "1103"
-    assert result[2] == "1100"
-    assert result[3] == "1100"
+    assert result[2] == "1199"
+    assert result[3] == "1199"
     assert pd.isna(result[4])
     assert pd.isna(result[5])
-    assert result[6] == "2580"
+    assert result[6] == "2599"
     assert result[7] == "2111"
     assert pd.isna(result[8])
 
@@ -78,8 +78,8 @@ def test_correct_kommune_single_values() -> None:
     assert result["utd_skolekom"].tolist() == [
         "0301",
         "2111",
-        "2580",
-        "2580",
+        "2599",
+        "2599",
         "9999",
         "9999",
         "9999",

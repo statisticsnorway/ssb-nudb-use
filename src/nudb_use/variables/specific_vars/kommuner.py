@@ -45,13 +45,13 @@ def keep_only_valid_kommune_codes(
         )  # Alle kommunekoder mellom 1960 og nå
 
         kommuner_alle_aar += list(EXTRA_KOMMNR.keys())
-        # De med kjent fylke, men ukjent kommune har "00" i kommunefeltet, men er noe vi godtar i utdanningsdata
-        kommuner_alle_aar += list({x[:2] + "00" for x in kommuner_alle_aar})
+        # De med kjent fylke, men ukjent kommune har "99" i kommunefeltet, men er noe vi godtar i utdanningsdata
+        kommuner_alle_aar += list({x[:2] + "99" for x in kommuner_alle_aar})
 
-        # Det er noen som har "99" etter gyldig fylke, disse byttes til "00"
-        komm_col.loc[komm_col.str.endswith("99")] = komm_col.str[:2] + "00"
+        # Det er noen som har "00" etter gyldig fylke, disse byttes til "99"
+        komm_col.loc[komm_col.str.endswith("00")] = komm_col.str[:2] + "99"
         # Om denne oppstod nå, så korrigerer vi den tilbake
-        komm_col.loc[komm_col == "9900"] = MISSING_UTD_SKOLEKOM
+        komm_col.loc[komm_col == "9999"] = MISSING_UTD_SKOLEKOM
         behold_komm_maske = komm_col.isin(kommuner_alle_aar)
 
         komm_col.loc[~behold_komm_maske] = pd.NA
@@ -92,13 +92,20 @@ def correct_kommune_single_values(
         missing_val = MISSING_UTD_SKOLEKOM
         col_temp = col_temp.fillna(missing_val)
         mapping = {
+            # Oslo
             "0300": "0301",
+            "0399": "0301",
+            # Svalbard
             "2100": "2111",
-            "2500": "2580",
-            "2400": "2580",  # VIGOs "alle uspesifiserte grunnskoler?"
-            "0025": "2580",  # Utland ifølge UH?
-            "1025": "2580",  # Utland ifølge UH?
-            "2025": "2580",  # Utland ifølge UH?
+            "2199": "2111",
+            # Utlandet
+            "2580": "2599",
+            "2500": "2599",
+            "2400": "2599",  # VIGOs "alle uspesifiserte grunnskoler?"
+            "0025": "2599",  # Utland ifølge UH?
+            "1025": "2599",  # Utland ifølge UH?
+            "2025": "2599",  # Utland ifølge UH?
+            # Ukjent
             "9900": missing_val,
             "9998": missing_val,
             "0000": missing_val,
@@ -111,5 +118,11 @@ def correct_kommune_single_values(
             f"Setting {col_temp.isna().sum()} of {len(col_temp)} {col_name} cells to {missing_val} because they were empty."
         )
         col_temp.loc[col_temp.isna()] = missing_val
+
+        mask_00 = col_temp.str[2:] == "00"
+        logger.info(
+            f"Setting {mask_00.sum()} of {len(col_temp)} {col_name} cells from ending in 00 to 99 as `Kjent fylke, ukjent kommune`."
+        )
+        col_temp.loc[mask_00] = col_temp.str[:2] + "99"
         df[col_name] = col_temp
         return df
