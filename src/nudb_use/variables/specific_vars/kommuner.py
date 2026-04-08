@@ -119,10 +119,10 @@ def correct_kommune_single_values(
         )
         col_temp.loc[col_temp.isna()] = missing_val
 
-        mask_00 = col_temp.str[2:] == "00"
+        mask_00 = col_temp.str.endswith("00")
         logger.info(
             f"Setting {mask_00.sum()} of {len(col_temp)} {col_name} cells from ending in 00 to 99 as `Kjent fylke, ukjent kommune`."
         )
-        col_temp.loc[mask_00] = col_temp.str.endswith("99")
+        col_temp.loc[mask_00] = col_temp.str[:2] + "99"
         df[col_name] = col_temp
         return df
