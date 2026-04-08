@@ -13,7 +13,7 @@ def _parquet_columns(path: Path, connection: db.DuckDBPyConnection) -> set[str]:
             "column_name"
         ]
     except Exception:
-        return {}
+        return set()
 
     return set(columns)
 
@@ -22,9 +22,8 @@ def _nudb_data_select_all(
     path: Path,
     connection: db.DuckDBPyConnection,
     dataset: str | None = None,
-    exclude: tuple[str] | None = ["__index_level_0__", "nudb_dataset_id"],
+    exclude: tuple[str, ...] | None = ("__index_level_0__", "nudb_dataset_id"),
 ) -> str:
-
     cols = _parquet_columns(path, connection)
     exclude_in_cols = () if exclude is None else tuple(set(exclude) & cols)
     excluding_id = "nudb_dataset_id" in exclude_in_cols
