@@ -3183,14 +3183,14 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "platformdirs"
-version = "4.9.4"
+version = "4.9.6"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
 optional = false
 python-versions = ">=3.10"
 groups = ["main", "dev"]
 files = [
-    {file = "platformdirs-4.9.4-py3-none-any.whl", hash = "sha256:68a9a4619a666ea6439f2ff250c12a853cd1cbd5158d258bd824a7df6be2f868"},
-    {file = "platformdirs-4.9.4.tar.gz", hash = "sha256:1ec356301b7dc906d83f371c8f487070e99d3ccf9e501686456394622a01a934"},
+    {file = "platformdirs-4.9.6-py3-none-any.whl", hash = "sha256:e61adb1d5e5cb3441b4b7710bea7e4c12250ca49439228cc1021c00dcfac0917"},
+    {file = "platformdirs-4.9.6.tar.gz", hash = "sha256:3bfa75b0ad0db84096ae777218481852c0ebc6c727b3168c1b9e0118e458cf0a"},
 ]
 
 [[package]]
@@ -4645,14 +4645,14 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.4.0"
+version = "2026.4.1"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "ssb_nudb_config-2026.4.0-py3-none-any.whl", hash = "sha256:7da507d84e2a146c8f500edff5deb0670865700dfc1ad9830c3aa0df723c7574"},
-    {file = "ssb_nudb_config-2026.4.0.tar.gz", hash = "sha256:99c81018045ab405081d19814cfade4415fcdb9cc4972b60ae016677c8e8f92f"},
+    {file = "ssb_nudb_config-2026.4.1-py3-none-any.whl", hash = "sha256:25c1849091c862d29a021ce35cfbd6fe30873b09eccfd996c8547080696cbccc"},
+    {file = "ssb_nudb_config-2026.4.1.tar.gz", hash = "sha256:6aa7f77564c02c8e97cef0a30cc023353be745e6409d0a09a590c7bab7cf2d90"},
 ]
 
 [package.dependencies]
@@ -5485,4 +5485,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "76896a3a8cb15e357922d170774e4f141409840491f35427eb2b4fe8eabe411e"
+content-hash = "638e1f3100eb8df72b03aa2652bbbb3972a6a55cba67402f5fba810fe116e720"

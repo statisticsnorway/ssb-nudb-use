@@ -26,6 +26,7 @@ from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
 from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
+from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_last_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
@@ -61,6 +62,7 @@ class _NudbDatabase:
             "eksamen_hoeyeste": _generate_eksamen_hoeyeste_view,
             "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
             "utd_hoeyeste": _generate_utd_hoeyeste_view,
+            "utd_hoeyeste_last": _generate_utd_hoeyeste_last_view,
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "slekt_snr": _generate_slekt_snr_view,
             "_snr2alder16": _generate_snr2alder16_view,
