@@ -147,7 +147,13 @@ def wrap_derive(
                     derive_func = get_derive_function(missing_var)
 
                     if derive_func:
-                        df = derive_func(df, *args, priority=priority_literal, **kwargs)
+                        df = derive_func(
+                            df,
+                            *args,
+                            priority=priority_literal,
+                            temp_col_renames=temp_col_renames,
+                            **kwargs,
+                        )
 
                     if missing_var in df.columns:
                         missing -= {missing_var}
@@ -268,9 +274,9 @@ def wrap_derive_join_all_data(
             basefunc_wrapped = wrap_derive(basefunc)
             derived_source = basefunc_wrapped(
                 source_data,
-                priority,
-                temp_col_renames,
                 *args,
+                priority=priority,
+                temp_col_renames=temp_col_renames,
                 **kwargs,
             )
 
