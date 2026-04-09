@@ -14,6 +14,11 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.all_data_helpers import get_source_data
 from nudb_use.variables.derive.all_data_helpers import join_variable_data
+from nudb_use.variables.derive.derive_decorator_utils import fillna_by_priority
+from nudb_use.variables.derive.derive_decorator_utils import (
+    swap_temp_colnames_from_temp,
+)
+from nudb_use.variables.derive.derive_decorator_utils import swap_temp_colnames_to_temp
 
 P = ParamSpec("P")
 
@@ -25,6 +30,7 @@ class WrappedDerive(Protocol[P]):
         self,
         df: pd.DataFrame,
         priority: Literal["old", "new"] = "old",
+        temp_col_renames: dict[str, str] | None = None,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -39,6 +45,7 @@ class WrappedDeriveJoinAllData(Protocol[P]):
         self,
         df: pd.DataFrame | None = None,
         priority: Literal["old", "new"] = "old",
+        temp_col_renames: dict[str, str] | None = None,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -64,65 +71,6 @@ def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
         return found_func
     logger.warning(f"Found no derive function for {varname}")
     return None
-
-
-def fillna_by_priority(
-    newvals: pd.Series | None,
-    oldvals: pd.Series | None,
-    priority: Literal["old", "new"] = "old",
-) -> pd.Series | None:
-    """Fill missing values in prioritized order when a column already exists.
-
-    Args:
-        newvals: A pandas series with the newly added values.
-        oldvals: A pandas series with the old values.
-        priority: "old" if we should prioritze the old values, "new" if we should prioritize the new.
-
-    Returns:
-        pd.Series | None: The resulting merged columns using fillna-methods. Returns None if both newvals and oldvals is None.
-
-    Raises:
-        ValueError: If you are sending in a non-specific Literal for the priority-arg.
-    """
-    if newvals is None:
-        logger.info("Newvals is None, just returning oldvals.")
-        return oldvals
-    if oldvals is None:
-        logger.info("Oldvals is None, just returning newvals.")
-        return newvals
-
-    if priority not in ["new", "old"]:
-        raise ValueError("priority must be either 'old' or 'new'!")
-
-    def perc_changed(
-        first_col: pd.Series,
-        second_col: pd.Series,
-        priority: Literal["old", "new"] = "old",
-    ) -> None:
-        ok = first_col.notna()
-        if ok.sum():
-            nchanged = (second_col[ok] != first_col[ok]).sum()
-            pchanged = 100 * nchanged / ok.sum() if ok.sum() else 0.0
-            logger.info(
-                f"{nchanged} ({pchanged:.2f}%) rows with different values were discarded when combining new (derived) values with priority `{priority}`."
-            )
-        else:
-            logger.info(
-                "No existing values in the second column, so nothing was overwritten."
-            )
-
-    if priority == "old":
-        logger.info("Filling missing values in existing variable...")
-        out = oldvals.fillna(newvals)
-        perc_changed(newvals, out)
-        return out
-
-    # priority == "new":
-    logger.info("Filling missing values in derived variable with existing ones...")
-    out = newvals.fillna(oldvals)
-    perc_changed(oldvals, out)
-
-    return out
 
 
 def wrap_derive(
@@ -164,6 +112,7 @@ def wrap_derive(
     def wrapper(
         df: pd.DataFrame,
         priority: Literal["old", "new"] = "old",
+        temp_col_renames: dict[str, str] | None = None,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -171,97 +120,112 @@ def wrap_derive(
         with LoggerStack(f"Deriving {name} from {', '.join(derived_from)}..."):
             logger.debug(f"Source code for {name}:\n{inspect.getsource(basefunc)}")
 
-            available = set(df.columns)
-            need = set(derived_from)
-
-            missing = need - available
-            have = [x for x in need if x in available]
-            if have:
-                logger.info(
-                    f"Already have these columns, not deriving them again (if they are derivable): {have}"
-                )
-
-            priority_literal: Literal["old", "new"] = (
-                "new" if priority == "new" else "old"
+            df, rename_state = swap_temp_colnames_to_temp(
+                df, derived_from, temp_col_renames
             )
+            out_df = df
 
-            for missing_var in missing.copy():
-                if missing_var not in missing:
-                    continue  # missing is mutable, and may change due to derivations
-
-                derive_func = get_derive_function(missing_var)
-
-                if derive_func:
-                    df = derive_func(df, *args, priority=priority_literal, **kwargs)
-
-                if missing_var in df.columns:
-                    missing -= {missing_var}
-
-            if missing:
-                logger.warning(
-                    f"Unable to derive {name}, missing: {', '.join(list(need))}!"
-                )
-                return df
-
-            exists = name in df.columns
-            if exists:
-                oldvals = df[name]
-                fill_pct0 = get_filling_pct(oldvals)
-                logger.info(
-                    f"Filling degree before deriving variable: {get_pct_string(fill_pct0)}"
-                )
-            else:
-                oldvals = None
-                fill_pct0 = None
             try:
-                logger.debug(
-                    "All `derived_from` variables are available, running basefunc"
-                )
-                result = basefunc(df, *args, **kwargs)
+                available = set(df.columns)
+                need = set(derived_from)
 
-                if isinstance(result, pd.DataFrame):
-                    logger.notice(  # type: ignore[attr-defined]
-                        "Basefunc returned a dataframe! Ignoring `priority` argument..."
+                missing = need - available
+                have = [x for x in need if x in available]
+                if have:
+                    logger.info(
+                        f"Already have these columns, not deriving them again (if they are derivable): {have}"
                     )
 
-                    # clean up
-                    df = result
-                    newvals = df[name]
-                    exists = False
+                priority_literal: Literal["old", "new"] = (
+                    "new" if priority == "new" else "old"
+                )
 
-                elif isinstance(result, pd.Series):
-                    newvals = result
+                for missing_var in missing.copy():
+                    if missing_var not in missing:
+                        continue  # missing is mutable, and may change due to derivations
+
+                    derive_func = get_derive_function(missing_var)
+
+                    if derive_func:
+                        df = derive_func(df, *args, priority=priority_literal, **kwargs)
+
+                    if missing_var in df.columns:
+                        missing -= {missing_var}
+
+                if missing:
+                    logger.warning(
+                        f"Unable to derive {name}, missing: {', '.join(list(need))}! You might want to rename columns you have with the temp_col_renames parameter."
+                    )
+                    out_df = df
 
                 else:
-                    raise TypeError(
-                        f"`basefunc` ({name}) returned an unexpected type: '{type(result)}'"
-                    )
+                    exists = name in df.columns
+                    if exists:
+                        oldvals = df[name]
+                        fill_pct0 = get_filling_pct(oldvals)
+                        logger.info(
+                            f"Filling degree before deriving variable: {get_pct_string(fill_pct0)}"
+                        )
+                    else:
+                        oldvals = None
+                        fill_pct0 = None
 
-                if exists:
-                    newvals_filled = fillna_by_priority(
-                        oldvals=oldvals, newvals=newvals, priority=priority_literal
+                    logger.debug(
+                        "All `derived_from` variables are available, running basefunc"
                     )
-                    if newvals_filled is None:
-                        return df
-                    newvals = newvals_filled
+                    result = basefunc(df, *args, **kwargs)
 
-                fill_pct1 = get_filling_pct(newvals)
-                logger.info(
-                    f"Filling degree after deriving variable: {get_pct_string(fill_pct1)}"
-                )
-                if fill_pct0 and fill_pct1 < fill_pct0:
-                    logger.warning(
-                        f"Filling degree for {name} went down by {get_pct_string(fill_pct0 - fill_pct1)} after deriving it againg"
-                    )
+                    if isinstance(result, pd.DataFrame):
+                        logger.notice(  # type: ignore[attr-defined]
+                            "Basefunc returned a dataframe! Ignoring `priority` argument..."
+                        )
 
-                df[name] = newvals
-                return df
+                        # clean up
+                        df = result
+                        newvals = df[name]
+                        exists = False
+
+                    elif isinstance(result, pd.Series):
+                        newvals = result
+
+                    else:
+                        raise TypeError(
+                            f"`basefunc` ({name}) returned an unexpected type: '{type(result)}'"
+                        )
+
+                    should_write = True
+                    if exists:
+                        newvals_filled = fillna_by_priority(
+                            oldvals=oldvals, newvals=newvals, priority=priority_literal
+                        )
+                        if newvals_filled is None:
+                            should_write = False
+                            out_df = df
+                        else:
+                            newvals = newvals_filled
+
+                    if should_write:
+                        fill_pct1 = get_filling_pct(newvals)
+                        logger.info(
+                            f"Filling degree after deriving variable: {get_pct_string(fill_pct1)}"
+                        )
+                        if fill_pct0 and fill_pct1 < fill_pct0:
+                            logger.warning(
+                                f"Filling degree for {name} went down by {get_pct_string(fill_pct0 - fill_pct1)} after deriving it againg"
+                            )
+
+                        df[name] = newvals
+                        out_df = df
 
             except Exception as err:
                 logger.warning(
                     f"Derivation of {name} failed, returning data as is!\nMessage: {err}"
                 )
-                return df
+                out_df = df
+            finally:
+                out_df = swap_temp_colnames_from_temp(out_df, rename_state)
+
+            return out_df
 
     wrapper.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""
@@ -294,6 +258,7 @@ def wrap_derive_join_all_data(
     def subfunc(
         df: pd.DataFrame | None = None,
         priority: Literal["old", "new"] = "old",
+        temp_col_renames: dict[str, str] | None = None,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -301,7 +266,13 @@ def wrap_derive_join_all_data(
             source_data = get_source_data(name, df)
 
             basefunc_wrapped = wrap_derive(basefunc)
-            derived_source = basefunc_wrapped(source_data, priority, *args, **kwargs)
+            derived_source = basefunc_wrapped(
+                source_data,
+                priority,
+                temp_col_renames,
+                *args,
+                **kwargs,
+            )
 
             if df is None:
                 logger.warning("data is None, why u do this?")
@@ -320,6 +291,7 @@ def wrap_derive_join_all_data(
             Args:
                 df: Dataframe that we should merge the variable data onto.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
+                temp_col_renames: Temporary source-to-prerequisite rename mapping passed through to `wrap_derive`.
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated.

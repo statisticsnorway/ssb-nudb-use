@@ -3,13 +3,37 @@ import duckdb as db
 from nudb_use.nudb_logger import logger
 
 
+def _generate_utd_hoeyeste_last_view(
+    alias: str,
+    connection: db.DuckDBPyConnection,
+) -> None:
+    from nudb_use.datasets import NudbData  # Avoids circular import
+
+    utd_hoyeste_view = NudbData("utd_hoeyeste")
+    logger.info("Deriving `utd_hoyeste_last` as view - latest, highest education.")
+    query = f"""
+    CREATE VIEW {alias} AS
+    SELECT * FROM (
+        SELECT
+            *,
+            MAX(utd_hoeyeste_aar) OVER (PARTITION BY SNR) AS last_utd_hoeyeste_aar
+        FROM
+            {utd_hoyeste_view.alias}
+        WHERE
+            LENGTH(snr) = 7
+    )
+
+    WHERE
+        last_utd_hoeyeste_aar = utd_hoeyeste_aar;
+    """
+    connection.execute(query)
+
+
 def _generate_utd_hoeyeste_view(
     alias: str,
     connection: db.DuckDBPyConnection,
-    first_year: int = 1970,
-    last_year: int | None = None,
 ) -> None:
-    from nudb_use.datasets import NudbData
+    from nudb_use.datasets import NudbData  # Avoids circular import
 
     eksamen_avslutta_hoeyeste = NudbData("eksamen_avslutta_hoeyeste")
 
@@ -26,9 +50,9 @@ def _generate_utd_hoeyeste_view(
     if last_year_data is None:
         raise ValueError("No data found in `eksamen_avslutta_hoeyeste`.")
 
-    last_year = last_year_data if last_year is None else max(last_year, last_year_data)
-
-    logger.info(f"Deriving `utd_hoeyeste` [{first_year}-{last_year}] as view.")
+    logger.info(
+        f"Deriving `utd_hoeyeste` with the last year being: {last_year_data} as view."
+    )
 
     query = f"""
         CREATE VIEW {alias} AS
