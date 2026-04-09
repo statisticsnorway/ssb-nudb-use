@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Concatenate
 from typing import Literal
 from typing import ParamSpec
-from typing import Protocol
 
 import pandas as pd
 from nudb_config import settings
@@ -21,36 +20,6 @@ from nudb_use.variables.derive.derive_decorator_utils import (
 from nudb_use.variables.derive.derive_decorator_utils import swap_temp_colnames_to_temp
 
 P = ParamSpec("P")
-
-
-class WrappedDerive(Protocol[P]):
-    """Arg types for the wrap_derive decorator."""
-
-    def __call__(
-        self,
-        df: pd.DataFrame,
-        priority: Literal["old", "new"] = "old",
-        temp_col_renames: dict[str, str] | None = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> pd.DataFrame:
-        """Typing as a call to the class."""
-        ...
-
-
-class WrappedDeriveJoinAllData(Protocol[P]):
-    """Arg types for the wrap_derive_join_all_data decorator."""
-
-    def __call__(
-        self,
-        df: pd.DataFrame | None = None,
-        priority: Literal["old", "new"] = "old",
-        temp_col_renames: dict[str, str] | None = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> pd.DataFrame:
-        """Typing as a call to the class."""
-        ...
 
 
 def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
@@ -75,7 +44,7 @@ def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
 
 def wrap_derive(
     basefunc: Callable[Concatenate[pd.DataFrame, P], pd.Series | pd.DataFrame],
-) -> WrappedDerive[P]:
+) -> Callable[..., pd.DataFrame]:
     """Decorator for derive functions that enforces config metadata and logging.
 
     Notes:
@@ -87,7 +56,7 @@ def wrap_derive(
         basefunc: Function that derives a single variable from an input dataframe.
 
     Returns:
-        WrappedDerive[P]: Wrapped derive function that
+        Callable[..., pd.DataFrame]: Wrapped derive function that
         writes/updates the derived column.
 
     Raises:
@@ -147,7 +116,13 @@ def wrap_derive(
                     derive_func = get_derive_function(missing_var)
 
                     if derive_func:
-                        df = derive_func(df, *args, priority=priority_literal, **kwargs)
+                        df = derive_func(
+                            df,
+                            *args,
+                            priority=priority_literal,
+                            temp_col_renames=temp_col_renames,
+                            **kwargs,
+                        )
 
                     if missing_var in df.columns:
                         missing -= {missing_var}
@@ -243,14 +218,14 @@ def wrap_derive(
 
 def wrap_derive_join_all_data(
     basefunc: Callable[Concatenate[pd.DataFrame, P], pd.DataFrame],
-) -> WrappedDeriveJoinAllData[P]:
+) -> Callable[..., pd.DataFrame]:
     """Decorator for derive functions that need specific data as a base, specified in the config.
 
     Args:
         basefunc: Function that derives a single variable from an input dataframe.
 
     Returns:
-        WrappedDeriveJoinAllData[P]: Wrapped derive function that
+        Callable[..., pd.DataFrame]: Wrapped derive function that
         writes/updates the derived column using whole NUDB-datasets.
     """
     name = basefunc.__name__
@@ -268,9 +243,9 @@ def wrap_derive_join_all_data(
             basefunc_wrapped = wrap_derive(basefunc)
             derived_source = basefunc_wrapped(
                 source_data,
-                priority,
-                temp_col_renames,
                 *args,
+                priority=priority,
+                temp_col_renames=temp_col_renames,
                 **kwargs,
             )
 
