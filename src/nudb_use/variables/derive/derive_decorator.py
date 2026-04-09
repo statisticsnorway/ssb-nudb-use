@@ -29,9 +29,9 @@ class WrappedDerive(Protocol[P]):
     def __call__(
         self,
         df: pd.DataFrame,
+        *args: P.args,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
-        *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
         """Typing as a call to the class."""
@@ -44,9 +44,9 @@ class WrappedDeriveJoinAllData(Protocol[P]):
     def __call__(
         self,
         df: pd.DataFrame | None = None,
+        *args: P.args,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
-        *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
         """Typing as a call to the class."""
@@ -111,9 +111,9 @@ def wrap_derive(
 
     def wrapper(
         df: pd.DataFrame,
+        *args: P.args,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
-        *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
 
@@ -263,9 +263,9 @@ def wrap_derive_join_all_data(
 
     def subfunc(
         df: pd.DataFrame | None = None,
+        *args: P.args,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
-        *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
         with LoggerStack(f"Deriving variable {name}, using whole NUDB-datasets."):
