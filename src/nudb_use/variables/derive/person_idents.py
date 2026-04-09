@@ -1,12 +1,15 @@
 from typing import TypeGuard
 
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 
 BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
-ALLNUMERIC_7DIGIT_THRESHOLD_PERCENT = 5.0
+ALLNUMERIC_7DIGIT_THRESHOLD_PERCENT = (
+    settings.constants.snr_allnumeric_7digit_threshold_percent
+)
 
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
@@ -28,7 +31,9 @@ def snr_mrk(  # noqa:DOC201
         # If there is above the threshold percent snr that are 7 digit snr that contain only numbers, give a warning.
         # Would indicate that the snrs are not pseudonomized, or that they might be cut off fake snr, probably not UUID because of the hyphens.
         allnumber_7_digits = (df["snr"].str.len() == 7) & df["snr"].str.isnumeric()
-        percent = round((allnumber_7_digits.sum() / len(df) * 100), 2)
+        percent = (
+            round((allnumber_7_digits.sum() / len(df) * 100), 2) if len(df) else 0.00
+        )
         if percent > ALLNUMERIC_7DIGIT_THRESHOLD_PERCENT:
             logger.warning(
                 f"We found {percent}% rows where snr is 7 characters, but contain all digits. This is highly suspicious if you are working with pseudonomized data... Did you cut the column down to 7 characters by mistake somewhere?"
@@ -50,9 +55,9 @@ def snr_mrk(  # noqa:DOC201
                 .astype(BOOL_DTYPE)
             )  # Workaround because isascii is not supported in earlier versions of pandas, isascii fails on NAtypes?
         ).astype(BOOL_DTYPE)
-
+        percent = round(snr_mrk.sum() / len(snr_mrk) * 100, 2) if len(snr_mrk) else 0.00
         logger.info(
-            f"{round(snr_mrk.sum() / len(snr_mrk)*100, 2)}%: {snr_mrk.sum()} of {len(snr_mrk)} rows have valid snr -> snr_mrk."
+            f"{percent}%: {snr_mrk.sum()} of {len(snr_mrk)} rows have valid snr -> snr_mrk."
         )
 
         return snr_mrk

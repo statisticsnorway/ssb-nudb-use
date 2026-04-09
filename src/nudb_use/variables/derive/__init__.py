@@ -17,9 +17,31 @@ from . import registrert
 from . import registrert_foerste
 from . import utd_foreldres_utdnivaa
 from . import utd_hoeyeste
-from .derive_decorator import get_derive_function
+from .nus_variants import utd_erforeldet_kode_nus
+from .nus_variants import utd_klassetrinn_hoey_nus
+from .nus_variants import utd_klassetrinn_lav_nus
+from .person import pers_foedselsdato
+from .person import pers_invkat
+from .person import pers_kjoenn
+from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
+from .utd_hoeyeste import utd_hoeyeste_rangering
+from .utd_skoleaar import utd_skoleaar_slutt
 
-derive_all_submodules = (
+__all__ = [
+    "pers_foedselsdato",
+    "pers_invkat",
+    "pers_kjoenn",
+    "uh_univ_eller_hoegskole",
+    "utd_erforeldet_kode_nus",
+    "utd_hoeyeste_rangering",
+    "utd_klassetrinn_hoey_nus",
+    "utd_klassetrinn_lav_nus",
+    "utd_skoleaar_slutt",
+]
+
+
+# We add to __all__ dynamically from these
+DERIVE_ALL_SUBMODULES = (
     fullfoert_foerste,
     fullfoert,
     utd_hoeyeste,
@@ -32,34 +54,6 @@ derive_all_submodules = (
     person_idents,
     person,
 )
-
-from .nus_variants import utd_erforeldet_kode_nus
-from .nus_variants import utd_klassetrinn_hoey_nus
-from .nus_variants import utd_klassetrinn_lav_nus
-from .person import pers_bokommune_16aar
-from .person import pers_foedselsdato
-from .person import pers_invkat
-from .person import pers_kjoenn
-from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
-from .utd_foreldres_utdnivaa import utd_foreldres_utdnivaa_16aar
-from .utd_hoeyeste import utd_hoeyeste_nus2000
-from .utd_hoeyeste import utd_hoeyeste_rangering
-from .utd_skoleaar import utd_skoleaar_slutt
-
-__all__ = [
-    "pers_bokommune_16aar",
-    "pers_foedselsdato",
-    "pers_invkat",
-    "pers_kjoenn",
-    "uh_univ_eller_hoegskole",
-    "utd_erforeldet_kode_nus",
-    "utd_foreldres_utdnivaa_16aar",
-    "utd_hoeyeste_nus2000",
-    "utd_hoeyeste_rangering",
-    "utd_klassetrinn_hoey_nus",
-    "utd_klassetrinn_lav_nus",
-    "utd_skoleaar_slutt",
-]
 
 
 def add_function(name: str, submodule: ModuleType) -> None:
@@ -77,5 +71,5 @@ def add_all_from_module(submodule: ModuleType) -> None:
         add_function(func, submodule)
 
 
-for submodule in derive_all_submodules:
+for submodule in DERIVE_ALL_SUBMODULES:
     add_all_from_module(submodule)

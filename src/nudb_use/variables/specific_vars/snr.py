@@ -192,6 +192,10 @@ def _merge_and_log(
     with LoggerStack(f"Combining {merge_col_name} into {original_col_name}"):
         if merge_col_name not in df.columns:
             return df, False
+        if original_col_name not in df.columns:
+            logger.info(f"Creating missing {original_col_name} from {merge_col_name}.")
+            df[original_col_name] = df[merge_col_name]
+            return df.drop(columns=[merge_col_name]), False
 
         mask = (
             (df[original_col_name] != df[merge_col_name])
@@ -200,7 +204,7 @@ def _merge_and_log(
         )
         mask_sum = mask.sum()
         logger.info(
-            f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2)}% of total rows."
+            f"Updating with {merge_col_name} on {mask_sum} rows, {round(mask.sum() / len(df) * 100, 2) if len(df) else 0.00}% of total rows."
         )
 
         df["new_col"] = df[original_col_name].copy()
@@ -244,7 +248,7 @@ def _apply_merged_columns(
         tuple[pd.DataFrame, bool]: The updated dataframe and a flag indicating
             whether the caller should return immediately.
     """
-    merge_plan = [
+    merge_plan: list[tuple[str, str]] = [
         ("snr_from_fnr", snr_col_name),
         ("snr_from_snr", snr_col_name),
         ("fnr_from_fnr", fnr_col_name),
@@ -393,7 +397,7 @@ def generate_uuid_for_snr_with_fnr_col(
 
         amount_na_post_first_fill = int(invalid_after.sum())
         diff_first_fill = amount_na_pre_first_fill - amount_na_post_first_fill
-        percent_diff = round(100 * diff_first_fill / len(df), 2) if len(df) else 0.0
+        percent_diff = round(100 * diff_first_fill / len(df), 2) if len(df) else 0.00
 
         logger.info(
             f"Filled {percent_diff}% of `{snr_col}` with UUIDs based on unique, non-missing values in `{fnr_col}`"

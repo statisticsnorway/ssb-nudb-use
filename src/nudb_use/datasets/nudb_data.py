@@ -6,8 +6,8 @@ from typing import cast
 
 import pandas as pd
 
-from nudb_use.datasets.nudb_database import _NUDB_DATABASE
 from nudb_use.datasets.nudb_database import STRING_DTYPE
+from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
@@ -32,12 +32,12 @@ class NudbData:
         with LoggerStack(f"Getting NUDB dataset ({name.upper()})"):
             name = name.lower()
 
-            if name in _NUDB_DATABASE._datasets.keys():
+            if name in nudb_database._datasets.keys():
                 logger.info("Dataset is already initialized!")
-                self._copy_attributes_from_existing(_NUDB_DATABASE._datasets[name])
+                self._copy_attributes_from_existing(nudb_database._datasets[name])
                 return None
 
-            elif name not in _NUDB_DATABASE._dataset_generators.keys():
+            elif name not in nudb_database._dataset_generators.keys():
                 raise ValueError("Unrecognized NUDB dataset!")
 
             self.name: str = name
@@ -49,23 +49,24 @@ class NudbData:
             self.is_view: bool = False
 
             self.generator: Callable[..., None] = partial(
-                _NUDB_DATABASE._dataset_generators[name], *args, **kwargs
+                nudb_database._dataset_generators[name], *args, **kwargs
             )
 
             self._select = "*"
             self._where = ""
+            self._limit = ""
 
             if attach_on_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
 
     def _attach(self) -> None:
-        self.generator(alias=self.alias, connection=_NUDB_DATABASE.get_connection())
+        self.generator(alias=self.alias, connection=nudb_database.get_connection())
         self.is_view = _is_view(self.alias)
         self.exists = _is_in_database(self.alias)
 
         if self.exists:
-            _NUDB_DATABASE._datasets[self.name] = self
+            nudb_database._datasets[self.name] = self
         else:
             logger.critical(f"Failed to attach {self.name} to database!")
 
@@ -92,12 +93,16 @@ class NudbData:
         self.generator = other.generator
         self._select = other._select
         self._where = other._where
+        self._limit = other._limit
 
     def _get_query(self) -> str:
         query = f"SELECT\n\t{self._select}\nFROM\n\t{self.alias}"
 
         if self._where:
             query += f"\nWHERE\n\t{self._where}"
+
+        if self._limit:
+            query += f"\nLIMIT\n\t{self._limit}"
 
         return query
 
@@ -111,20 +116,25 @@ class NudbData:
             is_view:  {self.is_view}
             select:   {self._select}
             where:    {self._where}
+            limit:    {self._limit}
         """
 
     def where(self, expr: str) -> "NudbData":
         """Specify (inner part) of the WHERE statement in SQL query."""
         out = copy.copy(self)
         out._where = expr
-        out._select = self._select
         return out
 
     def select(self, expr: str) -> "NudbData":
         """Specify (inner part) of the SELECT statement in SQL query."""
         out = copy.copy(self)
         out._select = expr
-        out._where = self._where
+        return out
+
+    def limit(self, expr: str) -> "NudbData":
+        """Specify (inner part) of the LIMIT statement in SQL query."""
+        out = copy.copy(self)
+        out._limit = expr
         return out
 
     def __repr__(self) -> str:
@@ -134,15 +144,15 @@ class NudbData:
     def df(self) -> pd.DataFrame:
         """Return dataset as a pandas DataFrame."""
         query = self._get_query()
-        return _NUDB_DATABASE.get_connection().sql(query).df()
+        return nudb_database.get_connection().sql(query).df()
 
     def sql(self, expr: str) -> Any:
         """Use sql method of database connection."""
-        return _NUDB_DATABASE.get_connection().sql(expr)
+        return nudb_database.get_connection().sql(expr)
 
     def execute(self, expr: str) -> Any:
         """Use execute method of database connection."""
-        return _NUDB_DATABASE.get_connection().execute(expr)
+        return nudb_database.get_connection().execute(expr)
 
 
 def _is_view(alias: str) -> bool:
@@ -169,6 +179,6 @@ def _is_table(alias: str) -> bool:
 
 def _fetch_string_column(sql: str, column_name: str) -> list[str]:
     series = (
-        _NUDB_DATABASE.get_connection().sql(sql).df()[column_name].astype(STRING_DTYPE)
+        nudb_database.get_connection().sql(sql).df()[column_name].astype(STRING_DTYPE)
     )
     return list(cast("pd.Series[str]", series))

@@ -47,10 +47,10 @@ settings.variables.far_fnr.renamed_from = None
 settings.variables.far_fnr.name = "far_fnr"
 settings.variables.far_fnr.derived_from = []
 
-settings.variables.invkat = settings.variables.pers_invkat.copy()
-settings.variables.invkat.renamed_from = None
-settings.variables.invkat.name = "invkat"
-settings.variables.invkat.derived_from = []
+settings.variables.pers_invkat = settings.variables.pers_invkat.copy()
+settings.variables.pers_invkat.renamed_from = None
+settings.variables.pers_invkat.name = "pers_invkat"
+settings.variables.pers_invkat.derived_from = []
 
 settings.datasets.snrkat.variables = ["snr", "fnr", "fnr_naa", "snr_utgatt"]
 settings.datasets.slekt.variables = ["fnr", "mor_fnr", "far_fnr"]

@@ -15,7 +15,10 @@ def get_fill_amount_per_column(df: pd.DataFrame) -> dict[str, float]:
     Returns:
         dict[str, float]: Mapping of column name to percentage of filled cells.
     """
-    return {col: (df[col].notna().sum() / len(df) * 100) for col in df.columns}
+    return {
+        col: (df[col].notna().sum() / len(df) * 100 if len(df) else 0.0)
+        for col in df.columns
+    }
 
 
 def values_not_in_column(

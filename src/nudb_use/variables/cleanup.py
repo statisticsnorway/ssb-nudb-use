@@ -17,7 +17,7 @@ def sort_all_values(
 
     Args:
         df: The dataframe to be sorted.
-        priority_cols: A list of columns to weigh first in sorting.
+        priority_cols: A list of columns to weigh first in sorting. Default is (if None): ["utd_skoleaar_start", "nus2000", "utd_skolekom",]
 
     Returns:
         pd.DataFrame: A pandas dataframe sorted.
