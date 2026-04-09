@@ -24,6 +24,9 @@ from nudb_use.datasets.person import _generate_snr2alder16_view
 from nudb_use.datasets.person import _generate_utd_person_view
 from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
 from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed
+from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak
+from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections
+
 from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
@@ -71,6 +74,8 @@ class _NudbDatabase:
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
             "_vof_unique_orgnrbed": _generate_vof_unique_orgnrbed,
+            "_vof_unique_orgnr_foretak": _generate_vof_unique_orgnr_foretak,
+            "_vof_dated_orgnr_connections": _generate_vof_dated_orgnr_connections,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
