@@ -1,6 +1,7 @@
 import duckdb as db
 import datetime
 from pathlib import Path
+from functools import lru_cache
 from nudb_use.paths.path_parse import get_periods_from_path
 from fagfunksjoner.paths.versions import get_latest_fileversions
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
@@ -80,7 +81,7 @@ def _generate_vof_dated_orgnr_connections(
             f"""
             SELECT DISTINCT
                 org_nr as orgnr,
-                orgnrbed
+                orgnrbed,
                 CAST('{path_period}' as DATE) as vof_period_date
             FROM read_parquet('{path_str}')
             """
@@ -90,16 +91,18 @@ def _generate_vof_dated_orgnr_connections(
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
+        SELECT *
         FROM ({union_sql})
         WHERE 
-            orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != '' AND
-            orgnrbed IS NOT NULL AND TRIM(CAST(orgnrbed AS VARCHAR)) != ''
+            orgnrbed IS NOT NULL AND  -- Removes many rows, so most efficient to have first?
+            orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != '' AND orgnr != '000000000' AND
+            TRIM(CAST(orgnrbed AS VARCHAR)) != '' AND orgnrbed != '000000000'
         ;
     """
 
     connection.sql(query)
 
-
+@lru_cache
 def _get_all_vof_situttak_october_paths() -> list[Path]:
     shared_folder = Path(settings.paths.daplalab_mounted.shared_root_external)
     with_bucket = shared_folder / settings.datasets.vof_situttak.team / settings.datasets.vof_situttak.bucket
