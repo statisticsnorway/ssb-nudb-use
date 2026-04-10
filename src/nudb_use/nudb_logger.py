@@ -7,6 +7,7 @@ import functools
 import inspect
 import json
 import logging
+import math
 import sys
 from collections.abc import Callable
 from collections.abc import Sequence
@@ -74,9 +75,15 @@ def add_log_record_to_json(record: logging.LogRecord) -> None:
     }
 
 
+def _split_string_by_n(string: str, n: int) -> list[str]:
+    m = len(string)
+    k = math.ceil(m / n)
+    return [string[(n * i) : (n + n * i)].lstrip() for i in range(k)]
+
+
 def _truncate_message(msg: str, max_width: int = 140) -> str:
     return "\n".join(
-        [line[0:max_width] + "..." * (len(line) > 140) for line in msg.split("\n")]
+        ["\n".join(_split_string_by_n(line, n=max_width)) for line in msg.split("\n")]
     )
 
 
@@ -129,7 +136,7 @@ class ColoredFormatter(logging.Formatter):
 
             if EXITING_STACK:
                 pad_l1 = prepad + "└" + "─" * (INDENT_WIDTH - 1)
-                pad_l2 = prepad + " " * INDENT_WIDTH + " " * WIDTH_LEVEL_NAME + "     "
+                pad_l2 = prepad + " " * INDENT_WIDTH + " " * WIDTH_LEVEL_NAME + "   "
             else:
                 pad_l1 = prepad + "├" + "─" * (INDENT_WIDTH - 1)
                 pad_l2 = (
@@ -137,11 +144,11 @@ class ColoredFormatter(logging.Formatter):
                     + "│"
                     + " " * (INDENT_WIDTH - 1)
                     + " " * WIDTH_LEVEL_NAME
-                    + "     "
+                    + "   "
                 )
         else:
             pad_l1 = ""
-            pad_l2 = " " * WIDTH_LEVEL_NAME + "     "
+            pad_l2 = " " * WIDTH_LEVEL_NAME + "   "
 
         return pad_l1 + _truncate_message(super().format(record)).replace(
             "\n", "\n" + pad_l2
