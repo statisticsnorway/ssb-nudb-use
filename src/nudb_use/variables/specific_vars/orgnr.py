@@ -40,10 +40,13 @@ def cleanup_orgnr_bedrift_foretak(df: pd.DataFrame, time_col_name: str = "utd_sk
             if col in df.columns:
                 logger.info(f"Found {col} in dataframe, and splitting it and filling it into new orgnrbed and orgnr_foretak cols (first is prio).")
                 found_old_cols.append(col)
-                with LoggerStack(f"Splitting {col} into orgnrbed, orgnrforetak"):
+                with LoggerStack(f"Splitting {col} into orgnrbed, orgnr_foretak"):
                     orgnr_foretak_temp, orgnrbed_temp = _split_orgnr_col(df[col])
+                    logger.info(f"{orgnr_foretak_temp.notna().sum()} values placed in orgnr_foretak")
+                    logger.info(f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed")
                     orgnrbed_combine = orgnrbed_combine.fillna(orgnrbed_temp)
                     orgnr_foretak_combine = orgnr_foretak_combine.fillna(orgnr_foretak_temp)
+                    
 
         # We need to do this first, because we are passing it into the join
         orgnrbed_combine = _empty_orgnr_sentinel_values(orgnrbed_combine)
@@ -56,7 +59,7 @@ def cleanup_orgnr_bedrift_foretak(df: pd.DataFrame, time_col_name: str = "utd_sk
         
         # Create orgnrbed_vof from cleaned orgnr_foretak where foretak is "enkeltbedriftsforetak"
         # We need to do this after fixing orgnr_foretak because we are joining back
-        orgnrbed_combine_joined = orgnr_foretak_combine.fillna(_find_orgnrbed_enkelbedforetak_vof(orgnr_foretak_combine_joined, time_col))
+        orgnrbed_combine_joined = orgnrbed_combine.fillna(_find_orgnrbed_enkelbedforetak_vof(orgnr_foretak_combine_joined, time_col))
         orgnrbed_combine_joined = _empty_orgnr_sentinel_values(orgnrbed_combine_joined)
         
         # Report the changes we have made 
@@ -107,7 +110,7 @@ def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
     orgnrbed_out[mask_orgnrbed] = orgnr_col
     orgnr_foretak_out = pd.Series(pd.NA, index=orgnr_col.index, dtype="string[pyarrow]")
     orgnr_foretak_out.loc[~mask_orgnrbed] = orgnr_col 
-    return orgnr_foretak_out, orgnrbed_out
+    return _empty_orgnr_sentinel_values(orgnr_foretak_out), _empty_orgnr_sentinel_values(orgnrbed_out)
 
 
 def _find_orgnr_foretak_vof(
@@ -134,7 +137,7 @@ def _find_orgnr_foretak_vof(
         logger.info("Making pandas dataframe from sent columns.")
         input_df = pd.DataFrame(
             {"orgnrbed": orgnrbed_col.astype("string"),
-            "_row_id": range(len(orgnr_foretak_col))},
+            "_row_id": range(len(orgnrbed_col))},
             index=orgnrbed_col.index,
         )
 
