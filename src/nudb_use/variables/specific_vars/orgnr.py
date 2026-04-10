@@ -1,21 +1,43 @@
+import importlib
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
+from typing import cast
+
 import pandas as pd
+
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.datasets.nudb_database import nudb_database
-from nudb_use.nudb_logger import logger, LoggerStack
-from tqdm.notebook import tqdm
 from nudb_use.metadata.external_apis.brreg_api import orgnr_is_underenhet
+from nudb_use.nudb_logger import LoggerStack
+from nudb_use.nudb_logger import logger
 
 
-from pathlib import Path
+# Typing helper for mypy
+def _progress(iterable: Iterable[str]) -> Iterable[str]:
+    tqdm_module = importlib.import_module("tqdm")
+    tqdm = cast(Callable[[Iterable[str]], Iterator[str]], tqdm_module.tqdm)
+    return tqdm(iterable)
 
-def cleanup_orgnr_bedrift_foretak(df: pd.DataFrame, time_col_name: str = "utd_skoleaar_start", extra_orgnr_cols_split_prio: list[str] | None = None) -> pd.DataFrame:
+
+def cleanup_orgnr_bedrift_foretak(
+    df: pd.DataFrame,
+    time_col_name: str = "utd_skoleaar_start",
+    extra_orgnr_cols_split_prio: list[str] | None = None,
+) -> pd.DataFrame:
     """Cleanup into the columns orgnrbed and orgnr_foretak using datasets from VoF.
 
     Args:
         df: The data we should fix.
+        time_col_name: The name of the column that has time we will use to date the VoF-join-connections.
+        extra_orgnr_cols_split_prio: If there are extra columns containing orgnr in your dataset, not in the default list:
+            orgnr, utd_orgnr, orgnrbed, bof_orgnrbed, orgnr_foretak
 
     Returns:
         pd.DataFrame: The modified dataframe.
+
+    Raises:
+        TypeError: If we are struggeling to determine the time-columns formatting or dtype.
     """
     with LoggerStack("Cleaning up orgnr columns"):
         # Type check on time_col so we can exit early if its not something we recognize
@@ -23,71 +45,107 @@ def cleanup_orgnr_bedrift_foretak(df: pd.DataFrame, time_col_name: str = "utd_sk
         if pd.api.types.is_string_dtype(df[time_col_name]):
             time_col = pd.to_datetime(df[time_col_name], format="%Y")
         elif not pd.api.types.is_datetime64_any_dtype(df[time_col_name]):
-            raise TypeError(f"Unrecognized datatype on {time_col_name}, should be a year-string or a datetime64.")
+            raise TypeError(
+                f"Unrecognized datatype on column {time_col_name}, should be a year-string or a datetime64."
+            )
         else:
             time_col = df[time_col_name]
-            
+
         orgnrbed_combine: pd.Series = pd.Series(pd.NA, index=df.index)
         orgnr_foretak_combine: pd.Series = pd.Series(pd.NA, index=df.index)
-    
-        cols_split_priority_order: list[str] = ["orgnr", "utd_orgnr", "orgnrbed", "bof_orgnrbed", "orgnr_foretak"]
-        if extra_orgnr_cols_split_prio is not None: 
+
+        cols_split_priority_order: list[str] = [
+            "orgnr",
+            "utd_orgnr",
+            "orgnrbed",
+            "bof_orgnrbed",
+            "orgnr_foretak",
+        ]
+        if extra_orgnr_cols_split_prio is not None:
             cols_split_priority_order += extra_orgnr_cols_split_prio
-    
+
         # Split up existing columns
         found_old_cols: list[str] = []
         for col in cols_split_priority_order:
             if col in df.columns:
-                logger.info(f"Found {col} in dataframe, and splitting it and filling it into new orgnrbed and orgnr_foretak cols (first is prio).")
+                logger.info(
+                    f"Found {col} in dataframe, and splitting it and filling it into new orgnrbed and orgnr_foretak cols (first is prio)."
+                )
                 found_old_cols.append(col)
                 with LoggerStack(f"Splitting {col} into orgnrbed, orgnr_foretak"):
                     orgnr_foretak_temp, orgnrbed_temp = _split_orgnr_col(df[col])
-                    logger.info(f"{orgnr_foretak_temp.notna().sum()} values placed in orgnr_foretak")
-                    logger.info(f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed")
+                    logger.info(
+                        f"{orgnr_foretak_temp.notna().sum()} values placed in orgnr_foretak"
+                    )
+                    logger.info(
+                        f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed"
+                    )
                     orgnrbed_combine = orgnrbed_combine.fillna(orgnrbed_temp)
-                    orgnr_foretak_combine = orgnr_foretak_combine.fillna(orgnr_foretak_temp)
-                    
+                    orgnr_foretak_combine = orgnr_foretak_combine.fillna(
+                        orgnr_foretak_temp
+                    )
 
         # We need to do this first, because we are passing it into the join
         orgnrbed_combine = _empty_orgnr_sentinel_values(orgnrbed_combine)
-    
+
         # Join new orgnr_foretak_vof from VoF from orgnrbed - also back in time?
         # Ifølge AM stoler vi mer på det "som ligger der fra før" - enn det vi kobler på
         orgnr_foretak_combine = _empty_orgnr_sentinel_values(orgnr_foretak_combine)
-        orgnr_foretak_combine_joined = orgnr_foretak_combine.fillna(_find_orgnr_foretak_vof(orgnrbed_combine, time_col))
-        orgnr_foretak_combine_joined = _empty_orgnr_sentinel_values(orgnr_foretak_combine_joined)
-        
+        orgnr_foretak_combine_joined = orgnr_foretak_combine.fillna(
+            _find_orgnr_foretak_vof(orgnrbed_combine, time_col)
+        )
+        orgnr_foretak_combine_joined = _empty_orgnr_sentinel_values(
+            orgnr_foretak_combine_joined
+        )
+
         # Create orgnrbed_vof from cleaned orgnr_foretak where foretak is "enkeltbedriftsforetak"
         # We need to do this after fixing orgnr_foretak because we are joining back
-        orgnrbed_combine_joined = orgnrbed_combine.fillna(_find_orgnrbed_enkelbedforetak_vof(orgnr_foretak_combine_joined, time_col))
+        orgnrbed_combine_joined = orgnrbed_combine.fillna(
+            _find_orgnrbed_enkelbedforetak_vof(orgnr_foretak_combine_joined, time_col)
+        )
         orgnrbed_combine_joined = _empty_orgnr_sentinel_values(orgnrbed_combine_joined)
-        
-        # Report the changes we have made 
+
+        # Report the changes we have made
         # Filling degrees (non-NA)
         for col in found_old_cols:
-            logger.info(f"Old filling degree for {col}: {_percent_filled_orgnr(df[col])}% (remember that orgnr might have contained orgnrbed)")
-        logger.info(f"New filling degree for orgnrbed (before join): {_percent_filled_orgnr(orgnrbed_combine)}%")
-        logger.info(f"New filling degree for orgnrbed (after join): {_percent_filled_orgnr(orgnrbed_combine_joined)}%")
-        logger.info(f"New filling degree for orgnr_foretak (before join): {_percent_filled_orgnr(orgnr_foretak_combine)}%")
-        logger.info(f"New filling degree for orgnr_foretak (after join): {_percent_filled_orgnr(orgnr_foretak_combine_joined)}%")
+            logger.info(
+                f"Old filling degree for {col}: {_percent_filled_orgnr(df[col])}% (remember that orgnr might have contained orgnrbed)"
+            )
+        logger.info(
+            f"New filling degree for orgnrbed (before join): {_percent_filled_orgnr(orgnrbed_combine)}%"
+        )
+        logger.info(
+            f"New filling degree for orgnrbed (after join): {_percent_filled_orgnr(orgnrbed_combine_joined)}%"
+        )
+        logger.info(
+            f"New filling degree for orgnr_foretak (before join): {_percent_filled_orgnr(orgnr_foretak_combine)}%"
+        )
+        logger.info(
+            f"New filling degree for orgnr_foretak (after join): {_percent_filled_orgnr(orgnr_foretak_combine_joined)}%"
+        )
 
         # Remove old columns
         df = df.drop(columns=cols_split_priority_order, errors="ignore")
-    
+
         # Insert new columns
         df["orgnrbed"] = orgnrbed_combine_joined
         df["orgnr_foretak"] = orgnr_foretak_combine_joined
-    
+
         return df
 
 
 def _percent_filled_orgnr(s: pd.Series) -> float:
-    return 0.0 if not len(s) else round(s.copy().replace("000000000", pd.NA).notna().sum() / len(s) * 100, 2)
-    
-    
+    return (
+        0.0
+        if not len(s)
+        else round(s.copy().replace("000000000", pd.NA).notna().sum() / len(s) * 100, 2)
+    )
+
+
 def _empty_orgnr_sentinel_values(s: pd.Series) -> pd.Series:
     s.loc[s == "000000000"] = pd.NA
     return s
+
 
 def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
     vof_orgnrbed = NudbData("_vof_unique_orgnrbed").df()["orgnrbed"]
@@ -97,20 +155,24 @@ def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
     missing_from_vof = orgnr_col[~is_bed & ~is_foretak].dropna().unique()
     missing_orgnr_er_orgnrbed: dict[str, bool] = {}
     if len(missing_from_vof):
-        logger.info(f"Looking for {len(missing_from_vof)} orgnr in brregs API because the orgnr(s) are missing from the VOF-sittuttak.")
-        for nr in tqdm(missing_from_vof):
+        logger.info(
+            f"Looking for {len(missing_from_vof)} orgnr in brregs API because the orgnr(s) are missing from the VOF-sittuttak."
+        )
+        for nr in _progress(missing_from_vof):
             missing_orgnr_er_orgnrbed[nr] = orgnr_is_underenhet(nr)
     orgnr_is_orgnrbed = (
-        missing_orgnr_er_orgnrbed | 
-        {k: True for k in orgnr_col[is_bed].dropna().unique()} |
-        {k: False for k in orgnr_col[is_foretak].dropna().unique()}
+        missing_orgnr_er_orgnrbed
+        | {k: True for k in orgnr_col[is_bed].dropna().unique()}
+        | {k: False for k in orgnr_col[is_foretak].dropna().unique()}
     )
     mask_orgnrbed = orgnr_col.map(orgnr_is_orgnrbed).astype("bool[pyarrow]")
     orgnrbed_out = pd.Series(pd.NA, index=orgnr_col.index, dtype="string[pyarrow]")
     orgnrbed_out[mask_orgnrbed] = orgnr_col
     orgnr_foretak_out = pd.Series(pd.NA, index=orgnr_col.index, dtype="string[pyarrow]")
-    orgnr_foretak_out.loc[~mask_orgnrbed] = orgnr_col 
-    return _empty_orgnr_sentinel_values(orgnr_foretak_out), _empty_orgnr_sentinel_values(orgnrbed_out)
+    orgnr_foretak_out.loc[~mask_orgnrbed] = orgnr_col
+    return _empty_orgnr_sentinel_values(
+        orgnr_foretak_out
+    ), _empty_orgnr_sentinel_values(orgnrbed_out)
 
 
 def _find_orgnr_foretak_vof(
@@ -131,13 +193,15 @@ def _find_orgnr_foretak_vof(
         time_col: Series containing data's time.
 
     Returns:
-       pd. A Series of orgnr values aligned to the input index.
+       pd.Series: A Series of orgnr values aligned to the input index.
     """
     with LoggerStack("Joining orgnr_foretak on orgnrbed"):
         logger.info("Making pandas dataframe from sent columns.")
         input_df = pd.DataFrame(
-            {"orgnrbed": orgnrbed_col.astype("string"),
-            "_row_id": range(len(orgnrbed_col))},
+            {
+                "orgnrbed": orgnrbed_col.astype("string"),
+                "_row_id": range(len(orgnrbed_col)),
+            },
             index=orgnrbed_col.index,
         )
 
@@ -165,8 +229,7 @@ def _find_orgnr_foretak_vof(
         logger.info(
             "Executing join on dates for data and orgnrbed -> orgnr_foretak connections"
         )
-        result_df = con.sql(
-            f"""
+        result_df = con.sql(f"""
             WITH input_clean AS (
                 SELECT
                     _row_id,
@@ -264,12 +327,10 @@ def _find_orgnr_foretak_vof(
             LEFT JOIN resolved
                 ON raw._row_id = resolved._row_id
             ORDER BY raw._row_id
-            """
-        ).df()
+            """).df()
 
         result = pd.Series(result_df["orgnr"], index=original_index, dtype="string")
         return result
-
 
 
 def _find_orgnrbed_enkelbedforetak_vof(
@@ -301,7 +362,7 @@ def _find_orgnrbed_enkelbedforetak_vof(
         input_df = pd.DataFrame(
             {
                 "orgnr": orgnr_foretak_col.astype("string"),
-                "_row_id": range(len(orgnr_foretak_col))
+                "_row_id": range(len(orgnr_foretak_col)),
             },
             index=orgnr_foretak_col.index,
         )
@@ -328,8 +389,7 @@ def _find_orgnrbed_enkelbedforetak_vof(
         con.register("input_df", input_df)
 
         logger.info("Executing join from orgnr_foretak to orgnrbed")
-        result_df = con.sql(
-            f"""
+        result_df = con.sql(f"""
             WITH input_clean AS (
                 SELECT
                     _row_id,
@@ -426,10 +486,7 @@ def _find_orgnrbed_enkelbedforetak_vof(
             LEFT JOIN resolved
                 ON raw._row_id = resolved._row_id
             ORDER BY raw._row_id
-            """
-        ).df()
+            """).df()
 
         result = pd.Series(result_df["orgnrbed"], index=original_index, dtype="string")
         return result
-
-

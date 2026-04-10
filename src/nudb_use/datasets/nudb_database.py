@@ -23,15 +23,14 @@ from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
 from nudb_use.datasets.person import _generate_utd_person_view
 from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
-from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed
-from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak
-from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections
-
 from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_last_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
+from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections
+from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak
+from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger
