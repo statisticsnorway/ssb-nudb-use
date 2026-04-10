@@ -2,7 +2,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from dapla_metadata.standards import check_naming_standard
+from dapla_metadata.standards import check_naming_standard  # type: ignore[attr-defined]
 from dapla_metadata.standards.name_validator import NamingStandardReport
 from dapla_metadata.standards.name_validator import ValidationResult
 

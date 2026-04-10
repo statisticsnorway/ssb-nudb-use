@@ -1,12 +1,13 @@
 """Checks for required personal identifier columns."""
 
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-VALID_PERSONAL_IDS_PRIO = ["snr", "fnr"]
+VALID_PERSONAL_IDS_PRIO = settings.constants.valid_personal_ids_prio
 
 
 def check_has_personal_ids(

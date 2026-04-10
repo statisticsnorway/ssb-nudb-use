@@ -1,4 +1,5 @@
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.metadata.nudb_config.map_get_dtypes import BOOL_DTYPE_NAME
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
@@ -14,29 +15,30 @@ __all__ = [
     "uh_erhoeyereutd_registrering",
     "uh_ermaster_registrering",
     "vg_erstudiespess_registrering",
+    "vg_ervgo_erutdprogram_registrering",
     "vg_ervgo_registrering",
     "vg_eryrkesfag_registrering",
 ]
 
 
+def parse_range_string(rng_str: str) -> range:
+    start, end = map(int, rng_str.split("-"))
+    return range(start, end + 1)
+
+
 # Would be nice if these were complete in klass instead - the variant on nus is not complete?
 PRG_RANGES_RANGES: dict[str, list[range]] = {
     "studiespess": [
-        range(1, 2),  # this is not a mistake -> [1, 2) -> [1]
-        range(21, 24),
-        range(60, 65),
+        parse_range_string(r)
+        for r in settings.constants.vg_utdprogram_ranges_studiespess
     ],
     "yrkesfag": [
-        range(3, 20),
-        range(30, 43),
-        range(50, 51),  # this is not a mistake -> [50, 51) -> [50]
-        range(70, 84),
-        range(98, 100),
+        parse_range_string(r) for r in settings.constants.vg_utdprogram_ranges_yrkesfag
     ],
 }
 PRG_RANGES: dict[str, list[str]] = {}
 for k, v in PRG_RANGES_RANGES.items():
-    PRG_RANGES[k] = [y for rng in v for y in [str(n).zfill(2) for n in rng]]
+    PRG_RANGES[k] = [str(n).zfill(2) for rng in v for n in rng]
 
 
 @wrap_derive
@@ -56,6 +58,19 @@ def vg_ervgo_registrering(  # noqa:DOC201
 ) -> pd.Series:
     """Derive vg_ervgo_registrering from nus2000, as a boolean filter for registrations on vg-level."""
     bool_mask: pd.Series = df["nus2000"].str[0].isin(["3", "4"]).astype(BOOL_DTYPE)
+    return bool_mask
+
+
+@wrap_derive
+def vg_ervgo_erutdprogram_registrering(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.Series:
+    """Derive vg_ervgo_erutdprogram_registrering from nus2000 and vg_utdprogram, as a boolean filter for registrations on vg-level."""
+    bool_mask: pd.Series = (
+        df["nus2000"].str[0].isin(["3", "4"]).astype(BOOL_DTYPE)
+        & (df["vg_utdprogram"].notna())
+        & (df["vg_utdprogram"].str.strip() != "")
+    )
     return bool_mask
 
 

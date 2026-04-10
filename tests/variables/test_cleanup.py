@@ -2,6 +2,7 @@ import pandas as pd
 
 from nudb_use.variables.cleanup import move_col_after_col
 from nudb_use.variables.cleanup import move_content_from_col_to
+from nudb_use.variables.cleanup import sort_all_values
 
 
 def test_move_col_after_col(avslutta: pd.DataFrame) -> None:
@@ -25,3 +26,29 @@ def test_move_content_from_col_to(avslutta: pd.DataFrame) -> None:
 
     assert "fnr" not in result.columns
     assert result["pers_id"].notna().all()
+
+
+def test_sort_all_values_default_priority() -> None:
+    df = pd.DataFrame(
+        {
+            "nus2000": [2, 1, 1],
+            "utd_skoleaar_start": [2020, 2019, 2019],
+            "utd_skolekom": [2, 1, 1],
+            "b": [1, 2, 3],  # This needs to have a different value on each row
+            "a": [1, 2, 1],
+        }
+    )
+    # Predicted order
+
+    result = sort_all_values(df)
+
+    expected_order = [
+        "utd_skoleaar_start",
+        "nus2000",
+        "utd_skolekom",
+        "a",
+        "b",
+    ]
+    expected_b = df.sort_values(expected_order)["b"]
+
+    assert (result["b"] == expected_b).all()

@@ -84,7 +84,7 @@ def empty_percents_over_columns(
         group_cols = [group_cols]
 
     def percent_empty(series: pd.Series) -> float:
-        return series.isna().sum() / len(series) * 100
+        return series.isna().sum() / len(series) * 100 if len(series) else 0.0
 
     if group_cols is not None:
         return df.groupby(group_cols).agg(percent_empty)

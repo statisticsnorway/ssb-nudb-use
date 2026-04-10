@@ -4,6 +4,7 @@ import uuid as uuidlib
 from typing import Any
 
 import pandas as pd
+import pytest
 
 from nudb_use.variables.specific_vars import snr as snr_module
 from nudb_use.variables.specific_vars.snr import generate_uuid_for_snr_with_fnr_catalog
@@ -166,3 +167,65 @@ def test_update_snr_with_snrkat_remaps_and_preserves_snr(
     assert result.loc[result["fnr"] == "7KFQKZih4ha", "snr"].item() == "NEW0001"
     assert result.loc[result["fnr"] == "Qbbf3dWfake", "snr"].item() == "NEWKHT1"
     assert result.loc[result["fnr"] == "OjtKRx5fake", "snr"].item() == "NEWKHT1"
+
+
+@pytest.mark.parametrize(
+    ("df", "expected_columns", "expected_snr"),
+    [
+        (
+            pd.DataFrame(
+                {
+                    "fnr": ["7KFQKZih4ha", "unknown"],
+                    "snr": ["OLD0001", "keepme"],
+                }
+            ),
+            ["fnr", "snr"],
+            ["NEW0001", "keepme"],
+        ),
+        (
+            pd.DataFrame({"fnr": ["7KFQKZih4ha", "unknown"]}),
+            ["fnr", "snr"],
+            ["NEW0001", pd.NA],
+        ),
+        (
+            pd.DataFrame({"snr": ["OLD0001", "unknown"]}),
+            ["snr"],
+            ["NEW0001", "unknown"],
+        ),
+    ],
+    ids=["fnr-and-snr", "fnr-only", "snr-only"],
+)
+def test_update_snr_with_snrkat_accepts_supported_join_column_combinations(
+    monkeypatch: Any,
+    df: pd.DataFrame,
+    expected_columns: list[str],
+    expected_snr: list[Any],
+) -> None:
+    snrkat = pd.DataFrame(
+        {
+            "fnr": ["7KFQKZih4ha"],
+            "snr_utgatt": ["OLD0001"],
+            "snr": ["NEW0001"],
+        }
+    )
+
+    class FakeNudbData:
+        def __init__(self, name: str) -> None:
+            assert name == "snrkat"
+
+        def select(self, _cols: str) -> FakeNudbData:
+            return self
+
+        def df(self) -> pd.DataFrame:
+            return snrkat
+
+    monkeypatch.setattr(snr_module, "NudbData", FakeNudbData)
+
+    result = update_snr_with_snrkat(df)
+
+    assert result.columns.tolist() == expected_columns
+    pd.testing.assert_series_equal(
+        result["snr"].reset_index(drop=True),
+        pd.Series(expected_snr, name="snr"),
+        check_dtype=False,
+    )

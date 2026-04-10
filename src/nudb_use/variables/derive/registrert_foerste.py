@@ -14,6 +14,7 @@ __all__ = [
     "uh_foerste_registrert_dato",
     "uh_master_foerste_registrert_dato",
     "vg_foerste_registrert_dato",
+    "vg_foerste_registrert_erutdprogram_dato",
 ]
 
 
@@ -126,6 +127,23 @@ def vg_foerste_registrert_dato(df: pd.DataFrame) -> pd.DataFrame:
     """
     variable_name = "vg_foerste_registrert_dato"
     filter_var = "vg_ervgo_registrering"
+    return first_registered_date_per_snr(
+        df, variable_name=variable_name, filter_var=filter_var
+    )
+
+
+@wrap_derive_join_all_data
+def vg_foerste_registrert_erutdprogram_dato(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive vg_foerste_registrert_dato from avslutta.
+
+    Args:
+        df: Source dataset containing at least snr, vg_ervgo_erstudretn_registrering, utd_aktivitet_start.
+
+    Returns:
+        pd.DataFrame: A column suitable for adding as a new column to the df.
+    """
+    variable_name = "vg_foerste_registrert_erutdprogram_dato"
+    filter_var = "vg_ervgo_erutdprogram_registrering"
     return first_registered_date_per_snr(
         df, variable_name=variable_name, filter_var=filter_var
     )

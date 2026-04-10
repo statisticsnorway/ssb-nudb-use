@@ -31,7 +31,7 @@ def filled_value_to_threshold(
     if not (isinstance(value, Iterable) and not isinstance(value, (str, bytes))):
         value = [value]
 
-    percent = ((col.isin(value)).sum() / len(col)) * 100
+    percent = ((col.isin(value)).sum() / len(col)) * 100 if len(col) else 0.0
     if threshold_lower > percent:
         err_msg = f"mrk_dl {percent} is below the threshold of {threshold_lower}%"
         if raise_error:
@@ -57,7 +57,7 @@ def non_empty_to_threshold(
     Raises:
         NudbQualityError: If the percentage of non-empty values is below the threshold while `raise_error` is True.
     """
-    percent_empty = ((col.isna()).sum() / len(col)) * 100
+    percent_empty = ((col.isna()).sum() / len(col)) * 100 if len(col) else 0.0
     percent_filled = 100 - percent_empty
     if threshold_lower > percent_filled:
         err_msg = (

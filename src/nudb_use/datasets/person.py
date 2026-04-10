@@ -151,3 +151,64 @@ def _generate_snr2alder16_view(alias: str, connection: db.DuckDBPyConnection) ->
     """
 
     connection.sql(query)
+
+
+def _generate_bokommune_16aar_snr(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    from nudb_use.datasets.nudb_data import NudbData
+
+    bokomm = NudbData("bokommune_16aar_fnr").select(
+        "fnr, komm_nr, innflyttingsdato, alderu_ved_innflytting"
+    )
+    fnr2snr = NudbData("_snrkat_fnr2snr")
+
+    # Deduplicate to one row per person (snr) by keeping the row with the most
+    # recent innflyttingsdato, then using higher alderu_ved_innflytting and
+    # komm_nr as tie-breakers. We prioritize higher komm_nr because newer
+    # kommune standards tend to have higher values.
+    # Later we might want to swap some of this logic with actually checking
+    # Klass to see if the kommune-codes are valid at the innflyttingsdate,
+    # preferring the valid dates over the invalid ones...
+    query = f"""
+        CREATE VIEW
+            {alias} AS
+        WITH joined AS (
+            SELECT
+                s.snr,
+                b.komm_nr,
+                b.innflyttingsdato,
+                b.alderu_ved_innflytting
+            FROM
+                {bokomm.alias} AS b
+            LEFT JOIN
+                {fnr2snr.alias} AS s
+            ON
+                b.fnr = s.fnr
+            WHERE
+                s.snr IS NOT NULL
+        ),
+        dedup_snr AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY snr
+                    ORDER BY
+                        innflyttingsdato DESC NULLS LAST,
+                        alderu_ved_innflytting DESC NULLS LAST,
+                        komm_nr DESC NULLS LAST
+                ) AS snr_rank
+            FROM
+                joined
+        )
+        SELECT
+            snr,
+            komm_nr,
+            innflyttingsdato
+        FROM
+            dedup_snr
+        WHERE
+            snr_rank = 1;
+    """
+
+    connection.sql(query)

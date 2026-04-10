@@ -67,7 +67,7 @@ def subcheck_single_kommune_oslo_svalbard_utland(
     legal_vals = {
         "03": "0301",
         "21": "2111",
-        "25": "2580",
+        "25": "2599",
     }
 
     unique_vals = pd.Series(kommune_col.unique())
@@ -84,7 +84,7 @@ def subcheck_single_kommune_oslo_svalbard_utland(
         return None
 
     non_match_dict_lines = "\n".join([f"{k} -> {v}" for k, v in non_match_dict.items()])
-    err_msg = f"Found illegal kommune-values that can be recoded because the fylke only maps to single kommune:\n{non_match_dict_lines}"
+    err_msg = f"Found illegal kommune-values that can be recoded because the fylke only maps to single kommune (Utland 2599):\n{non_match_dict_lines}"
     logger.warning(err_msg)
     return NudbQualityError(err_msg)
 

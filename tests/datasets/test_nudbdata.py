@@ -13,7 +13,7 @@ from nudb_use.datasets.nudb_data import _is_in_database
 from nudb_use.datasets.nudb_data import _is_table
 from nudb_use.datasets.nudb_data import _is_view
 from nudb_use.datasets.utils import _default_alias_from_name
-from nudb_use.datasets.utils import _select_if_contains_index_col_0
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.metadata.nudb_config.variable_names import update_colnames
 
 
@@ -59,7 +59,7 @@ def patch_nudb_database(
 
     # legg inn i config at alle registreringer trenger flere (potensielt) dato-kolonner
     monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
-    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT", shared_root)
+    monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT_EXTERNAL", shared_root)
 
 
 def test_nudbdata(
@@ -82,8 +82,8 @@ def test_nudbdata(
 
 
 def test_fetch_string_column_and_tables() -> None:
-    reset_nudb_database()
-    connection = nudb_database_module._NUDB_DATABASE.get_connection()
+    database = nudb_database_module.nudb_database
+    connection = database.get_connection()
     connection.execute("CREATE TABLE test_table (name VARCHAR)")
     connection.execute("INSERT INTO test_table VALUES ('a'), ('b')")
     connection.execute("CREATE VIEW test_view AS SELECT * FROM test_table")
@@ -96,7 +96,7 @@ def test_fetch_string_column_and_tables() -> None:
 
 
 def test_nudb_database_reset_clears_tables() -> None:
-    database = nudb_database_module.NudbDatabase()
+    database = nudb_database_module._NudbDatabase()
     connection = database.get_connection()
     connection.execute("CREATE TABLE reset_table (value INT)")
     assert connection.sql("SHOW TABLES").df()["name"].tolist() == ["reset_table"]
@@ -105,6 +105,7 @@ def test_nudb_database_reset_clears_tables() -> None:
     tables_after_reset = (
         database.get_connection().sql("SHOW TABLES").df()["name"].tolist()
     )
+    del database
     assert tables_after_reset == []
 
 
@@ -112,17 +113,18 @@ def test_utils_select_and_alias(tmp_path: Path) -> None:
     without_index = tmp_path / "without_index.parquet"
 
     pd.DataFrame({"a": [1, 2]}).to_parquet(without_index, index=False)
-
-    connection = nudb_database_module._NUDB_DATABASE.get_connection()
-    assert _select_if_contains_index_col_0(without_index, connection) == "*"
+    database = nudb_database_module._NudbDatabase()
+    connection = database.get_connection()
+    assert _nudb_data_select_all(without_index, connection) == "*"
     assert _default_alias_from_name("test-data") == "NUDB_DATA_TEST_DATA"
+    del database
 
 
 def test_external_generate_view_uses_alias_and_excludes_index(
     tmp_path: Path, monkeypatch: Any
 ) -> None:
-    reset_nudb_database()
-    connection = nudb_database_module._NUDB_DATABASE.get_connection()
+    database = nudb_database_module._NudbDatabase()
+    connection = database.get_connection()
 
     data_path = tmp_path / "external.parquet"
     pd.DataFrame({"col": [1, 2]}).to_parquet(data_path)
@@ -138,6 +140,7 @@ def test_external_generate_view_uses_alias_and_excludes_index(
     _generate_view("external_dataset", alias=alias, connection=connection)
 
     columns = connection.sql(f"DESCRIBE {alias}").df()["column_name"].tolist()
+    del database
     assert "__index_level_0__" not in columns
     assert "col" in columns
     assert "nudb_dataset_id" in columns

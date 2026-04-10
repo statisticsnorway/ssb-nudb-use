@@ -13,39 +13,12 @@ from brreg.enhetsregisteret import Enhet
 from brreg.enhetsregisteret import Page
 from brreg.enhetsregisteret import Underenhet
 from brreg.enhetsregisteret import UnderenhetQuery
+from nudb_config import settings
 from pydantic import BaseModel
 
 from nudb_use.nudb_logger import logger
 
-UTD_NACEKODER = [
-    "88.911",
-    "85.100",
-    "85.201",
-    "85.202",
-    "85.203",
-    "85.601",  # Grunnskole
-    "85.310",
-    "85.320",
-    "85.609",  # Videregående
-    "85.510",
-    "85.521",
-    "85.522",
-    "85.529",
-    "85.530",
-    "85.592",
-    "85.593",
-    "85.594",
-    "85.595",
-    "85.596",
-    "85.599",  # Diverse
-    "85.410",  # Fagskole
-    "85.591",  # Folkehøgskoler
-    "85.421",
-    "85.422",
-    "85.423",
-    "85.424",
-    "85.429",  # Uh
-]
+UTD_NACEKODER = settings.constants.brreg_utd_nacekoder
 
 
 def download_csv_content_enheter() -> pd.DataFrame:

@@ -42,8 +42,6 @@ from .person import pers_foedselsdato
 from .person import pers_invkat
 from .person import pers_kjoenn
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
-from .utd_foreldres_utdnivaa import utd_foreldres_utdnivaa_16aar
-from .utd_hoeyeste import utd_hoeyeste_nus2000
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
 from .vof import vof_eierforhold
@@ -55,8 +53,6 @@ __all__ = [
     "pers_kjoenn",
     "uh_univ_eller_hoegskole",
     "utd_erforeldet_kode_nus",
-    "utd_foreldres_utdnivaa_16aar",
-    "utd_hoeyeste_nus2000",
     "utd_hoeyeste_rangering",
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
@@ -64,6 +60,22 @@ __all__ = [
     "vof_eierforhold",
     "vof_orgnr_foretak",
 ]
+
+
+# We add to __all__ dynamically from these
+DERIVE_ALL_SUBMODULES = (
+    fullfoert_foerste,
+    fullfoert,
+    utd_hoeyeste,
+    utd_foreldres_utdnivaa,
+    registrert_foerste,
+    registrert,
+    klass_correspondences_and_variants,
+    klass_labels,
+    land,
+    person_idents,
+    person,
+)
 
 
 def add_function(name: str, submodule: ModuleType) -> None:
@@ -81,5 +93,5 @@ def add_all_from_module(submodule: ModuleType) -> None:
         add_function(func, submodule)
 
 
-for submodule in derive_all_submodules:
+for submodule in DERIVE_ALL_SUBMODULES:
     add_all_from_module(submodule)

@@ -70,7 +70,7 @@ def get_dtype_from_dict(
     if dtype_upper not in mapping_cast:
         raise ValueError(f"Unkown type: {dtype_upper}")
 
-    dtype_key = cast(DTypeName, dtype_upper)
+    dtype_key = dtype_upper
     result = mapping_cast[dtype_key]
     logger.debug(f"First result from mapping: {result}")
 
@@ -101,7 +101,7 @@ def map_dtype_datadoc(
         raise KeyError(
             f"Specify an engine in the mapping, or add to the mapping: {DTYPE_MAPPINGS.keys()}"
         )
-    engine_key = cast(BackendName, engine)
+    engine_key = engine
     mapping = DTYPE_MAPPINGS[engine_key]
     return get_dtype_from_dict(
         dtype=dtype, mapping=mapping, datetimes_as_string=datetimes_as_string
