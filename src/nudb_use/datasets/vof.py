@@ -1,9 +1,11 @@
 import duckdb as db
+import datetime
 from pathlib import Path
 from nudb_use.paths.path_parse import get_periods_from_path
 from fagfunksjoner.paths.versions import get_latest_fileversions
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
 from nudb_config import settings
+from nudb_use.nudb_logger import logger
 
 def _generate_vof_unique_orgnrbed(
     alias: str,
@@ -107,6 +109,16 @@ def _get_all_vof_situttak_october_paths() -> list[Path]:
     want_cols = ["org_nr", "orgnrbed"]
     all_vof_monthly_has_want_cols = [p for p in all_vof_monthly if all([c in pyarrow_columns_from_metadata(p) for c in want_cols])]
     
+    # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
+    if not all([c in pyarrow_columns_from_metadata(all_vof_monthly[-1]) for c in want_cols]):
+        logger.warning(f"The last vof situttak does not have the columns we expect: {want_cols} - this means the nudb_use package needs fixing most likely. {all_vof_monthly[-1]}")
+
+    # If the last file's date is too far from the current year, we should be worried that they have stopped producing the files there
+    last_year = datetime.datetime.now().year - 1
+    last_file_year = get_periods_from_path(all_vof_monthly[-1])[0].year
+    if last_year > last_file_year:
+        logger.warning(f"The last vof situttak is from the year {last_file_year} - we expect this to be the same or later than last current year: {last_year}, path: {all_vof_monthly[-1]}")
+
     picked_vof = [p for p in all_vof_monthly_has_want_cols if get_periods_from_path(p)[0].month == 10]
     
     # Add the first and last file if not already picked
