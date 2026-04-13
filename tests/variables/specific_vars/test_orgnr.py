@@ -115,7 +115,9 @@ def test_find_orgnr_foretak_bof_resolves_before_and_after_fallback(
             index=[10, 11, 12, 13, 14],
         ),
         pd.Series(
-            ["2020", "2022", "2022", "2022", "2022"],
+            pd.to_datetime(
+                ["2020-01-01", "2022-01-01", "2022-01-01", "2022-01-01", "2022-01-01"]
+            ),
             index=[10, 11, 12, 13, 14],
         ),
     )
