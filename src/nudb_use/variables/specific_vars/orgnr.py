@@ -329,7 +329,7 @@ def _find_orgnr_foretak_bof(
             ORDER BY raw._row_id
             """).df()
 
-        result = pd.Series(result_df["orgnr"], index=original_index, dtype="string")
+        result = result_df["orgnr"].astype("string").set_axis(original_index)
         return result
 
 
@@ -488,5 +488,5 @@ def _find_orgnrbed_enkelbedforetak_bof(
             ORDER BY raw._row_id
             """).df()
 
-        result = pd.Series(result_df["orgnrbed"], index=original_index, dtype="string")
+        result = result_df["orgnrbed"].astype("string").set_axis(original_index)
         return result

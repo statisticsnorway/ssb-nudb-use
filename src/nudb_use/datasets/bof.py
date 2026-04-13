@@ -13,6 +13,23 @@ from nudb_use.variables.checks import pyarrow_columns_from_metadata
 UNION_ALL = "\nUNION ALL\n"
 
 
+def _create_empty_view(
+    alias: str,
+    connection: db.DuckDBPyConnection,
+    columns: dict[str, str],
+) -> None:
+    select_list = ",\n            ".join(
+        f"CAST(NULL AS {dtype}) AS {name}" for name, dtype in columns.items()
+    )
+    connection.sql(f"""
+        CREATE OR REPLACE VIEW {alias} AS
+        SELECT
+            {select_list}
+        WHERE FALSE
+        ;
+    """)
+
+
 def _generate_bof_eierforhold_view(
     alias: str,
     connection: db.DuckDBPyConnection,
@@ -38,6 +55,22 @@ def _generate_bof_eierforhold_view(
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
             """)
+
+    if not union_parts:
+        logger.warning(
+            "Found no BOF files with the columns needed to build bof_eierforhold. Creating an empty view."
+        )
+        _create_empty_view(
+            alias,
+            connection,
+            {
+                "orgnr_foretak": "VARCHAR",
+                "orgnrbed": "VARCHAR",
+                "bof_period_date": "DATE",
+                "bof_eierforhold": "VARCHAR",
+            },
+        )
+        return
 
     union_sql = UNION_ALL.join(union_parts)
 
@@ -93,6 +126,13 @@ def _generate_bof_unique_orgnrbed_view(
             FROM read_parquet('{path_str}')
             """)
 
+    if not union_parts:
+        logger.warning(
+            "Found no BOF files with orgnrbed to build the unique orgnrbed view. Creating an empty view."
+        )
+        _create_empty_view(alias, connection, {"orgnrbed": "VARCHAR"})
+        return
+
     union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
@@ -121,6 +161,13 @@ def _generate_bof_unique_orgnr_foretak_view(
             FROM read_parquet('{path_str}')
             """)
 
+    if not union_parts:
+        logger.warning(
+            "Found no BOF files with orgnr to build the unique orgnr_foretak view. Creating an empty view."
+        )
+        _create_empty_view(alias, connection, {"orgnr": "VARCHAR"})
+        return
+
     union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
@@ -136,12 +183,20 @@ def _generate_bof_unique_orgnr_foretak_view(
 
 def _date_from_path_period(path_with_date: str | Path) -> datetime.date:
     possible_date = get_periods_from_path(path_with_date)
-    if isinstance(possible_date, tuple | list | set):
+    if isinstance(possible_date, tuple | list):
+        if not possible_date:
+            raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
         result = possible_date[0]
+    elif isinstance(possible_date, set):
+        if not possible_date:
+            raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
+        result = sorted(possible_date)[0]
     elif isinstance(possible_date, datetime.date | datetime.datetime):
         result = possible_date
     else:
         raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
+    if isinstance(result, datetime.datetime):
+        return result.date()
     return result
 
 
@@ -163,6 +218,21 @@ def _generate_bof_dated_orgnr_connections_view(
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
             """)
+
+    if not union_parts:
+        logger.warning(
+            "Found no BOF files with orgnr/orgnrbed to build dated orgnr connections. Creating an empty view."
+        )
+        _create_empty_view(
+            alias,
+            connection,
+            {
+                "orgnr": "VARCHAR",
+                "orgnrbed": "VARCHAR",
+                "bof_period_date": "DATE",
+            },
+        )
+        return
 
     union_sql = UNION_ALL.join(union_parts)
 
@@ -195,6 +265,12 @@ def _get_all_bof_situttak_october_paths(
 
     glob_pattern = settings.datasets.bof_situttak.path_glob
     all_bof_monthly = sorted(with_bucket.glob(glob_pattern))
+    if not all_bof_monthly:
+        logger.warning(
+            f"Found no BOF files on disk for glob '{glob_pattern}' under {with_bucket}."
+        )
+        return []
+
     if want_cols is None:
         want_cols_list: tuple[str, ...] = ("org_nr", "orgnrbed")
     else:
@@ -204,6 +280,11 @@ def _get_all_bof_situttak_october_paths(
         for p in all_bof_monthly
         if all([c in pyarrow_columns_from_metadata(p) for c in want_cols_list])
     ]
+    if not all_bof_monthly_has_want_cols:
+        logger.warning(
+            f"Found BOF files on disk, but none with the expected columns {want_cols_list}."
+        )
+        return []
 
     # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
     if not all(

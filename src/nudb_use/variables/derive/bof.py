@@ -52,13 +52,18 @@ def bof_eierforhold(df: pd.DataFrame) -> pd.Series:
         on="orgnr_foretak",
         how="left",
         validate="m:1",
-    )["bof_eierforhold"].astype("string[pyarrow]")
+    )["bof_eierforhold"].astype("string[pyarrow]").set_axis(df.index)
     logger.info(
         f"Joining `bof_eierforhold` first on orgnr_fortak (preferred by UH). Filled on {_percent_notna(eierf)}%"
     )
 
     if "orgnrbed" in df.columns:
-        orgnr_bed_missing_value = catalogue[eierf.isna()]["orgnrbed"].unique()
+        orgnr_bed_missing_value = (
+            df.loc[eierf.isna(), "orgnrbed"]
+            .replace("000000000", pd.NA)
+            .dropna()
+            .unique()
+        )
         filtered_catalogue = catalogue[
             catalogue["orgnrbed"].isin(orgnr_bed_missing_value).astype("bool[pyarrow]")
         ][["orgnrbed", "bof_eierforhold"]].drop_duplicates(
@@ -67,7 +72,7 @@ def bof_eierforhold(df: pd.DataFrame) -> pd.Series:
         eierf = eierf.fillna(
             df.merge(filtered_catalogue, on="orgnrbed", how="left", validate="m:1")[
                 "bof_eierforhold"
-            ]
+            ].astype("string[pyarrow]").set_axis(df.index)
         )
         logger.info(
             f"Joining `bof_eierforhold` second on orgnrbed. After both joins, eierforhold filled on {_percent_notna(eierf)}%"
