@@ -7,8 +7,50 @@ from fagfunksjoner.paths.versions import get_latest_fileversions
 from nudb_config import settings
 
 from nudb_use.nudb_logger import logger
+from nudb_use.paths.latest import latest_shared_path
 from nudb_use.paths.path_parse import get_periods_from_path
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
+
+
+def _generate_vof_skolereg_latest_view(
+    alias: str,
+    connection: db.DuckDBPyConnection,
+) -> None:
+    latest_vof_path = latest_shared_path("vof_situttak")[1]
+    want_cols = [
+        "rectype",
+        "org_nr",
+        "fnr",
+        "bnr",
+        "orgnrbed",
+        "flv",
+        "fkommune",
+        "status_foretak",
+        "aktivitetskode",
+        "org_form",
+        "navn",
+        "off_nav1",
+        "off_nav2",
+        "karakt",
+        "status",
+        "nace1_sn07",
+        "nace2_sn07",
+        "nace3_sn07",
+        "sektor_2014",
+        "undersektor_2014",
+        "delreg_merke",
+    ]
+    cols_overlap = ", ".join(
+        [c for c in want_cols if c in pyarrow_columns_from_metadata(latest_vof_path)]
+    )
+
+    query = f"""
+        CREATE OR REPLACE VIEW {alias} AS
+        SELECT {cols_overlap}
+        FROM read_parquet('{latest_vof_path}')
+        ;
+    """
+    connection.sql(query)
 
 
 def _generate_vof_eierforhold_view(
