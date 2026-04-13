@@ -29,9 +29,9 @@ from nudb_use.datasets.utd_foreldres_utdnivaa import (
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_last_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
 from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections_view
+from nudb_use.datasets.vof import _generate_vof_eierforhold_view
 from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak_view
 from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed_view
-from nudb_use.datasets.vof import _generate_vof_eierforhold_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger

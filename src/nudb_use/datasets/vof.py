@@ -15,11 +15,10 @@ def _generate_vof_eierforhold_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    from nudb_use.datasets.nudb_data import NudbData
     want_cols = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
     paths = _get_all_vof_situttak_october_paths(want_cols)
     union_parts: list[str] = []
-    
+
     for path in paths:
         if not all([c in pyarrow_columns_from_metadata(path) for c in want_cols]):
             logger.debug(f"Did not find all cols we wanted ({want_cols}) in {path}")
@@ -42,7 +41,7 @@ def _generate_vof_eierforhold_view(
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
-        SELECT 
+        SELECT
             orgnr_foretak,
             orgnrbed,
             /*  -- only needed for debug
@@ -71,7 +70,7 @@ def _generate_vof_eierforhold_view(
         FROM ({union_sql})
         WHERE
             orgnr_foretak IS NOT NULL AND TRIM(CAST(orgnr_foretak AS VARCHAR)) != '' AND orgnr_foretak != '000000000'
-        
+
         ;
     """
     connection.sql(query)
@@ -180,7 +179,9 @@ def _generate_vof_dated_orgnr_connections_view(
 
 
 @lru_cache
-def _get_all_vof_situttak_october_paths(want_cols: tuple[str, ...] | None = None) -> list[Path]:
+def _get_all_vof_situttak_october_paths(
+    want_cols: tuple[str, ...] | None = None,
+) -> list[Path]:
     shared_folder = Path(
         settings.paths.daplalab_mounted.get("shared_root_external", "/buckets/shared")
     )
@@ -193,7 +194,7 @@ def _get_all_vof_situttak_october_paths(want_cols: tuple[str, ...] | None = None
     glob_pattern = settings.datasets.vof_situttak.path_glob
     all_vof_monthly = sorted(with_bucket.glob(glob_pattern))
     if want_cols is None:
-        want_cols_list = ("org_nr", "orgnrbed")
+        want_cols_list: tuple[str, ...] = ("org_nr", "orgnrbed")
     else:
         want_cols_list = want_cols
     all_vof_monthly_has_want_cols = [
@@ -204,7 +205,10 @@ def _get_all_vof_situttak_october_paths(want_cols: tuple[str, ...] | None = None
 
     # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
     if not all(
-        [c in pyarrow_columns_from_metadata(all_vof_monthly[-1]) for c in want_cols_list]
+        [
+            c in pyarrow_columns_from_metadata(all_vof_monthly[-1])
+            for c in want_cols_list
+        ]
     ):
         logger.warning(
             f"The last vof situttak does not have the columns we expect: {want_cols_list} - this means the nudb_use package needs fixing most likely. {all_vof_monthly[-1]}"
@@ -230,7 +234,7 @@ def _get_all_vof_situttak_october_paths(want_cols: tuple[str, ...] | None = None
             picked_vof.append(all_vof_monthly_has_want_cols[i])
 
     picked_vof = sorted(get_latest_fileversions(picked_vof))
-    logger.info(f"Picked {picked_vof[0].stem} as first vof-file, and {picked_vof[-1].stem} as the last.")
+    logger.info(
+        f"Picked {picked_vof[0].stem} as first vof-file, and {picked_vof[-1].stem} as the last."
+    )
     return picked_vof
-
-

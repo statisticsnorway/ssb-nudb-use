@@ -20,8 +20,13 @@ from nudb_use.variables.derive.derive_decorator_utils import (
 from nudb_use.variables.derive.derive_decorator_utils import swap_temp_colnames_to_temp
 
 P = ParamSpec("P")
+
+
 class DeriveError(Exception):
+    """For errors that occur during deriving variables."""
+
     ...
+
 
 def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
     """Return the derive function for a variable if it exists.
@@ -133,9 +138,7 @@ def wrap_derive(
                     msg = f"Unable to derive {name}, missing: {', '.join(list(need))}! You might want to rename columns you have with the temp_col_renames parameter."
                     if raise_errors:
                         raise KeyError(msg)
-                    logger.warning(
-                        msg
-                    )
+                    logger.warning(msg)
                     out_df = df
 
                 else:
