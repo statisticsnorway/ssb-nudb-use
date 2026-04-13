@@ -87,7 +87,7 @@ def test_find_orgnr_foretak_bof_resolves_before_and_after_fallback(
     reset_nudb_database()
     connection = nudb_database.get_connection()
     connection.execute("""
-        CREATE TABLE TEST_VOF_CONNECTIONS (
+        CREATE TABLE TEST_BOF_CONNECTIONS (
             orgnrbed VARCHAR,
             orgnr VARCHAR,
             bof_period_date DATE
@@ -136,14 +136,14 @@ def test_find_orgnrbed_enkelbedforetak_bof_requires_one_to_one_period(
     reset_nudb_database()
     connection = nudb_database.get_connection()
     connection.execute("""
-        CREATE TABLE TEST_VOF_CONNECTIONS_FORETAK (
+        CREATE TABLE TEST_BOF_CONNECTIONS_FORETAK (
             orgnrbed VARCHAR,
             orgnr VARCHAR,
             bof_period_date DATE
         )
         """)
     connection.execute("""
-        INSERT INTO TEST_VOF_CONNECTIONS_FORETAK VALUES
+        INSERT INTO TEST_BOF_CONNECTIONS_FORETAK VALUES
             ('bed-1', 'foretak-a', '2020-01-01'),
             ('bed-1', 'foretak-a', '2021-01-01'),
             ('bed-2', 'foretak-b', '2021-01-01'),
@@ -152,7 +152,7 @@ def test_find_orgnrbed_enkelbedforetak_bof_requires_one_to_one_period(
         """)
 
     class FakeNudbData:
-        alias = "TEST_VOF_CONNECTIONS_FORETAK"
+        alias = "TEST_BOF_CONNECTIONS_FORETAK"
 
         def __init__(self, name: str) -> None:
             assert name == "_bof_dated_orgnr_connections"

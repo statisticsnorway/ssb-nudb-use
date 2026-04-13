@@ -25,11 +25,11 @@ def cleanup_orgnr_bedrift_foretak(
     time_col_name: str = "utd_skoleaar_start",
     extra_orgnr_cols_split_prio: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Cleanup into the columns orgnrbed and orgnr_foretak using datasets from VoF.
+    """Cleanup into the columns orgnrbed and orgnr_foretak using datasets from BOF.
 
     Args:
         df: The data we should fix.
-        time_col_name: The name of the column that has time we will use to date the VoF-join-connections.
+        time_col_name: The name of the column that has time we will use to date the BOF-join-connections.
         extra_orgnr_cols_split_prio: If there are extra columns containing orgnr in your dataset, not in the default list:
             orgnr, utd_orgnr, orgnrbed, bof_orgnrbed, orgnr_foretak
 
@@ -88,7 +88,7 @@ def cleanup_orgnr_bedrift_foretak(
         # We need to do this first, because we are passing it into the join
         orgnrbed_combine = _empty_orgnr_sentinel_values(orgnrbed_combine)
 
-        # Join new orgnr_foretak_bof from VoF from orgnrbed - also back in time?
+        # Join new orgnr_foretak_bof from BOF from orgnrbed - also back in time?
         # Ifølge AM stoler vi mer på det "som ligger der fra før" - enn det vi kobler på
         orgnr_foretak_combine = _empty_orgnr_sentinel_values(orgnr_foretak_combine)
         orgnr_foretak_combine_joined = orgnr_foretak_combine.fillna(
@@ -156,7 +156,7 @@ def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
     missing_orgnr_er_orgnrbed: dict[str, bool] = {}
     if len(missing_from_bof):
         logger.info(
-            f"Looking for {len(missing_from_bof)} orgnr in brregs API because the orgnr(s) are missing from the VOF-sittuttak."
+            f"Looking for {len(missing_from_bof)} orgnr in brregs API because the orgnr(s) are missing from the BOF-sittuttak."
         )
         for nr in _progress(missing_from_bof):
             missing_orgnr_er_orgnrbed[nr] = orgnr_is_underenhet(nr)
@@ -179,7 +179,7 @@ def _find_orgnr_foretak_bof(
     orgnrbed_col: pd.Series,
     time_col: pd.Series,
 ) -> pd.Series:
-    """Map orgnrbed to orgnr using dated VOF connections in DuckDB.
+    """Map orgnrbed to orgnr using dated BOF connections in DuckDB.
 
     The function first finds the latest known orgnr connection on or before the
     input date for each orgnrbed. If no such connection exists, it falls back
@@ -337,9 +337,9 @@ def _find_orgnrbed_enkelbedforetak_bof(
     orgnr_foretak_col: pd.Series,
     time_col: pd.Series,
 ) -> pd.Series:
-    """Map orgnr_foretak to orgnrbed using dated VOF connections in DuckDB.
+    """Map orgnr_foretak to orgnrbed using dated BOF connections in DuckDB.
 
-    For each input row, the function first finds the applicable VOF period using
+    For each input row, the function first finds the applicable BOF period using
     these rules:
 
     1. Prefer the latest known period on or before the input date.
