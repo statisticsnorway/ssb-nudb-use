@@ -5,7 +5,7 @@ from nudb_use.datasets import NudbData
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
-__all__ = ["vof_eierforhold"]
+__all__ = ["bof_eierforhold"]
 
 
 def _percent_notna(s: pd.Series) -> float:
@@ -13,9 +13,9 @@ def _percent_notna(s: pd.Series) -> float:
 
 
 @wrap_derive
-def vof_eierforhold(df: pd.DataFrame) -> pd.Series:
-    """Derive vof_eierforhold."""
-    metadata = settings.variables["vof_eierforhold"]
+def bof_eierforhold(df: pd.DataFrame) -> pd.Series:
+    """Derive bof_eierforhold."""
+    metadata = settings.variables["bof_eierforhold"]
     datasets = metadata.derived_uses_datasets
 
     if datasets is None or len(datasets) != 1:
@@ -34,45 +34,45 @@ def vof_eierforhold(df: pd.DataFrame) -> pd.Series:
         where += f" or orgnrbed in ('{unique_orgnrbed}')"
 
     logger.info(
-        "Getting vof-catalogue for vof_eierforhold (combination of vof-situttak)."
+        "Getting bof-catalogue for bof_eierforhold (combination of bof-situttak)."
     )
     catalogue = (
         NudbData(dataset)
-        .select("orgnr_foretak, orgnrbed, vof_eierforhold")
+        .select("orgnr_foretak, orgnrbed, bof_eierforhold")
         .where(where)
         .df()
     )
 
     eierf = df.merge(
         (
-            catalogue[["orgnr_foretak", "vof_eierforhold"]].drop_duplicates(
+            catalogue[["orgnr_foretak", "bof_eierforhold"]].drop_duplicates(
                 subset=["orgnr_foretak"], keep="last"
             )
         ),  # This assumes that "the last eierforhold is the correct one"...
         on="orgnr_foretak",
         how="left",
         validate="m:1",
-    )["vof_eierforhold"].astype("string[pyarrow]")
+    )["bof_eierforhold"].astype("string[pyarrow]")
     logger.info(
-        f"Joining `vof_eierforhold` first on orgnr_fortak (preferred by UH). Filled on {_percent_notna(eierf)}%"
+        f"Joining `bof_eierforhold` first on orgnr_fortak (preferred by UH). Filled on {_percent_notna(eierf)}%"
     )
 
     if "orgnrbed" in df.columns:
         orgnr_bed_missing_value = catalogue[eierf.isna()]["orgnrbed"].unique()
         filtered_catalogue = catalogue[
             catalogue["orgnrbed"].isin(orgnr_bed_missing_value).astype("bool[pyarrow]")
-        ][["orgnrbed", "vof_eierforhold"]].drop_duplicates(
+        ][["orgnrbed", "bof_eierforhold"]].drop_duplicates(
             subset="orgnrbed", keep="last"
         )  # This assumes that "the last eierforhold is the correct one"...
         eierf = eierf.fillna(
             df.merge(filtered_catalogue, on="orgnrbed", how="left", validate="m:1")[
-                "vof_eierforhold"
+                "bof_eierforhold"
             ]
         )
         logger.info(
-            f"Joining `vof_eierforhold` second on orgnrbed. After both joins, eierforhold filled on {_percent_notna(eierf)}%"
+            f"Joining `bof_eierforhold` second on orgnrbed. After both joins, eierforhold filled on {_percent_notna(eierf)}%"
         )
     else:
-        logger.info("Did not find orgnrbed to join `vof_eierforhold` on.")
+        logger.info("Did not find orgnrbed to join `bof_eierforhold` on.")
 
     return eierf

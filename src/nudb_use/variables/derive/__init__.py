@@ -6,6 +6,7 @@ from types import ModuleType
 
 from nudb_use.nudb_logger import logger
 
+from . import bof
 from . import fullfoert
 from . import fullfoert_foerste
 from . import klass_correspondences_and_variants
@@ -17,7 +18,6 @@ from . import registrert
 from . import registrert_foerste
 from . import utd_foreldres_utdnivaa
 from . import utd_hoeyeste
-from . import vof
 from .derive_decorator import get_derive_function
 
 derive_all_submodules = (
@@ -32,9 +32,10 @@ derive_all_submodules = (
     land,
     person_idents,
     person,
-    vof,
+    bof,
 )
 
+from .bof import bof_eierforhold
 from .nus_variants import utd_erforeldet_kode_nus
 from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
@@ -44,9 +45,9 @@ from .person import pers_kjoenn
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
-from .vof import vof_eierforhold
 
 __all__ = [
+    "bof_eierforhold",
     "pers_foedselsdato",
     "pers_invkat",
     "pers_kjoenn",
@@ -56,7 +57,6 @@ __all__ = [
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
-    "vof_eierforhold",
 ]
 
 

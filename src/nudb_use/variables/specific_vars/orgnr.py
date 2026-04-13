@@ -88,20 +88,20 @@ def cleanup_orgnr_bedrift_foretak(
         # We need to do this first, because we are passing it into the join
         orgnrbed_combine = _empty_orgnr_sentinel_values(orgnrbed_combine)
 
-        # Join new orgnr_foretak_vof from VoF from orgnrbed - also back in time?
+        # Join new orgnr_foretak_bof from VoF from orgnrbed - also back in time?
         # Ifølge AM stoler vi mer på det "som ligger der fra før" - enn det vi kobler på
         orgnr_foretak_combine = _empty_orgnr_sentinel_values(orgnr_foretak_combine)
         orgnr_foretak_combine_joined = orgnr_foretak_combine.fillna(
-            _find_orgnr_foretak_vof(orgnrbed_combine, time_col)
+            _find_orgnr_foretak_bof(orgnrbed_combine, time_col)
         )
         orgnr_foretak_combine_joined = _empty_orgnr_sentinel_values(
             orgnr_foretak_combine_joined
         )
 
-        # Create orgnrbed_vof from cleaned orgnr_foretak where foretak is "enkeltbedriftsforetak"
+        # Create orgnrbed_bof from cleaned orgnr_foretak where foretak is "enkeltbedriftsforetak"
         # We need to do this after fixing orgnr_foretak because we are joining back
         orgnrbed_combine_joined = orgnrbed_combine.fillna(
-            _find_orgnrbed_enkelbedforetak_vof(orgnr_foretak_combine_joined, time_col)
+            _find_orgnrbed_enkelbedforetak_bof(orgnr_foretak_combine_joined, time_col)
         )
         orgnrbed_combine_joined = _empty_orgnr_sentinel_values(orgnrbed_combine_joined)
 
@@ -148,17 +148,17 @@ def _empty_orgnr_sentinel_values(s: pd.Series) -> pd.Series:
 
 
 def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
-    vof_orgnrbed = NudbData("_vof_unique_orgnrbed").df()["orgnrbed"]
-    vof_orgnr_foretak = NudbData("_vof_unique_orgnr_foretak").df()["orgnr"]
-    is_bed = orgnr_col.isin(vof_orgnrbed)
-    is_foretak = orgnr_col.isin(vof_orgnr_foretak)
-    missing_from_vof = orgnr_col[~is_bed & ~is_foretak].dropna().unique()
+    bof_orgnrbed = NudbData("_bof_unique_orgnrbed").df()["orgnrbed"]
+    bof_orgnr_foretak = NudbData("_bof_unique_orgnr_foretak").df()["orgnr"]
+    is_bed = orgnr_col.isin(bof_orgnrbed)
+    is_foretak = orgnr_col.isin(bof_orgnr_foretak)
+    missing_from_bof = orgnr_col[~is_bed & ~is_foretak].dropna().unique()
     missing_orgnr_er_orgnrbed: dict[str, bool] = {}
-    if len(missing_from_vof):
+    if len(missing_from_bof):
         logger.info(
-            f"Looking for {len(missing_from_vof)} orgnr in brregs API because the orgnr(s) are missing from the VOF-sittuttak."
+            f"Looking for {len(missing_from_bof)} orgnr in brregs API because the orgnr(s) are missing from the VOF-sittuttak."
         )
-        for nr in _progress(missing_from_vof):
+        for nr in _progress(missing_from_bof):
             missing_orgnr_er_orgnrbed[nr] = orgnr_is_underenhet(nr)
     orgnr_is_orgnrbed = (
         missing_orgnr_er_orgnrbed
@@ -175,7 +175,7 @@ def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
     ), _empty_orgnr_sentinel_values(orgnrbed_out)
 
 
-def _find_orgnr_foretak_vof(
+def _find_orgnr_foretak_bof(
     orgnrbed_col: pd.Series,
     time_col: pd.Series,
 ) -> pd.Series:
@@ -219,8 +219,8 @@ def _find_orgnr_foretak_vof(
 
         original_index = orgnrbed_col.index
 
-        logger.info("Initialize the dataset for the vof connections")
-        vof_rel = NudbData("_vof_dated_orgnr_connections")
+        logger.info("Initialize the dataset for the bof connections")
+        bof_rel = NudbData("_bof_dated_orgnr_connections")
 
         logger.info("Attach created pandas dataframe to the nudb_database connection.")
         con = nudb_database.get_connection()
@@ -259,8 +259,8 @@ def _find_orgnr_foretak_vof(
                 SELECT
                     CAST(conn.orgnrbed AS VARCHAR) AS orgnrbed,
                     CAST(conn.orgnr AS VARCHAR) AS orgnr,
-                    CAST(conn.vof_period_date AS DATE) AS vof_period_date
-                FROM {vof_rel.alias} AS conn
+                    CAST(conn.bof_period_date AS DATE) AS bof_period_date
+                FROM {bof_rel.alias} AS conn
                 JOIN relevant_orgnrbed AS r
                     ON CAST(conn.orgnrbed AS VARCHAR) = r.orgnrbed
             ),
@@ -269,15 +269,15 @@ def _find_orgnr_foretak_vof(
                 SELECT
                     orgnrbed,
                     orgnr,
-                    vof_period_date
+                    bof_period_date
                 FROM (
                     SELECT
                         orgnrbed,
                         orgnr,
-                        vof_period_date,
+                        bof_period_date,
                         LAG(orgnr) OVER (
                             PARTITION BY orgnrbed
-                            ORDER BY vof_period_date
+                            ORDER BY bof_period_date
                         ) AS prev_orgnr
                     FROM conn_base
                 )
@@ -294,16 +294,16 @@ def _find_orgnr_foretak_vof(
                             SELECT c.orgnr
                             FROM conn_changes AS c
                             WHERE c.orgnrbed = k.orgnrbed
-                              AND c.vof_period_date <= k.join_date
-                            ORDER BY c.vof_period_date DESC
+                              AND c.bof_period_date <= k.join_date
+                            ORDER BY c.bof_period_date DESC
                             LIMIT 1
                         ),
                         (
                             SELECT c.orgnr
                             FROM conn_changes AS c
                             WHERE c.orgnrbed = k.orgnrbed
-                              AND c.vof_period_date > k.join_date
-                            ORDER BY c.vof_period_date ASC
+                              AND c.bof_period_date > k.join_date
+                            ORDER BY c.bof_period_date ASC
                             LIMIT 1
                         )
                     ) AS orgnr
@@ -333,7 +333,7 @@ def _find_orgnr_foretak_vof(
         return result
 
 
-def _find_orgnrbed_enkelbedforetak_vof(
+def _find_orgnrbed_enkelbedforetak_bof(
     orgnr_foretak_col: pd.Series,
     time_col: pd.Series,
 ) -> pd.Series:
@@ -381,8 +381,8 @@ def _find_orgnrbed_enkelbedforetak_vof(
 
         original_index = orgnr_foretak_col.index
 
-        logger.info("Initialize the dataset for the vof connections")
-        vof_rel = NudbData("_vof_dated_orgnr_connections")
+        logger.info("Initialize the dataset for the bof connections")
+        bof_rel = NudbData("_bof_dated_orgnr_connections")
 
         logger.info("Attach created pandas dataframe to the nudb_database connection.")
         con = nudb_database.get_connection()
@@ -419,15 +419,15 @@ def _find_orgnrbed_enkelbedforetak_vof(
             conn_periods AS (
                 SELECT
                     CAST(conn.orgnr AS VARCHAR) AS orgnr,
-                    CAST(conn.vof_period_date AS DATE) AS vof_period_date,
+                    CAST(conn.bof_period_date AS DATE) AS bof_period_date,
                     COUNT(DISTINCT CAST(conn.orgnrbed AS VARCHAR)) AS orgnrbed_count,
                     MIN(CAST(conn.orgnrbed AS VARCHAR)) AS single_orgnrbed
-                FROM {vof_rel.alias} AS conn
+                FROM {bof_rel.alias} AS conn
                 JOIN relevant_orgnr AS r
                     ON CAST(conn.orgnr AS VARCHAR) = r.orgnr
                 GROUP BY
                     CAST(conn.orgnr AS VARCHAR),
-                    CAST(conn.vof_period_date AS DATE)
+                    CAST(conn.bof_period_date AS DATE)
             ),
 
             chosen_periods AS (
@@ -436,19 +436,19 @@ def _find_orgnrbed_enkelbedforetak_vof(
                     k.join_date,
                     COALESCE(
                         (
-                            SELECT p.vof_period_date
+                            SELECT p.bof_period_date
                             FROM conn_periods AS p
                             WHERE p.orgnr = k.orgnr
-                              AND p.vof_period_date <= k.join_date
-                            ORDER BY p.vof_period_date DESC
+                              AND p.bof_period_date <= k.join_date
+                            ORDER BY p.bof_period_date DESC
                             LIMIT 1
                         ),
                         (
-                            SELECT p.vof_period_date
+                            SELECT p.bof_period_date
                             FROM conn_periods AS p
                             WHERE p.orgnr = k.orgnr
-                              AND p.vof_period_date > k.join_date
-                            ORDER BY p.vof_period_date ASC
+                              AND p.bof_period_date > k.join_date
+                            ORDER BY p.bof_period_date ASC
                             LIMIT 1
                         )
                     ) AS chosen_period
@@ -466,7 +466,7 @@ def _find_orgnrbed_enkelbedforetak_vof(
                 FROM chosen_periods AS cp
                 LEFT JOIN conn_periods AS p
                     ON p.orgnr = cp.orgnr
-                   AND p.vof_period_date = cp.chosen_period
+                   AND p.bof_period_date = cp.chosen_period
             ),
 
             resolved AS (

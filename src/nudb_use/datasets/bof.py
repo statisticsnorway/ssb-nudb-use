@@ -11,12 +11,14 @@ from nudb_use.paths.latest import latest_shared_path
 from nudb_use.paths.path_parse import get_periods_from_path
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
 
+UNION_ALL = "\nUNION ALL\n"
 
-def _generate_vof_skolereg_latest_view(
+
+def _generate_bof_skolereg_latest_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    latest_vof_path = latest_shared_path("vof_situttak")[1]
+    latest_bof_path = latest_shared_path("bof_situttak")[1]
     want_cols = [
         "rectype",
         "org_nr",
@@ -41,24 +43,24 @@ def _generate_vof_skolereg_latest_view(
         "delreg_merke",
     ]
     cols_overlap = ", ".join(
-        [c for c in want_cols if c in pyarrow_columns_from_metadata(latest_vof_path)]
+        [c for c in want_cols if c in pyarrow_columns_from_metadata(latest_bof_path)]
     )
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
         SELECT {cols_overlap}
-        FROM read_parquet('{latest_vof_path}')
+        FROM read_parquet('{latest_bof_path}')
         ;
     """
     connection.sql(query)
 
 
-def _generate_vof_eierforhold_view(
+def _generate_bof_eierforhold_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
     want_cols = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
-    paths = _get_all_vof_situttak_october_paths(want_cols)
+    paths = _get_all_bof_situttak_october_paths(want_cols)
     union_parts: list[str] = []
 
     for path in paths:
@@ -75,11 +77,11 @@ def _generate_vof_eierforhold_view(
                 org_form,
                 sektor_2014,
                 undersektor_2014,
-                CAST('{path_period}' as DATE) as vof_period_date
+                CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
             """)
 
-    union_sql = "\nUNION ALL\n".join(union_parts)
+    union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
@@ -91,7 +93,7 @@ def _generate_vof_eierforhold_view(
             sektor_2014,
             undersektor_2014,
             */
-            vof_period_date,
+            bof_period_date,
             CASE
                 -- VGU-koding
                 WHEN org_form        == 'KIRK' THEN '3'
@@ -108,7 +110,7 @@ def _generate_vof_eierforhold_view(
                 WHEN undersektor_2014 == '006' THEN '4'
                 WHEN undersektor_2014 == '007' THEN '5'
                 ELSE                                '3'  -- Skoler som mangler sektorer har en tendens til å være Private
-            END AS vof_eierforhold
+            END AS bof_eierforhold
         FROM ({union_sql})
         WHERE
             orgnr_foretak IS NOT NULL AND TRIM(CAST(orgnr_foretak AS VARCHAR)) != '' AND orgnr_foretak != '000000000'
@@ -118,12 +120,12 @@ def _generate_vof_eierforhold_view(
     connection.sql(query)
 
 
-def _generate_vof_unique_orgnrbed_view(
+def _generate_bof_unique_orgnrbed_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All the unique orgnrbed from october-files and the first and last files with orgnrbed in."""
-    paths = _get_all_vof_situttak_october_paths()
+    paths = _get_all_bof_situttak_october_paths()
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
@@ -133,7 +135,7 @@ def _generate_vof_unique_orgnrbed_view(
             FROM read_parquet('{path_str}')
             """)
 
-    union_sql = "\nUNION ALL\n".join(union_parts)
+    union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
@@ -146,12 +148,12 @@ def _generate_vof_unique_orgnrbed_view(
     connection.sql(query)
 
 
-def _generate_vof_unique_orgnr_foretak_view(
+def _generate_bof_unique_orgnr_foretak_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All the unique orgnrbed from october-files and the first and last files with orgnrbed in."""
-    paths = _get_all_vof_situttak_october_paths()
+    paths = _get_all_bof_situttak_october_paths()
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
@@ -161,7 +163,7 @@ def _generate_vof_unique_orgnr_foretak_view(
             FROM read_parquet('{path_str}')
             """)
 
-    union_sql = "\nUNION ALL\n".join(union_parts)
+    union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
@@ -185,12 +187,12 @@ def _date_from_path_period(path_with_date: str | Path) -> datetime.date:
     return result
 
 
-def _generate_vof_dated_orgnr_connections_view(
+def _generate_bof_dated_orgnr_connections_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All the unique orgnr <-> orgnrbed connections from october-files and the first and last files with orgnrbed in."""
-    paths = _get_all_vof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
+    paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
@@ -200,11 +202,11 @@ def _generate_vof_dated_orgnr_connections_view(
             SELECT DISTINCT
                 org_nr as orgnr,
                 orgnrbed,
-                CAST('{path_period}' as DATE) as vof_period_date
+                CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
             """)
 
-    union_sql = "\nUNION ALL\n".join(union_parts)
+    union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
@@ -221,7 +223,7 @@ def _generate_vof_dated_orgnr_connections_view(
 
 
 @lru_cache
-def _get_all_vof_situttak_october_paths(
+def _get_all_bof_situttak_october_paths(
     want_cols: tuple[str, ...] | None = None,
 ) -> list[Path]:
     shared_folder = Path(
@@ -229,54 +231,54 @@ def _get_all_vof_situttak_october_paths(
     )
     with_bucket = (
         shared_folder
-        / settings.datasets.vof_situttak.team
-        / settings.datasets.vof_situttak.bucket
+        / settings.datasets.bof_situttak.team
+        / settings.datasets.bof_situttak.bucket
     )
 
-    glob_pattern = settings.datasets.vof_situttak.path_glob
-    all_vof_monthly = sorted(with_bucket.glob(glob_pattern))
+    glob_pattern = settings.datasets.bof_situttak.path_glob
+    all_bof_monthly = sorted(with_bucket.glob(glob_pattern))
     if want_cols is None:
         want_cols_list: tuple[str, ...] = ("org_nr", "orgnrbed")
     else:
         want_cols_list = want_cols
-    all_vof_monthly_has_want_cols = [
+    all_bof_monthly_has_want_cols = [
         p
-        for p in all_vof_monthly
+        for p in all_bof_monthly
         if all([c in pyarrow_columns_from_metadata(p) for c in want_cols_list])
     ]
 
     # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
     if not all(
         [
-            c in pyarrow_columns_from_metadata(all_vof_monthly[-1])
+            c in pyarrow_columns_from_metadata(all_bof_monthly[-1])
             for c in want_cols_list
         ]
     ):
         logger.warning(
-            f"The last vof situttak does not have the columns we expect: {want_cols_list} - this means the nudb_use package needs fixing most likely. {all_vof_monthly[-1]}"
+            f"The last bof situttak does not have the columns we expect: {want_cols_list} - this means the nudb_use package needs fixing most likely. {all_bof_monthly[-1]}"
         )
 
     # If the last file's date is too far from the current year, we should be worried that they have stopped producing the files there
     last_year = datetime.datetime.now().year - 1
-    last_file_year = _date_from_path_period(all_vof_monthly[-1]).year
+    last_file_year = _date_from_path_period(all_bof_monthly[-1]).year
     if last_year > last_file_year:
         logger.warning(
-            f"The last vof situttak is from the year {last_file_year} - we expect this to be the same or later than last current year: {last_year}, path: {all_vof_monthly[-1]}"
+            f"The last bof situttak is from the year {last_file_year} - we expect this to be the same or later than last current year: {last_year}, path: {all_bof_monthly[-1]}"
         )
 
-    picked_vof = [
+    picked_bof = [
         p
-        for p in all_vof_monthly_has_want_cols
+        for p in all_bof_monthly_has_want_cols
         if _date_from_path_period(p).month == 10
     ]
 
     # Add the first and last file if not already picked
     for i in [0, -1]:
-        if all_vof_monthly_has_want_cols[i] not in picked_vof:
-            picked_vof.append(all_vof_monthly_has_want_cols[i])
+        if all_bof_monthly_has_want_cols[i] not in picked_bof:
+            picked_bof.append(all_bof_monthly_has_want_cols[i])
 
-    picked_vof = sorted(get_latest_fileversions(picked_vof))
+    picked_bof = sorted(get_latest_fileversions(picked_bof))
     logger.info(
-        f"Picked {picked_vof[0].stem} as first vof-file, and {picked_vof[-1].stem} as the last."
+        f"Picked {picked_bof[0].stem} as first bof-file, and {picked_bof[-1].stem} as the last."
     )
-    return picked_vof
+    return picked_bof

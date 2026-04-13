@@ -11,6 +11,11 @@ import duckdb as db
 import nudb_use.datasets.external as external_datasets
 from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_view
 from nudb_use.datasets.avslutta import _generate_avslutta_view
+from nudb_use.datasets.bof import _generate_bof_dated_orgnr_connections_view
+from nudb_use.datasets.bof import _generate_bof_eierforhold_view
+from nudb_use.datasets.bof import _generate_bof_skolereg_latest_view
+from nudb_use.datasets.bof import _generate_bof_unique_orgnr_foretak_view
+from nudb_use.datasets.bof import _generate_bof_unique_orgnrbed_view
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
 from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
@@ -28,11 +33,6 @@ from nudb_use.datasets.utd_foreldres_utdnivaa import (
 )
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_last_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
-from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections_view
-from nudb_use.datasets.vof import _generate_vof_eierforhold_view
-from nudb_use.datasets.vof import _generate_vof_skolereg_latest_view
-from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak_view
-from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger
@@ -74,11 +74,11 @@ class _NudbDatabase:
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
-            "vof_skolereg": _generate_vof_skolereg_latest_view,
-            "_vof_unique_orgnrbed": _generate_vof_unique_orgnrbed_view,
-            "_vof_unique_orgnr_foretak": _generate_vof_unique_orgnr_foretak_view,
-            "_vof_dated_orgnr_connections": _generate_vof_dated_orgnr_connections_view,
-            "_vof_eierforhold": _generate_vof_eierforhold_view,
+            "bof_skolereg": _generate_bof_skolereg_latest_view,
+            "_bof_unique_orgnrbed": _generate_bof_unique_orgnrbed_view,
+            "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
+            "_bof_dated_orgnr_connections": _generate_bof_dated_orgnr_connections_view,
+            "_bof_eierforhold": _generate_bof_eierforhold_view,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
