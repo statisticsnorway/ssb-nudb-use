@@ -114,7 +114,7 @@ def _generate_vof_dated_orgnr_connections(
 
 
 @lru_cache
-def _get_all_vof_situttak_october_paths() -> list[Path]:
+def _get_all_vof_situttak_october_paths(want_cols: list[str] | None = None) -> list[Path]:
     shared_folder = Path(
         settings.paths.daplalab_mounted.get("shared_root_external", "/buckets/shared")
     )
@@ -126,19 +126,22 @@ def _get_all_vof_situttak_october_paths() -> list[Path]:
 
     glob_pattern = settings.datasets.vof_situttak.path_glob
     all_vof_monthly = sorted(with_bucket.glob(glob_pattern))
-    want_cols = ["org_nr", "orgnrbed"]
+    if want_cols is None:
+        want_cols_list = ["org_nr", "orgnrbed"]
+    else:
+        want_cols_list = want_cols
     all_vof_monthly_has_want_cols = [
         p
         for p in all_vof_monthly
-        if all([c in pyarrow_columns_from_metadata(p) for c in want_cols])
+        if all([c in pyarrow_columns_from_metadata(p) for c in want_cols_list])
     ]
 
     # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
     if not all(
-        [c in pyarrow_columns_from_metadata(all_vof_monthly[-1]) for c in want_cols]
+        [c in pyarrow_columns_from_metadata(all_vof_monthly[-1]) for c in want_cols_list]
     ):
         logger.warning(
-            f"The last vof situttak does not have the columns we expect: {want_cols} - this means the nudb_use package needs fixing most likely. {all_vof_monthly[-1]}"
+            f"The last vof situttak does not have the columns we expect: {want_cols_list} - this means the nudb_use package needs fixing most likely. {all_vof_monthly[-1]}"
         )
 
     # If the last file's date is too far from the current year, we should be worried that they have stopped producing the files there
