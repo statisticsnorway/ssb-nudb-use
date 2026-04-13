@@ -185,11 +185,15 @@ def _date_from_path_period(path_with_date: str | Path) -> datetime.date:
     possible_date = get_periods_from_path(path_with_date)
     if isinstance(possible_date, tuple | list):
         if not possible_date:
-            raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
+            raise TypeError(
+                f"Couldn't get expected periods out from path {path_with_date}"
+            )
         result = possible_date[0]
     elif isinstance(possible_date, set):
         if not possible_date:
-            raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
+            raise TypeError(
+                f"Couldn't get expected periods out from path {path_with_date}"
+            )
         result = sorted(possible_date)[0]
     elif isinstance(possible_date, datetime.date | datetime.datetime):
         result = possible_date

@@ -128,6 +128,7 @@ def test_find_orgnr_foretak_bof_resolves_before_and_after_fallback(
         pd.Series(
             ["foretak-old", "foretak-new", "foretak-b", pd.NA, pd.NA],
             dtype="string",
+            name="orgnr",
         ),
     )
 

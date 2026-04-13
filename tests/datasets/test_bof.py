@@ -23,9 +23,11 @@ def test_generate_bof_dated_orgnr_connections_view_creates_empty_view_when_no_pa
         connection=connection,
     )
 
-    columns = connection.sql("DESCRIBE TEST_EMPTY_BOF_CONNECTIONS").df()[
-        "column_name"
-    ].tolist()
+    columns = (
+        connection.sql("DESCRIBE TEST_EMPTY_BOF_CONNECTIONS")
+        .df()["column_name"]
+        .tolist()
+    )
     rows = connection.sql("SELECT * FROM TEST_EMPTY_BOF_CONNECTIONS").df()
 
     assert columns == ["orgnr", "orgnrbed", "bof_period_date"]

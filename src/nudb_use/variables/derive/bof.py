@@ -43,16 +43,20 @@ def bof_eierforhold(df: pd.DataFrame) -> pd.Series:
         .df()
     )
 
-    eierf = df.merge(
-        (
-            catalogue[["orgnr_foretak", "bof_eierforhold"]].drop_duplicates(
-                subset=["orgnr_foretak"], keep="last"
-            )
-        ),  # This assumes that "the last eierforhold is the correct one"...
-        on="orgnr_foretak",
-        how="left",
-        validate="m:1",
-    )["bof_eierforhold"].astype("string[pyarrow]").set_axis(df.index)
+    eierf = (
+        df.merge(
+            (
+                catalogue[["orgnr_foretak", "bof_eierforhold"]].drop_duplicates(
+                    subset=["orgnr_foretak"], keep="last"
+                )
+            ),  # This assumes that "the last eierforhold is the correct one"...
+            on="orgnr_foretak",
+            how="left",
+            validate="m:1",
+        )["bof_eierforhold"]
+        .astype("string[pyarrow]")
+        .set_axis(df.index)
+    )
     logger.info(
         f"Joining `bof_eierforhold` first on orgnr_fortak (preferred by UH). Filled on {_percent_notna(eierf)}%"
     )
@@ -72,7 +76,9 @@ def bof_eierforhold(df: pd.DataFrame) -> pd.Series:
         eierf = eierf.fillna(
             df.merge(filtered_catalogue, on="orgnrbed", how="left", validate="m:1")[
                 "bof_eierforhold"
-            ].astype("string[pyarrow]").set_axis(df.index)
+            ]
+            .astype("string[pyarrow]")
+            .set_axis(df.index)
         )
         logger.info(
             f"Joining `bof_eierforhold` second on orgnrbed. After both joins, eierforhold filled on {_percent_notna(eierf)}%"
