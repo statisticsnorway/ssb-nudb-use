@@ -16,9 +16,10 @@ def _generate_vof_eierforhold_view(
     connection: db.DuckDBPyConnection,
 ) -> None:
     from nudb_use.datasets.nudb_data import NudbData
-    paths = _get_all_vof_situttak_october_paths()
+    want_cols = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
+    paths = _get_all_vof_situttak_october_paths(want_cols)
     union_parts: list[str] = []
-    want_cols = ["org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014"]
+    
     for path in paths:
         if not all([c in pyarrow_columns_from_metadata(path) for c in want_cols]):
             logger.debug(f"Did not find all cols we wanted ({want_cols}) in {path}")
@@ -27,7 +28,7 @@ def _generate_vof_eierforhold_view(
         path_period = _date_from_path_period(path).strftime(r"%Y-%m-%d")
 
         union_parts.append(f"""
-            SELECT DISTINCT
+            SELECT
                 org_nr as orgnr_foretak,
                 orgnrbed,
                 org_form,
@@ -44,7 +45,12 @@ def _generate_vof_eierforhold_view(
         SELECT 
             orgnr_foretak,
             orgnrbed,
-
+            /*  -- only needed for debug
+            org_form,
+            sektor_2014,
+            undersektor_2014,
+            */
+            vof_period_date,
             CASE
                 -- VGU-koding
                 WHEN org_form        == 'KIRK' THEN '3'
@@ -64,14 +70,14 @@ def _generate_vof_eierforhold_view(
             END AS vof_eierforhold
         FROM ({union_sql})
         WHERE
-            orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != '' AND orgnr != '000000000'
+            orgnr_foretak IS NOT NULL AND TRIM(CAST(orgnr_foretak AS VARCHAR)) != '' AND orgnr_foretak != '000000000'
         
         ;
     """
     connection.sql(query)
 
 
-def _generate_vof_unique_orgnrbed(
+def _generate_vof_unique_orgnrbed_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
@@ -99,7 +105,7 @@ def _generate_vof_unique_orgnrbed(
     connection.sql(query)
 
 
-def _generate_vof_unique_orgnr_foretak(
+def _generate_vof_unique_orgnr_foretak_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
@@ -138,12 +144,12 @@ def _date_from_path_period(path_with_date: str | Path) -> datetime.date:
     return result
 
 
-def _generate_vof_dated_orgnr_connections(
+def _generate_vof_dated_orgnr_connections_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All the unique orgnr <-> orgnrbed connections from october-files and the first and last files with orgnrbed in."""
-    paths = _get_all_vof_situttak_october_paths()
+    paths = _get_all_vof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
@@ -174,7 +180,7 @@ def _generate_vof_dated_orgnr_connections(
 
 
 @lru_cache
-def _get_all_vof_situttak_october_paths(want_cols: list[str] | None = None) -> list[Path]:
+def _get_all_vof_situttak_october_paths(want_cols: tuple[str, ...] | None = None) -> list[Path]:
     shared_folder = Path(
         settings.paths.daplalab_mounted.get("shared_root_external", "/buckets/shared")
     )
@@ -187,7 +193,7 @@ def _get_all_vof_situttak_october_paths(want_cols: list[str] | None = None) -> l
     glob_pattern = settings.datasets.vof_situttak.path_glob
     all_vof_monthly = sorted(with_bucket.glob(glob_pattern))
     if want_cols is None:
-        want_cols_list = ["org_nr", "orgnrbed"]
+        want_cols_list = ("org_nr", "orgnrbed")
     else:
         want_cols_list = want_cols
     all_vof_monthly_has_want_cols = [
@@ -224,6 +230,7 @@ def _get_all_vof_situttak_october_paths(want_cols: list[str] | None = None) -> l
             picked_vof.append(all_vof_monthly_has_want_cols[i])
 
     picked_vof = sorted(get_latest_fileversions(picked_vof))
+    logger.info(f"Picked {picked_vof[0].stem} as first vof-file, and {picked_vof[-1].stem} as the last.")
     return picked_vof
-import duckdb as db
+
 

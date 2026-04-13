@@ -20,7 +20,8 @@ from nudb_use.variables.derive.derive_decorator_utils import (
 from nudb_use.variables.derive.derive_decorator_utils import swap_temp_colnames_to_temp
 
 P = ParamSpec("P")
-
+class DeriveError(Exception):
+    ...
 
 def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
     """Return the derive function for a variable if it exists.
@@ -82,6 +83,7 @@ def wrap_derive(
         df: pd.DataFrame,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
+        raise_errors: bool = False,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -128,8 +130,11 @@ def wrap_derive(
                         missing -= {missing_var}
 
                 if missing:
+                    msg = f"Unable to derive {name}, missing: {', '.join(list(need))}! You might want to rename columns you have with the temp_col_renames parameter."
+                    if raise_errors:
+                        raise KeyError(msg)
                     logger.warning(
-                        f"Unable to derive {name}, missing: {', '.join(list(need))}! You might want to rename columns you have with the temp_col_renames parameter."
+                        msg
                     )
                     out_df = df
 
@@ -193,8 +198,10 @@ def wrap_derive(
                         out_df = df
 
             except Exception as err:
+                if raise_errors:
+                    raise DeriveError(err) from err
                 logger.warning(
-                    f"Derivation of {name} failed, returning data as is!\nMessage: {err}"
+                    f"Derivation of {name} failed, returning data as is!\n{type(err).__name__}: {err}"
                 )
                 out_df = df
             finally:

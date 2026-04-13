@@ -28,9 +28,9 @@ from nudb_use.datasets.utd_foreldres_utdnivaa import (
 )
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_last_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
-from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections
-from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak
-from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed
+from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections_view
+from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak_view
+from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed_view
 from nudb_use.datasets.vof import _generate_vof_eierforhold_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
@@ -73,9 +73,9 @@ class _NudbDatabase:
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
-            "_vof_unique_orgnrbed": _generate_vof_unique_orgnrbed,
-            "_vof_unique_orgnr_foretak": _generate_vof_unique_orgnr_foretak,
-            "_vof_dated_orgnr_connections": _generate_vof_dated_orgnr_connections,
+            "_vof_unique_orgnrbed": _generate_vof_unique_orgnrbed_view,
+            "_vof_unique_orgnr_foretak": _generate_vof_unique_orgnr_foretak_view,
+            "_vof_dated_orgnr_connections": _generate_vof_dated_orgnr_connections_view,
             "_vof_eierforhold": _generate_vof_eierforhold_view,
         }
 
