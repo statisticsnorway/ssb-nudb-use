@@ -45,7 +45,6 @@ from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
 from .vof import vof_eierforhold
-from .vof import vof_orgnr_foretak
 
 __all__ = [
     "pers_foedselsdato",
@@ -58,7 +57,6 @@ __all__ = [
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
     "vof_eierforhold",
-    "vof_orgnr_foretak",
 ]
 
 

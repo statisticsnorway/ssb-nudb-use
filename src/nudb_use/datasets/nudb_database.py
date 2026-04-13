@@ -32,7 +32,6 @@ from nudb_use.datasets.vof import _generate_vof_dated_orgnr_connections
 from nudb_use.datasets.vof import _generate_vof_unique_orgnr_foretak
 from nudb_use.datasets.vof import _generate_vof_unique_orgnrbed
 from nudb_use.datasets.vof import _generate_vof_eierforhold_view
-from nudb_use.datasets.vof import _generate_vof_orgnr_bed2foretak_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
 from nudb_use.metadata.nudb_config.map_get_dtypes import STRING_DTYPE_NAME
 from nudb_use.nudb_logger import logger
@@ -73,12 +72,11 @@ class _NudbDatabase:
             "_snr2alder16": _generate_snr2alder16_view,
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
-            "_vof_eierforhold": _generate_vof_eierforhold_view,
-            "_vof_orgnr_bed2foretak": _generate_vof_orgnr_bed2foretak_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
             "_vof_unique_orgnrbed": _generate_vof_unique_orgnrbed,
             "_vof_unique_orgnr_foretak": _generate_vof_unique_orgnr_foretak,
             "_vof_dated_orgnr_connections": _generate_vof_dated_orgnr_connections,
+            "_vof_eierforhold": _generate_vof_eierforhold_view,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
