@@ -2,7 +2,7 @@ from typing import Any
 
 import pandas as pd
 
-from nudb_use.datasets.bof import _date_from_path_period
+from nudb_use.datasets.bof import _first_date_from_path_period
 from nudb_use.datasets.bof import _generate_bof_dated_orgnr_connections_view
 from nudb_use.datasets.nudb_database import _NudbDatabase
 
@@ -36,7 +36,7 @@ def test_generate_bof_dated_orgnr_connections_view_creates_empty_view_when_no_pa
     del database
 
 
-def test_date_from_path_period_accepts_sets(monkeypatch: Any) -> None:
+def test_first_date_from_path_period_accepts_sets(monkeypatch: Any) -> None:
     monkeypatch.setattr(
         "nudb_use.datasets.bof.get_periods_from_path",
         lambda _path: {
@@ -45,4 +45,7 @@ def test_date_from_path_period_accepts_sets(monkeypatch: Any) -> None:
         },
     )
 
-    assert _date_from_path_period("ignored").isoformat() == "2023-10-01"
+    assert (
+        _first_date_from_path_period("ignored_p2023-10_v1.parquet").isoformat()
+        == "2023-10-01"
+    )

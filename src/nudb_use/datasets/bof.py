@@ -1,6 +1,7 @@
 import datetime
 from functools import lru_cache
 from pathlib import Path
+from collections.abc import Iterable
 
 import duckdb as db
 from fagfunksjoner.paths.versions import get_latest_fileversions
@@ -43,7 +44,7 @@ def _generate_bof_eierforhold_view(
             logger.debug(f"Did not find all cols we wanted ({want_cols}) in {path}")
             continue
         path_str = str(path).replace("'", "''")
-        path_period = _date_from_path_period(path).strftime(r"%Y-%m-%d")
+        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
 
         union_parts.append(f"""
             SELECT
@@ -181,21 +182,19 @@ def _generate_bof_unique_orgnr_foretak_view(
     connection.sql(query)
 
 
-def _date_from_path_period(path_with_date: str | Path) -> datetime.date:
+def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
     possible_date = get_periods_from_path(path_with_date)
-    if isinstance(possible_date, tuple | list):
+    if isinstance(possible_date, Iterable):
         if not possible_date:
             raise TypeError(
-                f"Couldn't get expected periods out from path {path_with_date}"
+                f"Couldn't get expected periods out from path {path_with_date} (periods are empty)."
             )
-        result = possible_date[0]
-    elif isinstance(possible_date, datetime.date | datetime.datetime):
-        result = possible_date
-    else:
-        raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
-    if isinstance(result, datetime.datetime):
-        return result.date()
-    return result
+        return min(possible_date)
+    elif isinstance(possible_date, datetime.datetime | datetime.date):
+        return datetime.date(
+            year=possible_date.year, month=possible_date.month, day=possible_date.day
+        )
+    raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
 
 
 def _generate_bof_dated_orgnr_connections_view(
@@ -207,7 +206,7 @@ def _generate_bof_dated_orgnr_connections_view(
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
-        path_period = _date_from_path_period(path).strftime(r"%Y-%m-%d")
+        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
 
         union_parts.append(f"""
             SELECT DISTINCT
@@ -297,7 +296,7 @@ def _get_all_bof_situttak_october_paths(
 
     # If the last file's date is too far from the current year, we should be worried that they have stopped producing the files there
     last_year = datetime.datetime.now().year - 1
-    last_file_year = _date_from_path_period(all_bof_monthly[-1]).year
+    last_file_year = _first_date_from_path_period(all_bof_monthly[-1]).year
     if last_year > last_file_year:
         logger.warning(
             f"The last bof situttak is from the year {last_file_year} - we expect this to be the same or later than last current year: {last_year}, path: {all_bof_monthly[-1]}"
@@ -306,7 +305,7 @@ def _get_all_bof_situttak_october_paths(
     picked_bof = [
         p
         for p in all_bof_monthly_has_want_cols
-        if _date_from_path_period(p).month == 10
+        if _first_date_from_path_period(p).month == 10
     ]
 
     # Add the first and last file if not already picked
