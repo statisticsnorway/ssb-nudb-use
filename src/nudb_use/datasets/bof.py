@@ -1,7 +1,7 @@
 import datetime
+from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
-from collections.abc import Iterable
 
 import duckdb as db
 from fagfunksjoner.paths.versions import get_latest_fileversions
