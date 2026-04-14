@@ -45,7 +45,14 @@ def _apply_pers320_mapping(
         NudbData(dataset).select(f"DISTINCT {keys_str}, {name320} AS {name360}").df()
     )
 
+    original_index = left.index
     merged = left.merge(right, how="left", on=join_keys, validate="m:1")
+    if len(merged) != len(original_index):
+        logger.warning(
+            f"{name360}: row count changed during merge, unable to preserve original index."
+        )
+    else:
+        merged = merged.set_axis(original_index)
 
     _x = name360 + "_x"
     _y = name360 + "_y"

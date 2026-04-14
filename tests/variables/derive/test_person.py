@@ -51,3 +51,19 @@ def test_pers_variables(
     assert "pers_invkat" in result.columns
     assert "pers_kjoenn" in result.columns
     assert "pers_foedselsdato" in result.columns
+
+
+def test_pers_variables_preserve_index(
+    igang: pd.DataFrame,
+    freg_situttak: pd.DataFrame,
+    innvbef: pd.DataFrame,
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    patch_nudb_database(freg_situttak, innvbef, tmp_path, monkeypatch)
+
+    df = update_colnames(igang.copy()).head(5).set_axis([10, 20, 30, 40, 50])
+
+    result = df.pipe(derive.pers_invkat).pipe(derive.pers_kjoenn)
+
+    assert result.index.tolist() == [10, 20, 30, 40, 50]

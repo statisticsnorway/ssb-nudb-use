@@ -255,12 +255,19 @@ def join_variable_data(
 
         df_right = df_right[~dupes]
 
-    return df_left.merge(
+    original_index = df_left.index
+    merged = df_left.merge(
         df_right,
         on=derived_join_keys,
         how="left",
         validate="m:1",
     )
+    if len(merged) != len(original_index):
+        logger.warning(
+            f"{variable_name}: row count changed during join_variable_data, unable to preserve original index."
+        )
+        return merged
+    return merged.set_axis(original_index)
 
 
 def enforce_datetime_s(series: pd.Series) -> pd.Series:
