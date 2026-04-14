@@ -52,7 +52,7 @@ def _apply_pers320_mapping(
             f"{name360}: row count changed during merge, unable to preserve original index."
         )
     else:
-        merged = merged.set_axis(original_index)
+        merged = merged.set_axis(original_index, axis=0)
 
     _x = name360 + "_x"
     _y = name360 + "_y"

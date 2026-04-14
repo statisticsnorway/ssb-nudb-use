@@ -34,7 +34,7 @@ def _set_index_if_length_matches(
             f"Unable to restore original index after {context}: row count changed from {len(index)} to {len(df_out)}."
         )
         return df_out
-    return df_out.set_axis(index)
+    return df_out.set_axis(index, axis=0)
 
 
 def _ensure_join_cols_present(
