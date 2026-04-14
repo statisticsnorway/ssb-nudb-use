@@ -162,8 +162,8 @@ def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
             missing_orgnr_er_orgnrbed[nr] = orgnr_is_underenhet(nr)
     orgnr_is_orgnrbed = (
         missing_orgnr_er_orgnrbed
-        | {k: True for k in orgnr_col[is_bed].dropna().unique()}
-        | {k: False for k in orgnr_col[is_foretak].dropna().unique()}
+        | dict.fromkeys(orgnr_col[is_bed].dropna().unique(), True)
+        | dict.fromkeys(orgnr_col[is_foretak].dropna().unique(), False)
     )
     mask_orgnrbed = orgnr_col.map(orgnr_is_orgnrbed).astype("bool[pyarrow]")
     orgnrbed_out = pd.Series(pd.NA, index=orgnr_col.index, dtype="string[pyarrow]")

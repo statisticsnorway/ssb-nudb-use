@@ -135,7 +135,7 @@ def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
         raise KeyError(
             f"Can't pick the latest shared path for a file you cant read: {dataset_name} - make sure you can access the file, and the bucket is mounted."
         )
-    last_key = sorted(paths_dict.keys())[-1]
+    last_key = max(paths_dict.keys())
     last_path = paths_dict[last_key]
     logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
 

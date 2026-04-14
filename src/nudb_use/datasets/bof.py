@@ -40,7 +40,8 @@ def _generate_bof_eierforhold_view(
     union_parts: list[str] = []
 
     for path in paths:
-        if not all([c in pyarrow_columns_from_metadata(path) for c in want_cols]):
+        path_columns = pyarrow_columns_from_metadata(path)
+        if not all(c in path_columns for c in want_cols):
             logger.debug(f"Did not find all cols we wanted ({want_cols}) in {path}")
             continue
         path_str = str(path).replace("'", "''")
@@ -275,7 +276,7 @@ def _get_all_bof_situttak_october_paths(
     all_bof_monthly_has_want_cols = [
         p
         for p in all_bof_monthly
-        if all([c in pyarrow_columns_from_metadata(p) for c in want_cols_list])
+        if all(c in pyarrow_columns_from_metadata(p) for c in want_cols_list)
     ]
     if not all_bof_monthly_has_want_cols:
         logger.warning(
@@ -284,12 +285,8 @@ def _get_all_bof_situttak_october_paths(
         return []
 
     # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
-    if not all(
-        [
-            c in pyarrow_columns_from_metadata(all_bof_monthly[-1])
-            for c in want_cols_list
-        ]
-    ):
+    last_file_columns = pyarrow_columns_from_metadata(all_bof_monthly[-1])
+    if not all(c in last_file_columns for c in want_cols_list):
         logger.warning(
             f"The last bof situttak does not have the columns we expect: {want_cols_list} - this means the nudb_use package needs fixing most likely. {all_bof_monthly[-1]}"
         )
