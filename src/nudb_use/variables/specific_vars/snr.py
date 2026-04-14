@@ -26,6 +26,17 @@ BOOL_DTYPE = DTYPE_MAPPINGS["pandas"][BOOL_DTYPE_NAME]
 STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
 
 
+def _set_index_if_length_matches(
+    df_out: pd.DataFrame, index: pd.Index, context: str
+) -> pd.DataFrame:
+    if len(df_out) != len(index):
+        logger.warning(
+            f"Unable to restore original index after {context}: row count changed from {len(index)} to {len(df_out)}."
+        )
+        return df_out
+    return df_out.set_axis(index, axis=0)
+
+
 def _ensure_join_cols_present(
     df: pd.DataFrame, snr_col_name: str, fnr_col_name: str
 ) -> None:
@@ -98,7 +109,7 @@ def _merge_cols(
     logger.info(
         f"Merging {list(snrkat_renames.keys())[-1]} from snrkat using {next(iter(snrkat_renames.keys()))} -> {ident_col_name}"
     )
-    return df.merge(
+    merged = df.merge(
         snrkat[list(snrkat_renames.keys())]
         .dropna(how="any")
         .drop_duplicates()
@@ -107,6 +118,7 @@ def _merge_cols(
         right_on=next(iter(snrkat_renames.values())),
         how="left",
     )
+    return _set_index_if_length_matches(merged, df.index, context="_merge_cols")
 
 
 def _apply_snrkat_merges(
@@ -379,12 +391,18 @@ def generate_uuid_for_snr_with_fnr_col(
 
         # Preferred pattern: merge a temporary column into df, then fill from it.
         # This avoids index-alignment pitfalls with Series.fillna(other_series).
+        original_index = df.index
         df = df.merge(
             fnr_uuid_katalog,
             on="_fnr_identificator",
             how="left",
             validate="m:1",
             suffixes=("", "_new"),
+        )
+        df = _set_index_if_length_matches(
+            df,
+            original_index,
+            context="generate_uuid_for_snr_with_fnr_col",
         )
 
         new_col = f"{snr_col}_new"
@@ -467,9 +485,13 @@ def generate_uuid_for_snr_with_fnr_catalog(
             )
 
         # Apply the previously generated uuids into the snr_col
-        df[snr_col] = df[snr_col].fillna(
-            df[[fnr_col]].merge(catalog, on=fnr_col, how="left")[snr_col]
+        catalog_fill = (
+            df[[fnr_col]]
+            .merge(catalog, on=fnr_col, how="left")[snr_col]
+            .astype(STRING_DTYPE)
+            .set_axis(df.index)
         )
+        df[snr_col] = df[snr_col].fillna(catalog_fill)
         snr_missing_pre_generate_mask = df[snr_col].isna()
 
         # Generate uuids into snrcol for those still missing snr_col values

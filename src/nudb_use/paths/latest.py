@@ -122,13 +122,20 @@ def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
 
     Returns:
         tuple[str, Path]: The dataset key and its latest path.
+
+    Raises:
+        KeyError: If we cant find any files, we cant pick the latest one...
     """
     paths = latest_shared_paths(dataset_name)
     if isinstance(paths, Path):
         return dataset_name, paths
 
     paths_dict: dict[str, Path] = paths
-    last_key = sorted(paths_dict.keys())[-1]
+    if not paths_dict:
+        raise KeyError(
+            f"Can't pick the latest shared path for a file you cant read: {dataset_name} - make sure you can access the file, and the bucket is mounted."
+        )
+    last_key = max(paths_dict.keys())
     last_path = paths_dict[last_key]
     logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
 
@@ -168,8 +175,8 @@ def latest_shared_paths(dataset_name: str = "") -> dict[str, Path] | Path:
             return paths_dict[dataset_name]
 
         paths_str = ",\n".join(list(paths_dict.keys()))
-        logger.info(
-            f"Did not find {dataset_name} in the paths_dict, all found path keys: {paths_str}"
+        logger.warning(
+            f"Did not find {dataset_name} in the paths_dict, all found path keys: {paths_str} - do you have access and the file mounted?"
         )
 
         return paths_dict

@@ -39,6 +39,28 @@ def test_generate_uuid_for_snr_with_fnr_col(monkeypatch: Any) -> None:
     assert str(result["snr"].dtype) in ["string", "string[pyarrow]"]
 
 
+def test_generate_uuid_for_snr_with_fnr_col_preserves_index(monkeypatch: Any) -> None:
+    uuids = iter(
+        [
+            uuidlib.UUID("00000000-0000-0000-0000-000000000101"),
+            uuidlib.UUID("00000000-0000-0000-0000-000000000102"),
+        ]
+    )
+    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))  # type: ignore[attr-defined]
+
+    df = pd.DataFrame(
+        {
+            "fnr": ["1", "1", pd.NA],
+            "snr": [pd.NA, pd.NA, pd.NA],
+        },
+        index=[10, 20, 30],
+    )
+
+    result = generate_uuid_for_snr_with_fnr_col(df, snr_col="snr", fnr_col="fnr")
+
+    assert result.index.tolist() == [10, 20, 30]
+
+
 def test_generate_uuid_for_snr_with_fnr_col_subset(monkeypatch: Any) -> None:
     uuids = iter(
         [
@@ -117,6 +139,37 @@ def test_generate_uuid_for_snr_with_fnr_catalog(
     ]
 
 
+def test_generate_uuid_for_snr_with_fnr_catalog_preserves_index(
+    tmp_path: Any, monkeypatch: Any
+) -> None:
+    uuids = iter(
+        [
+            uuidlib.UUID("00000000-0000-0000-0000-000000000201"),
+            uuidlib.UUID("00000000-0000-0000-0000-000000000202"),
+        ]
+    )
+    monkeypatch.setattr(snr_module.uuid, "uuid4", lambda: next(uuids))  # type: ignore[attr-defined]
+
+    catalog_path = tmp_path / "fnr_catalog.parquet"
+    pd.DataFrame({"fnr": ["1"], "snr": ["existing-uuid"]}).astype(
+        {"fnr": "string[pyarrow]", "snr": "string[pyarrow]"}
+    ).to_parquet(catalog_path)
+
+    monkeypatch.setattr(snr_module, "latest_version_path", lambda path: path)
+    monkeypatch.setattr(snr_module, "next_version_path", lambda path: path)
+
+    df = pd.DataFrame(
+        {"fnr": ["1", "2", pd.NA], "snr": [pd.NA, pd.NA, pd.NA]},
+        index=[100, 200, 300],
+    )
+
+    result = generate_uuid_for_snr_with_fnr_catalog(
+        df, fnr_catalog_path=catalog_path, snr_col="snr", fnr_col="fnr"
+    )
+
+    assert result.index.tolist() == [100, 200, 300]
+
+
 def test_update_snr_with_snrkat_remaps_and_preserves_snr(
     monkeypatch: Any,
 ) -> None:
@@ -167,6 +220,40 @@ def test_update_snr_with_snrkat_remaps_and_preserves_snr(
     assert result.loc[result["fnr"] == "7KFQKZih4ha", "snr"].item() == "NEW0001"
     assert result.loc[result["fnr"] == "Qbbf3dWfake", "snr"].item() == "NEWKHT1"
     assert result.loc[result["fnr"] == "OjtKRx5fake", "snr"].item() == "NEWKHT1"
+
+
+def test_update_snr_with_snrkat_preserves_index(monkeypatch: Any) -> None:
+    df = pd.DataFrame(
+        {
+            "fnr": ["7KFQKZih4ha", "unknown"],
+            "snr": ["OLD0001", "keepme"],
+        },
+        index=[7, 9],
+    )
+
+    snrkat = pd.DataFrame(
+        {
+            "fnr": ["7KFQKZih4ha"],
+            "snr_utgatt": ["OLD0001"],
+            "snr": ["NEW0001"],
+        }
+    )
+
+    class FakeNudbData:
+        def __init__(self, name: str) -> None:
+            assert name == "snrkat"
+
+        def select(self, _cols: str) -> FakeNudbData:
+            return self
+
+        def df(self) -> pd.DataFrame:
+            return snrkat
+
+    monkeypatch.setattr(snr_module, "NudbData", FakeNudbData)
+
+    result = update_snr_with_snrkat(df)
+
+    assert result.index.tolist() == [7, 9]
 
 
 @pytest.mark.parametrize(

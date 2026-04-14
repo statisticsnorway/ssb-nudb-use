@@ -30,7 +30,7 @@ NUDB is the National Education Database of Norway. It is operated by Statsitics 
 This package is the main "usage-package" for those seeking to use NUDB-data, or deliver data to NUDB.
 
 NUDBs data is kept as parquet files in GCP, and you will need seperate access to this data to utilize this package.
-Some features in this package might require access to other data, like BRREG (Brønnøysundregisteret), BOF (befolkningsregisteret), VOF (virksomhetsregisteret) etc.
+Some features in this package might require access to other data, like BRREG (Brønnøysundregisteret), BOF (befolkningsregisteret), BOF (virksomhetsregisteret) etc.
 
 
 ## Installation
