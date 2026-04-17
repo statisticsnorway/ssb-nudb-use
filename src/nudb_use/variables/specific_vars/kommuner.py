@@ -74,8 +74,9 @@ def keep_only_valid_kommune_codes(
 
         # Det er noen som har "00" etter gyldig fylke, disse byttes til "99"
         komm_col.loc[komm_col.str.endswith("00")] = komm_col.str[:2] + "99"
-        # Om denne oppstod nå, så korrigerer vi den tilbake
+        # Om disse oppstod nå, så korrigerer vi denm tilbake
         komm_col.loc[komm_col == "9999"] = MISSING_UTD_SKOLEKOM
+        komm_col.loc[komm_col == "2499"] = "2400"
         behold_komm_maske = komm_col.isin(kommuner_alle_aar)
 
         komm_col.loc[~behold_komm_maske] = pd.NA
