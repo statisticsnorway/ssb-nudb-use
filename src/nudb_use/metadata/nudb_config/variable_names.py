@@ -161,6 +161,8 @@ def update_colnames(
             (metadata["renamed_from"].apply(bool)) & (metadata["renamed_from"].notna())
         ]["renamed_from"]
 
+
+
         renames_completed = {}
         for newname in namepairs.index:
             oldnames = namepairs[newname]
@@ -171,7 +173,9 @@ def update_colnames(
             for oldname in oldnames:
                 if oldname not in data.columns:
                     continue
-
+                if newname in data.columns:
+                    logger.warning(f"Skipping renaming {oldname} to {newname} in dataset, as {newname} already exists!")
+                    continue
                 logger.debug(f"renaming {oldname} to {newname}!")
                 renames_completed[oldname] = newname
                 data = data.rename({oldname: newname}, axis=1)
