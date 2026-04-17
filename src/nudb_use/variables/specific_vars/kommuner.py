@@ -144,7 +144,7 @@ def correct_kommune_single_values(
         )
         col_temp.loc[col_temp.isna()] = missing_val
 
-        mask_00 = col_temp.str.endswith("00")
+        mask_00 = (col_temp.str.endswith("00")) & (~col_temp.str.startswith("24"))
         logger.info(
             f"Setting {mask_00.sum()} of {len(col_temp)} {col_name} cells from ending in 00 to 99 as `Kjent fylke, ukjent kommune`."
         )
