@@ -119,13 +119,13 @@ def correct_kommune_single_values(
         mapping: dict[str, str] = {}
         # Ukjent
         for start in ["99", "00"]:
-            for i in range(0,100):
+            for i in range(0, 100):
                 mapping[f"{start}{str(i).zfill(2)}"] = MISSING_UTD_SKOLEKOM
 
         # Single kommuner i fylker
         fylkes_map_singles = settings.constants.county_municipality_single_mapping
         for fylke, map_komm in fylkes_map_singles.items():
-            for i in range(0,100):
+            for i in range(0, 100):
                 mapping[f"{fylke}{str(i).zfill(2)}"] = map_komm
 
         # Utlandet
@@ -133,7 +133,7 @@ def correct_kommune_single_values(
         utland_map_to = utlandskommuner[0]
         for kom in utlandskommuner:
             mapping[kom] = utland_map_to
-        
+
         logger.info(
             f"Remapping {col_temp.isin(mapping.keys()).sum()} of {len(df)} rows with the known kommune-mappings."
         )

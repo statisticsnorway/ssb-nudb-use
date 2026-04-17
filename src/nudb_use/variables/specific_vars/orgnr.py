@@ -67,10 +67,12 @@ def cleanup_orgnr_bedrift_foretak(
         if not overlap:
             logger.info("Found no orgnr columns to clean up. Aborting")
             return df
-        
+
         if df[overlap].isna().all().all():
-            logger.info(f"Orgnr cols {overlap} - contain only empty values. Nothing to clean up. Aborting.")
-        
+            logger.info(
+                f"Orgnr cols {overlap} - contain only empty values. Nothing to clean up. Aborting."
+            )
+
         # init empty series to contain results
         orgnrbed_combine: pd.Series = pd.Series(pd.NA, index=df.index)
         orgnr_foretak_combine: pd.Series = pd.Series(pd.NA, index=df.index)
@@ -87,13 +89,9 @@ def cleanup_orgnr_bedrift_foretak(
                 logger.info(
                     f"{orgnr_foretak_temp.notna().sum()} values placed in orgnr_foretak"
                 )
-                logger.info(
-                    f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed"
-                )
+                logger.info(f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed")
                 orgnrbed_combine = orgnrbed_combine.fillna(orgnrbed_temp)
-                orgnr_foretak_combine = orgnr_foretak_combine.fillna(
-                    orgnr_foretak_temp
-                )
+                orgnr_foretak_combine = orgnr_foretak_combine.fillna(orgnr_foretak_temp)
 
         # We need to do this first, because we are passing it into the join
         orgnrbed_combine = _empty_orgnr_sentinel_values(orgnrbed_combine)

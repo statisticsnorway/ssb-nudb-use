@@ -1,6 +1,6 @@
 [project]
 name = "ssb-nudb-use"
-version = "2026.4.5"  # Year.Month.Patch - So the last number is not day of month, but patch number within month
+version = "2026.4.6"  # Year.Month.Patch - So the last number is not day of month, but patch number within month
 description = "NUDB Use - is a usage-package for the Norwegian National Education Database cloud-data. Both for data-consumers and data-deliverers"
 authors = [{ name = "Carl F. Corneil", email = "cfc@ssb.no" }, { name = "Kjell Slupphaug", email = "pph@ssb.no" }, { name = "Markus Storeide", email = "rku@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, Education statistics Department (360)" }]
@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dynamic = ["classifiers"]
 dependencies = [
-    "ssb-nudb-config >=2026.4.3",
+    "ssb-nudb-config >=2026.4.5",
     "ssb-klass-python >=1.0.4",
     "ssb-fagfunksjoner >=1.1.4",
     "dapla-toolbelt-metadata >=0.13.0",
