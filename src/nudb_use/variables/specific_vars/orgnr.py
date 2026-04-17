@@ -51,9 +51,6 @@ def cleanup_orgnr_bedrift_foretak(
         else:
             time_col = df[time_col_name]
 
-        orgnrbed_combine: pd.Series = pd.Series(pd.NA, index=df.index)
-        orgnr_foretak_combine: pd.Series = pd.Series(pd.NA, index=df.index)
-
         cols_split_priority_order: list[str] = [
             "orgnr",
             "utd_orgnr",
@@ -64,26 +61,39 @@ def cleanup_orgnr_bedrift_foretak(
         if extra_orgnr_cols_split_prio is not None:
             cols_split_priority_order += extra_orgnr_cols_split_prio
 
+        overlap: list[str] = [c for c in cols_split_priority_order if c in df.columns]
+
+        # Early exits to save processing
+        if not overlap:
+            logger.info("Found no orgnr columns to clean up. Aborting")
+            return df
+        
+        if df[overlap].isna().all().all():
+            logger.info(f"Orgnr cols {overlap} - contain only empty values. Nothing to clean up. Aborting.")
+        
+        # init empty series to contain results
+        orgnrbed_combine: pd.Series = pd.Series(pd.NA, index=df.index)
+        orgnr_foretak_combine: pd.Series = pd.Series(pd.NA, index=df.index)
+
         # Split up existing columns
         found_old_cols: list[str] = []
-        for col in cols_split_priority_order:
-            if col in df.columns:
+        for col in overlap:
+            logger.info(
+                f"Found {col} in dataframe, and splitting it and filling it into new orgnrbed and orgnr_foretak cols (first is prio)."
+            )
+            found_old_cols.append(col)
+            with LoggerStack(f"Splitting {col} into orgnrbed, orgnr_foretak"):
+                orgnr_foretak_temp, orgnrbed_temp = _split_orgnr_col(df[col])
                 logger.info(
-                    f"Found {col} in dataframe, and splitting it and filling it into new orgnrbed and orgnr_foretak cols (first is prio)."
+                    f"{orgnr_foretak_temp.notna().sum()} values placed in orgnr_foretak"
                 )
-                found_old_cols.append(col)
-                with LoggerStack(f"Splitting {col} into orgnrbed, orgnr_foretak"):
-                    orgnr_foretak_temp, orgnrbed_temp = _split_orgnr_col(df[col])
-                    logger.info(
-                        f"{orgnr_foretak_temp.notna().sum()} values placed in orgnr_foretak"
-                    )
-                    logger.info(
-                        f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed"
-                    )
-                    orgnrbed_combine = orgnrbed_combine.fillna(orgnrbed_temp)
-                    orgnr_foretak_combine = orgnr_foretak_combine.fillna(
-                        orgnr_foretak_temp
-                    )
+                logger.info(
+                    f"{orgnrbed_temp.notna().sum()} values placed in orgnrbed"
+                )
+                orgnrbed_combine = orgnrbed_combine.fillna(orgnrbed_temp)
+                orgnr_foretak_combine = orgnr_foretak_combine.fillna(
+                    orgnr_foretak_temp
+                )
 
         # We need to do this first, because we are passing it into the join
         orgnrbed_combine = _empty_orgnr_sentinel_values(orgnrbed_combine)
