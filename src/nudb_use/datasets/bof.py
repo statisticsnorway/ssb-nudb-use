@@ -46,10 +46,6 @@ def _generate_bof_eierforhold_view(
     union_parts: list[str] = []
 
     for path in paths_pre2014:
-        path_columns = pyarrow_columns_from_metadata(path)
-        if not all(c in path_columns for c in want_cols_pre2014):
-            logger.info(f"Did not find all cols we wanted ({want_cols_pre2014}) in {path}")
-            continue
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
 
@@ -62,10 +58,6 @@ def _generate_bof_eierforhold_view(
             """)
 
     for path in paths_post2014:
-        path_columns = pyarrow_columns_from_metadata(path)
-        if not all(c in path_columns for c in want_cols_post2014):
-            logger.info(f"Did not find all cols we wanted ({want_cols_post2014}) in {path}")
-            continue
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
 
@@ -113,13 +105,24 @@ def _generate_bof_eierforhold_view(
             CASE
                 -- VGU-koding
                 WHEN org_form        == 'KIRK' THEN '3'
-                WHEN org_form == 'STAT' and sektor_2014 == '6100' THEN '1'
-                WHEN org_form == 'SÆR'  AND sektor_2014 == '6100' AND undersektor_2014 == '005' THEN '1'
-                WHEN org_form == 'KOMM' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'KF'   AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'IKS'  AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'ORGL' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'FYLK' AND sektor_2014 == '6500' AND undersektor_2014 == '007' THEN '5'
+                WHEN org_form == 'STAT' and sektor_2014 == '6100' THEN '1'  -- Statlig
+                WHEN org_form == 'SÆR'  AND sektor_2014 == '6100' AND undersektor_2014 == '005' THEN '1'  -- Statlig
+                WHEN org_form == 'KOMM' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'KF'   AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'IKS'  AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'ORGL' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'FYLK' AND sektor_2014 == '6500' AND undersektor_2014 == '007' THEN '5'  -- Fylkeskommune
+
+                -- Grunnskolekoding - gjelder denne alle årganger? Skummelt?
+                WHEN undersektor_2014 == '001' THEN '3' -- Privat
+                WHEN undersektor_2014 == '005' THEN '1' -- Statlig
+                WHEN undersektor_2014 == '006' THEN '4' -- Kommune
+                WHEN undersektor_2014 == '007' THEN '5' -- Fylkeskommune
+
+                -- Andre omkodinger basert på klassifikasjon 39 i klass
+                WHEN SUBSTR(sektor_2014,1,1) in ('2', '8') THEN '3' -- Privat
+                WHEN SUBSTR(sektor_2014,2,1) in ('11', '61') THEN '1'  -- Statlig
+                WHEN SUBSTR(sektor_2014,2,1) in ('15', '65') THEN '4'  -- Kommune
 
                 -- gammel koding på kun sektor (før 2014-variablene fantes)
                 WHEN sektor == '510' THEN '5'  -- Fylkeskommune
@@ -127,13 +130,12 @@ def _generate_bof_eierforhold_view(
                 WHEN sektor in ('710', '717', '760', '790', '740') THEN '3' -- Privat
                 WHEN sektor in ('610', '630', '635', '190', '390', '110') THEN '1'  -- Statlig
 
-                -- Grunnskolekoding - gjelder denne alle årganger? Skummelt?
-                WHEN undersektor_2014 == '001' THEN '3'
-                WHEN undersektor_2014 == '005' THEN '1'
-                WHEN undersektor_2014 == '006' THEN '4'
-                WHEN undersektor_2014 == '007' THEN '5'
+                -- Skoler som mangler sektorer har en tendens til å være Private
+                -- We will only make this guess if the orgnr has a value in one of these columns - otherwise we dont knwo
+                WHEN (sektor_2014 IS DISTINCT FROM NULL OR undersektor_2014 IS DISTINCT FROM NULL OR sektor IS DISTINCT FROM NULL) THEN '3'
 
-                ELSE                                '3'  -- Skoler som mangler sektorer har en tendens til å være Private
+                -- Dont make a guess when we lack information that matches
+                ELSE NULL  
             END AS bof_eierforhold
         FROM ({union_sql})
         WHERE
