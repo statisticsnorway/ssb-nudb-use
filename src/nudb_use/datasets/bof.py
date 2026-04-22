@@ -35,14 +35,36 @@ def _generate_bof_eierforhold_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    want_cols = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
-    paths = _get_all_bof_situttak_october_paths(want_cols)
+    
+
+    want_cols_pre2014 = ("org_nr", "sektor")
+    paths_pre2014 = _get_all_bof_situttak_october_paths(want_cols_pre2014)
+    want_cols_post2014 = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
+    paths_post2014 = _get_all_bof_situttak_october_paths(want_cols_post2014)
+    paths_pre2014 = [p for p in paths_pre2014 if p not in paths_post2014]  # Keep only data with fewer columns if we have to
+
     union_parts: list[str] = []
 
-    for path in paths:
+    for path in paths_pre2014:
         path_columns = pyarrow_columns_from_metadata(path)
-        if not all(c in path_columns for c in want_cols):
-            logger.debug(f"Did not find all cols we wanted ({want_cols}) in {path}")
+        if not all(c in path_columns for c in want_cols_pre2014):
+            logger.info(f"Did not find all cols we wanted ({want_cols_pre2014}) in {path}")
+            continue
+        path_str = str(path).replace("'", "''")
+        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+
+        union_parts.append(f"""
+            SELECT
+                org_nr as orgnr_foretak,
+                sektor,
+                CAST('{path_period}' as DATE) as bof_period_date
+            FROM read_parquet('{path_str}')
+            """)
+
+    for path in paths_post2014:
+        path_columns = pyarrow_columns_from_metadata(path)
+        if not all(c in path_columns for c in want_cols_post2014):
+            logger.info(f"Did not find all cols we wanted ({want_cols_post2014}) in {path}")
             continue
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
@@ -83,6 +105,7 @@ def _generate_bof_eierforhold_view(
             orgnrbed,
             /*  -- only needed for debug
             org_form,
+            sektor,
             sektor_2014,
             undersektor_2014,
             */
@@ -97,11 +120,19 @@ def _generate_bof_eierforhold_view(
                 WHEN org_form == 'IKS'  AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
                 WHEN org_form == 'ORGL' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
                 WHEN org_form == 'FYLK' AND sektor_2014 == '6500' AND undersektor_2014 == '007' THEN '5'
-                -- Grunnskolekoding
+
+                -- gammel koding på kun sektor (før 2014-variablene fantes)
+                WHEN sektor == '510' THEN '5'  -- Fylkeskommune
+                WHEN sektor in ('550', '660') THEN '4'  -- Kommune
+                WHEN sektor in ('710', '717', '760', '790', '740') THEN '3' -- Privat
+                WHEN sektor in ('610', '630', '635', '190', '390', '110') THEN '1'  -- Statlig
+
+                -- Grunnskolekoding - gjelder denne alle årganger? Skummelt?
                 WHEN undersektor_2014 == '001' THEN '3'
                 WHEN undersektor_2014 == '005' THEN '1'
                 WHEN undersektor_2014 == '006' THEN '4'
                 WHEN undersektor_2014 == '007' THEN '5'
+
                 ELSE                                '3'  -- Skoler som mangler sektorer har en tendens til å være Private
             END AS bof_eierforhold
         FROM ({union_sql})
