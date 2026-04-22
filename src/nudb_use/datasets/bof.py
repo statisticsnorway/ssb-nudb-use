@@ -52,6 +52,10 @@ def _generate_bof_eierforhold_view(
         union_parts.append(f"""
             SELECT
                 org_nr as orgnr_foretak,
+                NULL as orgnrbed,
+                NULL as org_form,
+                NULL as sektor_2014,
+                NULL as undersektor_2014           
                 sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
@@ -68,6 +72,7 @@ def _generate_bof_eierforhold_view(
                 org_form,
                 sektor_2014,
                 undersektor_2014,
+                NULL as sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
             """)
