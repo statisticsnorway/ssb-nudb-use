@@ -55,7 +55,7 @@ def _generate_bof_eierforhold_view(
                 NULL as orgnrbed,
                 NULL as org_form,
                 NULL as sektor_2014,
-                NULL as undersektor_2014           
+                NULL as undersektor_2014,       
                 sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
