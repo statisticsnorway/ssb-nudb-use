@@ -35,13 +35,20 @@ def _generate_bof_eierforhold_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    
 
     want_cols_pre2014 = ("org_nr", "sektor")
     paths_pre2014 = _get_all_bof_situttak_october_paths(want_cols_pre2014)
-    want_cols_post2014 = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
+    want_cols_post2014 = (
+        "org_nr",
+        "orgnrbed",
+        "org_form",
+        "sektor_2014",
+        "undersektor_2014",
+    )
     paths_post2014 = _get_all_bof_situttak_october_paths(want_cols_post2014)
-    paths_pre2014 = [p for p in paths_pre2014 if p not in paths_post2014]  # Keep only data with fewer columns if we have to
+    paths_pre2014 = [
+        p for p in paths_pre2014 if p not in paths_post2014
+    ]  # Keep only data with fewer columns if we have to
 
     union_parts: list[str] = []
 
@@ -55,7 +62,7 @@ def _generate_bof_eierforhold_view(
                 NULL as orgnrbed,
                 NULL as org_form,
                 NULL as sektor_2014,
-                NULL as undersektor_2014,       
+                NULL as undersektor_2014,
                 sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
@@ -140,7 +147,7 @@ def _generate_bof_eierforhold_view(
                 WHEN (sektor_2014 IS DISTINCT FROM NULL OR undersektor_2014 IS DISTINCT FROM NULL OR sektor IS DISTINCT FROM NULL) THEN '3'
 
                 -- Dont make a guess when we lack information that matches
-                ELSE NULL  
+                ELSE NULL
             END AS bof_eierforhold
         FROM ({union_sql})
         WHERE
