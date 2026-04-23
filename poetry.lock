@@ -4702,14 +4702,14 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.4.5"
+version = "2026.4.6"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "ssb_nudb_config-2026.4.5-py3-none-any.whl", hash = "sha256:60c3f536044cda3446f19e91ff7dcab369f42a645f0c9e03508a621c8910a764"},
-    {file = "ssb_nudb_config-2026.4.5.tar.gz", hash = "sha256:52665cfa2709174fea8bb1faedd05f4475766cd394f85ae5fc7a7a54d0c0ca18"},
+    {file = "ssb_nudb_config-2026.4.6-py3-none-any.whl", hash = "sha256:bfe1bba8b5a48cb8540948a5a75711710d006a93962a412f05c5acdb65de64fd"},
+    {file = "ssb_nudb_config-2026.4.6.tar.gz", hash = "sha256:81ebd9480511a110939e01e00586a594e516010af437cdd220f96e3e4e66200b"},
 ]
 
 [package.dependencies]
@@ -5031,14 +5031,14 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "uvicorn"
-version = "0.45.0"
+version = "0.46.0"
 description = "The lightning-fast ASGI server."
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "uvicorn-0.45.0-py3-none-any.whl", hash = "sha256:2db26f588131aeec7439de00f2dd52d5f210710c1f01e407a52c90b880d1fd4f"},
-    {file = "uvicorn-0.45.0.tar.gz", hash = "sha256:3fe650df136c5bd2b9b06efc5980636344a2fbb840e9ddd86437d53144fa335d"},
+    {file = "uvicorn-0.46.0-py3-none-any.whl", hash = "sha256:bbebbcbed972d162afca128605223022bedd345b7bc7855ce66deb31487a9048"},
+    {file = "uvicorn-0.46.0.tar.gz", hash = "sha256:fb9da0926999cc6cb22dc7cd71a94a632f078e6ae47ff683c5c420750fb7413d"},
 ]
 
 [package.dependencies]
