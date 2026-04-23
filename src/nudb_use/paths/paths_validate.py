@@ -73,13 +73,13 @@ def validate_path(path: str | Path, raise_errors: bool = False) -> bool:
         bool: If we are not raising errors: the function returns True if no errors where found,
             False if we found errors.s
     """
-    with LoggerStack(f"Validationg the path {path}"):
+    with LoggerStack(f"Validating the path {path}"):
         report = _get_single_report(path)
 
         # Constructing errors is hard work, so lets leave bool validations as early exists
         if report.num_failures >= 1 and not raise_errors:
             logger.info(
-                "Found {report.num_failures} naming validation failures: {path}"
+                f"Found {report.num_failures} naming validation failures: {path}"
             )
             return False
         elif report.num_failures == 0:
@@ -108,7 +108,7 @@ def validate_paths(paths: list[str | Path], raise_errors: bool = False) -> bool:
         report = _get_single_report(path)
         if report.num_failures >= 1:
             bool_results.append(False)
-            logger.info("Found {report.num_failures} naming validation failures.")
+            logger.info(f"Found {report.num_failures} naming validation failures.")
             errored_reports.append(report)
         elif report.num_failures == 0:
             logger.info("0 naming validation failures.")

@@ -35,15 +35,40 @@ def _generate_bof_eierforhold_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    want_cols = ("org_nr", "orgnrbed", "org_form", "sektor_2014", "undersektor_2014")
-    paths = _get_all_bof_situttak_october_paths(want_cols)
+
+    want_cols_pre2014 = ("org_nr", "sektor")
+    paths_pre2014 = _get_all_bof_situttak_october_paths(want_cols_pre2014)
+    want_cols_post2014 = (
+        "org_nr",
+        "orgnrbed",
+        "org_form",
+        "sektor_2014",
+        "undersektor_2014",
+    )
+    paths_post2014 = _get_all_bof_situttak_october_paths(want_cols_post2014)
+    paths_pre2014 = [
+        p for p in paths_pre2014 if p not in paths_post2014
+    ]  # Keep only data with fewer columns if we have to
+
     union_parts: list[str] = []
 
-    for path in paths:
-        path_columns = pyarrow_columns_from_metadata(path)
-        if not all(c in path_columns for c in want_cols):
-            logger.debug(f"Did not find all cols we wanted ({want_cols}) in {path}")
-            continue
+    for path in paths_pre2014:
+        path_str = str(path).replace("'", "''")
+        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+
+        union_parts.append(f"""
+            SELECT
+                org_nr as orgnr_foretak,
+                NULL as orgnrbed,
+                NULL as org_form,
+                NULL as sektor_2014,
+                NULL as undersektor_2014,
+                sektor,
+                CAST('{path_period}' as DATE) as bof_period_date
+            FROM read_parquet('{path_str}')
+            """)
+
+    for path in paths_post2014:
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
 
@@ -54,6 +79,7 @@ def _generate_bof_eierforhold_view(
                 org_form,
                 sektor_2014,
                 undersektor_2014,
+                NULL as sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
             FROM read_parquet('{path_str}')
             """)
@@ -83,6 +109,7 @@ def _generate_bof_eierforhold_view(
             orgnrbed,
             /*  -- only needed for debug
             org_form,
+            sektor,
             sektor_2014,
             undersektor_2014,
             */
@@ -90,19 +117,37 @@ def _generate_bof_eierforhold_view(
             CASE
                 -- VGU-koding
                 WHEN org_form        == 'KIRK' THEN '3'
-                WHEN org_form == 'STAT' and sektor_2014 == '6100' THEN '1'
-                WHEN org_form == 'SÆR'  AND sektor_2014 == '6100' AND undersektor_2014 == '005' THEN '1'
-                WHEN org_form == 'KOMM' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'KF'   AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'IKS'  AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'ORGL' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'
-                WHEN org_form == 'FYLK' AND sektor_2014 == '6500' AND undersektor_2014 == '007' THEN '5'
-                -- Grunnskolekoding
-                WHEN undersektor_2014 == '001' THEN '3'
-                WHEN undersektor_2014 == '005' THEN '1'
-                WHEN undersektor_2014 == '006' THEN '4'
-                WHEN undersektor_2014 == '007' THEN '5'
-                ELSE                                '3'  -- Skoler som mangler sektorer har en tendens til å være Private
+                WHEN org_form == 'STAT' and sektor_2014 == '6100' THEN '1'  -- Statlig
+                WHEN org_form == 'SÆR'  AND sektor_2014 == '6100' AND undersektor_2014 == '005' THEN '1'  -- Statlig
+                WHEN org_form == 'KOMM' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'KF'   AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'IKS'  AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'ORGL' AND sektor_2014 == '6500' AND undersektor_2014 == '006' THEN '4'  -- Kommune
+                WHEN org_form == 'FYLK' AND sektor_2014 == '6500' AND undersektor_2014 == '007' THEN '5'  -- Fylkeskommune
+
+                -- Grunnskolekoding - gjelder denne alle årganger? Skummelt?
+                WHEN undersektor_2014 == '001' THEN '3' -- Privat
+                WHEN undersektor_2014 == '005' THEN '1' -- Statlig
+                WHEN undersektor_2014 == '006' THEN '4' -- Kommune
+                WHEN undersektor_2014 == '007' THEN '5' -- Fylkeskommune
+
+                -- Andre omkodinger basert på klassifikasjon 39 i klass
+                WHEN SUBSTR(sektor_2014,1,1) in ('2', '8') THEN '3' -- Privat
+                WHEN SUBSTR(sektor_2014,2,1) in ('11', '61') THEN '1'  -- Statlig
+                WHEN SUBSTR(sektor_2014,2,1) in ('15', '65') THEN '4'  -- Kommune
+
+                -- gammel koding på kun sektor (før 2014-variablene fantes)
+                WHEN sektor == '510' THEN '5'  -- Fylkeskommune
+                WHEN sektor in ('550', '660') THEN '4'  -- Kommune
+                WHEN sektor in ('710', '717', '760', '790', '740') THEN '3' -- Privat
+                WHEN sektor in ('610', '630', '635', '190', '390', '110') THEN '1'  -- Statlig
+
+                -- Skoler som mangler sektorer har en tendens til å være Private
+                -- We will only make this guess if the orgnr has a value in one of these columns - otherwise we dont knwo
+                WHEN (sektor_2014 IS DISTINCT FROM NULL OR undersektor_2014 IS DISTINCT FROM NULL OR sektor IS DISTINCT FROM NULL) THEN '3'
+
+                -- Dont make a guess when we lack information that matches
+                ELSE NULL
             END AS bof_eierforhold
         FROM ({union_sql})
         WHERE

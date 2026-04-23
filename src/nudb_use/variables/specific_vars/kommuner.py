@@ -74,8 +74,9 @@ def keep_only_valid_kommune_codes(
 
         # Det er noen som har "00" etter gyldig fylke, disse byttes til "99"
         komm_col.loc[komm_col.str.endswith("00")] = komm_col.str[:2] + "99"
-        # Om denne oppstod nå, så korrigerer vi den tilbake
+        # Om disse oppstod nå, så korrigerer vi denm tilbake
         komm_col.loc[komm_col == "9999"] = MISSING_UTD_SKOLEKOM
+        komm_col.loc[komm_col == "2499"] = "2400"
         behold_komm_maske = komm_col.isin(kommuner_alle_aar)
 
         komm_col.loc[~behold_komm_maske] = pd.NA
@@ -115,25 +116,25 @@ def correct_kommune_single_values(
             )
         missing_val = MISSING_UTD_SKOLEKOM
         col_temp = col_temp.fillna(missing_val)
-        mapping = {
-            # Oslo
-            "0300": "0301",
-            "0399": "0301",
-            # Svalbard
-            "2100": "2111",
-            "2199": "2111",
-            # Utlandet
-            "2580": "2599",
-            "2500": "2599",
-            "2400": "2599",  # VIGOs "alle uspesifiserte grunnskoler?"
-            "0025": "2599",  # Utland ifølge UH?
-            "1025": "2599",  # Utland ifølge UH?
-            "2025": "2599",  # Utland ifølge UH?
-            # Ukjent
-            "9900": missing_val,
-            "9998": missing_val,
-            "0000": missing_val,
-        }
+
+        mapping: dict[str, str] = {}
+        # Ukjent
+        for start in ["99", "00"]:
+            for i in range(0, 100):
+                mapping[f"{start}{str(i).zfill(2)}"] = MISSING_UTD_SKOLEKOM
+
+        # Single kommuner i fylker
+        fylkes_map_singles = settings.constants.county_municipality_single_mapping
+        for fylke, map_komm in fylkes_map_singles.items():
+            for i in range(0, 100):
+                mapping[f"{fylke}{str(i).zfill(2)}"] = map_komm
+
+        # Utlandet
+        utlandskommuner = settings.constants.foreign_municipalities
+        utland_map_to = utlandskommuner[0]
+        for kom in utlandskommuner:
+            mapping[kom] = utland_map_to
+
         logger.info(
             f"Remapping {col_temp.isin(mapping.keys()).sum()} of {len(df)} rows with the known kommune-mappings."
         )
@@ -143,7 +144,7 @@ def correct_kommune_single_values(
         )
         col_temp.loc[col_temp.isna()] = missing_val
 
-        mask_00 = col_temp.str.endswith("00")
+        mask_00 = (col_temp.str.endswith("00")) & (~col_temp.str.startswith("24"))
         logger.info(
             f"Setting {mask_00.sum()} of {len(col_temp)} {col_name} cells from ending in 00 to 99 as `Kjent fylke, ukjent kommune`."
         )

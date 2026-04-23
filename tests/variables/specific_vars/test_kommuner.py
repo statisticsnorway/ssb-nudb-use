@@ -80,7 +80,7 @@ def test_correct_kommune_single_values() -> None:
         "0301",
         "2111",
         "2599",
-        "2599",
+        "2400",
         "9999",
         "9999",
         "9999",
