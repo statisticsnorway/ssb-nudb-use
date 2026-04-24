@@ -10,10 +10,26 @@ nudb\_use.variables.derive.all\_data\_helpers module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.variables.derive.bof module
+-------------------------------------
+
+.. automodule:: nudb_use.variables.derive.bof
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.variables.derive.derive\_decorator module
 ---------------------------------------------------
 
 .. automodule:: nudb_use.variables.derive.derive_decorator
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.variables.derive.derive\_decorator\_utils module
+----------------------------------------------------------
+
+.. automodule:: nudb_use.variables.derive.derive_decorator_utils
    :members:
    :show-inheritance:
    :undoc-members:

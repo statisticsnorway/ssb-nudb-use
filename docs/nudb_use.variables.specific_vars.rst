@@ -10,6 +10,14 @@ nudb\_use.variables.specific\_vars.kommuner module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.variables.specific\_vars.orgnr module
+-----------------------------------------------
+
+.. automodule:: nudb_use.variables.specific_vars.orgnr
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.variables.specific\_vars.snr module
 ---------------------------------------------
 

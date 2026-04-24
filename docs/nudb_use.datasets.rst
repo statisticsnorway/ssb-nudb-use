@@ -10,6 +10,14 @@ nudb\_use.datasets.avslutta module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.datasets.bof module
+-----------------------------
+
+.. automodule:: nudb_use.datasets.bof
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.datasets.eksamen module
 ---------------------------------
 
@@ -34,6 +42,14 @@ nudb\_use.datasets.igang module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.datasets.macros module
+--------------------------------
+
+.. automodule:: nudb_use.datasets.macros
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.datasets.nudb\_data module
 ------------------------------------
 
@@ -46,6 +62,14 @@ nudb\_use.datasets.nudb\_database module
 ----------------------------------------
 
 .. automodule:: nudb_use.datasets.nudb_database
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.datasets.nuskat module
+--------------------------------
+
+.. automodule:: nudb_use.datasets.nuskat
    :members:
    :show-inheritance:
    :undoc-members:
