@@ -36,5 +36,4 @@ nudb\_use.nudb\_logger module
    :members:
    :show-inheritance:
    :undoc-members:
-
 ```

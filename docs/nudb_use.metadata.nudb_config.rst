@@ -10,6 +10,14 @@ nudb\_use.metadata.nudb\_config.find\_var\_missing module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.metadata.nudb\_config.get\_dataset\_info module
+---------------------------------------------------------
+
+.. automodule:: nudb_use.metadata.nudb_config.get_dataset_info
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.metadata.nudb\_config.get\_variable\_info module
 ----------------------------------------------------------
 
