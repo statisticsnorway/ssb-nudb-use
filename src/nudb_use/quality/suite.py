@@ -11,8 +11,10 @@ from nudb_use.quality.check_bool_string_columns import check_bool_string_columns
 from nudb_use.quality.duplicated_columns import check_duplicated_columns
 from nudb_use.quality.missing import check_columns_only_missing
 from nudb_use.quality.missing import check_missing_thresholds_dataset_name
-from nudb_use.quality.outdated_variables import check_outdated_variables
 from nudb_use.quality.specific_variables import run_all_specific_variable_tests
+from nudb_use.quality.specific_variables.outdated_variables import (
+    check_outdated_variables,
+)
 from nudb_use.quality.widths import check_column_widths
 from nudb_use.variables.checks import check_column_presence
 
@@ -23,6 +25,7 @@ def run_quality_suite(
     data_time_start: str | None = None,
     data_time_end: str | None = None,
     raise_errors: bool = True,
+    use_external_datasets: bool = True,
     **kwargs: object,
 ) -> Sequence[Exception]:
     """Run the full NUDB quality suite over a dataset.
@@ -33,6 +36,7 @@ def run_quality_suite(
         data_time_start: Optional start date used by codelist validations.
         data_time_end: Optional end date used by codelist validations.
         raise_errors: When True, raise grouped exceptions if any check fails.
+        use_external_datasets: When True will use external datasets (not Nudbs datasets) to verify data.
         **kwargs: Additional keyword arguments forwarded to specific checks.
 
     Returns:
@@ -54,7 +58,11 @@ def run_quality_suite(
     errors += check_column_widths(df, raise_errors=False)
     errors += check_bool_string_columns(df, raise_errors=False)
     errors += run_all_specific_variable_tests(
-        df, dataset_name=dataset_name, raise_errors=False, **kwargs
+        df,
+        dataset_name=dataset_name,
+        raise_errors=False,
+        use_external_datasets=use_external_datasets,
+        **kwargs,
     )
     errors += check_klass_codes(df, data_time_start, data_time_end, raise_errors=False)
     errors += check_columns_only_missing(df, raise_errors=False)

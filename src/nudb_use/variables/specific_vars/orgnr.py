@@ -8,6 +8,7 @@ import pandas as pd
 
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.datasets.nudb_database import nudb_database
+from nudb_use.metadata.external_apis.brreg_api import get_enhet
 from nudb_use.metadata.external_apis.brreg_api import orgnr_is_underenhet
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
@@ -155,7 +156,9 @@ def _empty_orgnr_sentinel_values(s: pd.Series) -> pd.Series:
     return s
 
 
-def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
+def _split_orgnr_col(
+    orgnr_col: pd.Series, put_invalid_in_orgnr_foretak: bool = True
+) -> tuple[pd.Series, pd.Series]:
     bof_orgnrbed = NudbData("_bof_unique_orgnrbed").df()["orgnrbed"]
     bof_orgnr_foretak = NudbData("_bof_unique_orgnr_foretak").df()["orgnr"]
     is_bed = orgnr_col.isin(bof_orgnrbed)
@@ -177,7 +180,17 @@ def _split_orgnr_col(orgnr_col: pd.Series) -> tuple[pd.Series, pd.Series]:
     orgnrbed_out = pd.Series(pd.NA, index=orgnr_col.index, dtype="string[pyarrow]")
     orgnrbed_out[mask_orgnrbed] = orgnr_col
     orgnr_foretak_out = pd.Series(pd.NA, index=orgnr_col.index, dtype="string[pyarrow]")
-    orgnr_foretak_out.loc[~mask_orgnrbed] = orgnr_col
+    if put_invalid_in_orgnr_foretak:
+        orgnr_foretak_out.loc[~mask_orgnrbed] = orgnr_col
+    else:
+        # Do the work with actually looking these up in brreg, maybe for the second time
+        is_orgnr_foretak_missing: list[str] = []
+        for nr in _progress(missing_from_bof):
+            if get_enhet(nr) is not None:
+                is_orgnr_foretak_missing.append(nr)
+        orgnr_foretak_out.loc[is_foretak | orgnr_col.isin(is_orgnr_foretak_missing)] = (
+            orgnr_col
+        )
     return _empty_orgnr_sentinel_values(
         orgnr_foretak_out
     ), _empty_orgnr_sentinel_values(orgnrbed_out)
