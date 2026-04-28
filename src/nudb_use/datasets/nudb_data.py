@@ -38,7 +38,12 @@ class NudbData:
                 return None
 
             elif name not in nudb_database._dataset_generators.keys():
-                raise ValueError("Unrecognized NUDB dataset!")
+                available = ",\n\t".join(
+                    sorted(nudb_database._dataset_generators.keys())
+                )
+                raise ValueError(
+                    f"Unrecognized NUDB dataset!\nAvailable datasets:\n\t{available}"
+                )
 
             self.name: str = name
             if "alias" in kwargs:
