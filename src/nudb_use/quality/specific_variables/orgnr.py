@@ -127,7 +127,7 @@ def subcheck_col_contains_invalid_orgnr(
     )
     if invalid_values:
         return NudbQualityError(
-            f"Found invalid values in {col_name} when looking them all up in BoF and Brreg (first 10): {invalid_values[:11] if len(invalid_values) >= 10 else invalid_values}"
+            f"Found {len(invalid_values)} invalid values in {col_name} when looking them all up in BoF and Brreg (first 10): {invalid_values[:11] if len(invalid_values) >= 10 else invalid_values}"
         )
     return None
 

@@ -55,6 +55,13 @@ def run_quality_suite(
     errors += check_duplicated_columns(df)
     errors += check_column_widths(df, raise_errors=False)
     errors += check_bool_string_columns(df, raise_errors=False)
+
+    errors += check_klass_codes(df, data_time_start, data_time_end, raise_errors=False)
+    errors += check_columns_only_missing(df, raise_errors=False)
+    errors += check_missing_thresholds_dataset_name(
+        df, dataset_name=dataset_name, raise_errors=False
+    )
+
     errors += run_all_specific_variable_tests(
         df,
         dataset_name=dataset_name,
@@ -62,12 +69,6 @@ def run_quality_suite(
         use_external_datasets=use_external_datasets,
         **kwargs,
     )
-    errors += check_klass_codes(df, data_time_start, data_time_end, raise_errors=False)
-    errors += check_columns_only_missing(df, raise_errors=False)
-    errors += check_missing_thresholds_dataset_name(
-        df, dataset_name=dataset_name, raise_errors=False
-    )
-
     if errors and raise_errors:
         raise_exception_group(errors)
     if not errors:
