@@ -21,15 +21,15 @@ def check_outdated_orgnr_cols(
         **kwargs: Unused extra arguments for compatibility.
 
     Returns:
-        Collected validation errors.
+        list[NudbQualityError]: Collected validation errors.
     """
+    errors: list[NudbQualityError] = []
     outdated_cols = ["org_nr", "utd_orgnr", "bof_orgnrbed", "orgnr"]
     current_col_names = ["orgnr_foretak", "orgnrbed"]
     outdated_in_df = [c for c in outdated_cols if c in df.columns.str.lower()]
     if outdated_in_df:
-        errors: list[NudbQualityError] = []
         err_msg = f"Found outdated orgnr in your dataset: {outdated_in_df}, we want these: {current_col_names}"
-        add_err2list(errors, err_msg)
+        add_err2list(errors, NudbQualityError(err_msg))
     return errors
 
 
@@ -41,7 +41,7 @@ def check_orgnr_foretak(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityE
         **kwargs: Extra validation options. Set use_external_datasets to run this check.
 
     Returns:
-        Collected validation errors.
+        list[NudbQualityError]: Collected validation errors.
     """
     errors: list[NudbQualityError] = []
     if kwargs.get("use_external_datasets"):
@@ -68,7 +68,7 @@ def check_orgnrbed(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]
         **kwargs: Extra validation options. Set use_external_datasets to run this check.
 
     Returns:
-        Collected validation errors.
+        list[NudbQualityError]: Collected validation errors.
     """
     errors: list[NudbQualityError] = []
     if not kwargs.get("use_external_datasets", True):
@@ -112,11 +112,18 @@ def subcheck_col_contains_invalid_orgnr(
         col_name: Name of the column being checked.
 
     Returns:
-        Validation error when invalid orgnr values are found, otherwise None.
+        NudbQualityError | None: Validation error when invalid orgnr values are found, otherwise None.
     """
-    orgnr_foretak, orgnrbed = _split_orgnr_col(col, put_invalid_in_orgnr_foretak=False)
+    validated = require_series_present(orgnr_col=col)
+    if validated is None:
+        return None
+
+    orgnr_col = validated["orgnr_col"]
+    orgnr_foretak, orgnrbed = _split_orgnr_col(
+        orgnr_col, put_invalid_in_orgnr_foretak=False
+    )
     invalid_values: list[str] = list(
-        col[orgnr_foretak.isna() & orgnrbed.isna() & col.notna()].unique()
+        orgnr_col[orgnr_foretak.isna() & orgnrbed.isna() & orgnr_col.notna()].unique()
     )
     if invalid_values:
         return NudbQualityError(
@@ -135,9 +142,14 @@ def subcheck_col_contains_orgnr_foretak(
         col_name: Name of the column being checked.
 
     Returns:
-        Validation error when orgnrbed values are found, otherwise None.
+        NudbQualityError | None: Validation error when orgnrbed values are found, otherwise None.
     """
-    _, orgnrbed = _split_orgnr_col(col)
+    validated = require_series_present(orgnr_col=col)
+    if validated is None:
+        return None
+
+    orgnr_col = validated["orgnr_col"]
+    _, orgnrbed = _split_orgnr_col(orgnr_col)
     orgnrbed_in_foretak = list(orgnrbed[orgnrbed.notna()].unique())
     if orgnrbed_in_foretak:
         return NudbQualityError(
@@ -156,9 +168,14 @@ def subcheck_col_contains_orgnrbed(
         col_name: Name of the column being checked.
 
     Returns:
-        Validation error when orgnr_foretak values are found, otherwise None.
+        NudbQualityError | None: Validation error when orgnr_foretak values are found, otherwise None.
     """
-    orgnr_foretak, _ = _split_orgnr_col(col, put_invalid_in_orgnr_foretak=False)
+    validated = require_series_present(orgnr_col=col)
+    if validated is None:
+        return None
+
+    orgnr_col = validated["orgnr_col"]
+    orgnr_foretak, _ = _split_orgnr_col(orgnr_col, put_invalid_in_orgnr_foretak=False)
     foretak_in_orgnrbed = list(orgnr_foretak[orgnr_foretak.notna()].unique())
     if foretak_in_orgnrbed:
         return NudbQualityError(
@@ -182,7 +199,7 @@ def subcheck_orgnrbed_orgnr_foretak_connected(
         col_orgnrbed_name: Name of the orgnrbed column.
 
     Returns:
-        Validation error when pairs are missing from BOF, otherwise None.
+        NudbQualityError | None: Validation error when pairs are missing from BOF, otherwise None.
     """
     validated = require_series_present(
         orgnr_foretak_col=col_foretak,

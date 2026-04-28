@@ -11,10 +11,8 @@ from nudb_use.quality.check_bool_string_columns import check_bool_string_columns
 from nudb_use.quality.duplicated_columns import check_duplicated_columns
 from nudb_use.quality.missing import check_columns_only_missing
 from nudb_use.quality.missing import check_missing_thresholds_dataset_name
+from nudb_use.quality.outdated_variables import check_outdated_variables
 from nudb_use.quality.specific_variables import run_all_specific_variable_tests
-from nudb_use.quality.specific_variables.outdated_variables import (
-    check_outdated_variables,
-)
 from nudb_use.quality.widths import check_column_widths
 from nudb_use.variables.checks import check_column_presence
 
