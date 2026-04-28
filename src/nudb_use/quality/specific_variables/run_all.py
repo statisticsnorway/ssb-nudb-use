@@ -12,6 +12,9 @@ from .grunnskolepoeng import check_grunnskolepoeng
 from .kommune import check_kommune
 from .land import check_land
 from .nus2000 import check_nus2000
+from .orgnr import check_orgnr_foretak
+from .orgnr import check_orgnrbed
+from .orgnr import check_outdated_orgnr_cols
 from .sn07 import check_sn07
 from .snr_fnr import check_has_personal_ids
 from .unique_per_person import check_unique_per_person
@@ -27,6 +30,9 @@ VARIABLE_CHECKS = [
     check_sn07,
     check_unique_per_person,
     check_has_personal_ids,
+    check_outdated_orgnr_cols,
+    check_orgnr_foretak,
+    check_orgnrbed,
 ]
 
 # variable check functions should all take a dataframe as an argument
