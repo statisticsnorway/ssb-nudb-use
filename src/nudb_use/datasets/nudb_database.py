@@ -21,6 +21,9 @@ from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.macros import _DUCKDB_MACROS
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_utd_hoeyeste_nus2000_view,
+)
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 from nudb_use.datasets.person import _generate_bokommune_16aar_snr
 from nudb_use.datasets.person import _generate_slekt_snr_view
@@ -39,6 +42,7 @@ from nudb_use.nudb_logger import logger
 if TYPE_CHECKING:
     from nudb_use.datasets.nudb_data import NudbData
 
+MICRODATA_PREFIX = "_microdata_"
 STRING_DTYPE = DTYPE_MAPPINGS["pandas"][STRING_DTYPE_NAME]
 GeneratorFunc = Callable[..., None] | Callable[[str, db.DuckDBPyConnection], None]
 
@@ -57,6 +61,7 @@ class _NudbDatabase:
         self._duckdb_temp_dir_path: Path | None = None
 
         self._dataset_generators: dict[str, GeneratorFunc] = {
+            # NudbData() - Public
             "eksamen_aggregated": _generate_eksamen_aggregated_view,
             "eksamen": _generate_eksamen_view,
             "avslutta": _generate_avslutta_view,
@@ -67,16 +72,20 @@ class _NudbDatabase:
             "eksamen_avslutta_hoeyeste": _generate_eksamen_avslutta_hoeyeste_view,
             "utd_hoeyeste": _generate_utd_hoeyeste_view,
             "utd_hoeyeste_last": _generate_utd_hoeyeste_last_view,
-            "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "slekt_snr": _generate_slekt_snr_view,
-            "_snr2alder16": _generate_snr2alder16_view,
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
+            # NudbData() - Private
+            "_snr2alder16": _generate_snr2alder16_view,
+            "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "_bof_unique_orgnrbed": _generate_bof_unique_orgnrbed_view,
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
             "_bof_dated_orgnr_connections": _generate_bof_dated_orgnr_connections_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,
+            # MicroData()
+            MICRODATA_PREFIX
+            + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
         }
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
@@ -176,7 +185,7 @@ def reset_nudb_database() -> None:
 
 
 def show_nudb_datasets(show_private: bool = False) -> list[str]:
-    """Get datasets in _NudbDatabase.
+    """Get datasets in _nudb_database.
 
     Args:
         show_private: Should private datasets be shown?

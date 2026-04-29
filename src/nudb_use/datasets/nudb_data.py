@@ -151,8 +151,11 @@ class NudbData:
         query = self._get_query()
         return nudb_database.get_connection().sql(query).df()
 
-    def sql(self, expr: str) -> Any:
+    def sql(self, expr: str | None = None) -> Any:
         """Use sql method of database connection."""
+        if expr is None:
+            expr = self._get_query()
+
         return nudb_database.get_connection().sql(expr)
 
     def execute(self, expr: str) -> Any:
