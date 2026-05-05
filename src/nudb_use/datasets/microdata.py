@@ -20,26 +20,26 @@ def show_available_microdata_variables() -> list[str]:
     ]
 
 
-def MicroData(name: str, *args: Any, **kwargs: Any) -> NudbData:
-    """Get Microdata variable as NudbData.
+class MicroData(NudbData):
+    """Lazy representation of a Microdata variable as an NUDB dataset.
 
     Args:
-        name: Name of the dataset.
-        *args: Unnamed arguments passed on to NudbData
-        **kwargs: Named arguments passed on to the NudbData.
-
-    Returns:
-        NudbData: Variable in NudbData format
+        name: Name of the microdata variable.
+        *args: Unnamed arguments passed on to the dataset generator.
+        **kwargs: Named arguments passed on to the dataset generator.
 
     Raises:
-        ValueError: If the dataset name isn't recognized.
+        ValueError: If the variable name isn't recognized.
     """
-    available = show_available_microdata_variables()
 
-    if name not in available:
-        raise ValueError(
-            f"Unrecognized Microdata Variable!\nAvailable variables:\n\t{available}"
-        )
+    def __init__(self, name: str, *args: Any, **kwargs: Any) -> None:
 
-    microdata_name = MICRODATA_PREFIX + name
-    return NudbData(microdata_name, *args, **kwargs)
+        available = show_available_microdata_variables()
+
+        if name not in available:
+            raise ValueError(
+                f"Unrecognized Microdata Variable!\nAvailable variables:\n\t{available}"
+            )
+
+        microdata_name = MICRODATA_PREFIX + name
+        super().__init__(microdata_name, *args, **kwargs)
