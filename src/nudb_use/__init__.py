@@ -23,7 +23,7 @@ from nudb_use.variables import derive
 
 __all__ = [
     "LoggerStack",
-    "MicorData",
+    "MicroData",
     "NudbData",
     "derive",
     "find_var",
