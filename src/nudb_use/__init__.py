@@ -4,7 +4,6 @@ import importlib.metadata
 
 from nudb_config import settings
 
-from nudb_use.datasets import NudbData
 from nudb_use.metadata import find_var
 from nudb_use.metadata import find_vars
 from nudb_use.metadata import get_dtypes
@@ -22,7 +21,6 @@ from nudb_use.variables import derive
 
 __all__ = [
     "LoggerStack",
-    "NudbData",
     "derive",
     "find_var",
     "find_vars",
