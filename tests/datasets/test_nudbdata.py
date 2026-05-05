@@ -8,6 +8,7 @@ from nudb_use.datasets import NudbData
 from nudb_use.datasets import nudb_database as nudb_database_module
 from nudb_use.datasets import reset_nudb_database
 from nudb_use.datasets.external import _generate_view
+from nudb_use.datasets.microdata import MicroData
 from nudb_use.datasets.nudb_data import _fetch_string_column
 from nudb_use.datasets.nudb_data import _is_in_database
 from nudb_use.datasets.nudb_data import _is_table
@@ -144,3 +145,20 @@ def test_external_generate_view_uses_alias_and_excludes_index(
     assert "__index_level_0__" not in columns
     assert "col" in columns
     assert "nudb_dataset_id" in columns
+
+
+def test_microdata(
+    igang: pd.DataFrame,
+    avslutta: pd.DataFrame,
+    eksamen: pd.DataFrame,
+    freg_situttak: pd.DataFrame,
+    snrkat: pd.DataFrame,
+    slekt: pd.DataFrame,
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    patch_nudb_database(
+        igang, avslutta, eksamen, freg_situttak, snrkat, slekt, tmp_path, monkeypatch
+    )
+
+    MicroData("utd_hoeyeste_nus2000")

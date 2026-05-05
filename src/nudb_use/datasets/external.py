@@ -3,9 +3,9 @@ from functools import partial
 import duckdb as db
 from nudb_config import settings
 
-from nudb_use import LoggerStack
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.datasets.utils import _nudb_data_select_all
+from nudb_use.nudb_logger import LoggerStack
 from nudb_use.paths.latest import latest_shared_path
 
 __all__ = []
