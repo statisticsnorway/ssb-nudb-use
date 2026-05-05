@@ -1,9 +1,10 @@
 from pathlib import Path
+from typing import Any
 
 from nudb_use.paths import latest
 
 
-def test_find_file_custom_dir(monkeypatch, tmp_path: Path) -> None:
+def test_find_file_custom_dir(monkeypatch: Any, tmp_path: Path) -> None:
     semipath = tmp_path / "local" / "nudb-data"
     fullpath = semipath / "klargjorte-data"
     fullpath.mkdir(parents=True)
@@ -20,7 +21,7 @@ def test_find_file_custom_dir(monkeypatch, tmp_path: Path) -> None:
     assert result.name == "tmp.parquet"
 
 
-def test_latest_shared_paths_builds_mapping(monkeypatch, tmp_path: Path) -> None:
+def test_latest_shared_paths_builds_mapping(monkeypatch: Any, tmp_path: Path) -> None:
     base = tmp_path / "mount"
     (base / "klargjorte-data").mkdir(parents=True)
 
