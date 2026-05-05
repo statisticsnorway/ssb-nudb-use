@@ -43,6 +43,32 @@ def _add_delt_path(path: str | Path) -> None:
     POSSIBLE_PATHS.append(path)
 
 
+def _hide_produkt_paths() -> None:
+    """Hide produkt path for utd-nudb developers."""
+    global POSSIBLE_PATHS
+    global PRODUKT
+
+    produkt = Path(PRODUKT)
+    if produkt in POSSIBLE_PATHS:
+        logger.info(f"Removing {produkt} from searchable paths...")
+        POSSIBLE_PATHS.remove(produkt)
+    else:
+        logger.warning(f"{produkt} is not in searchable paths, nothing to remove...")
+
+
+def _reveal_produkt_paths() -> None:
+    """Reveal produkt path for utd-nudb developers."""
+    global POSSIBLE_PATHS
+    global PRODUKT
+
+    produkt = Path(PRODUKT)
+    if produkt not in POSSIBLE_PATHS:
+        logger.info(f"Adding {produkt} to searchable paths...")
+        POSSIBLE_PATHS.append(produkt)
+    else:
+        logger.warning(f"{produkt} is already in searchable paths, nothing to add...")
+
+
 def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[Path]:
     global POSSIBLE_PATHS
     # For custom paths we don't know if there is a klargjorte-data
