@@ -14,6 +14,67 @@ from nudb_use.variables.checks import pyarrow_columns_from_metadata
 UNION_ALL = "\nUNION ALL\n"
 
 
+def _bof_latest_orgnr_placement_ctes_sql() -> str | None:
+    """Return CTE SQL for latest BOF placement of each orgnr."""
+    paths = _get_all_bof_situttak_october_paths()
+    union_parts: list[str] = []
+    for path in paths:
+        path_str = str(path).replace("'", "''")
+        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+
+        union_parts.append(f"""
+            SELECT DISTINCT
+                CAST(orgnrbed AS VARCHAR) AS orgnr,
+                'orgnrbed' AS orgnr_type,
+                CAST('{path_period}' AS DATE) AS bof_period_date
+            FROM read_parquet('{path_str}')
+
+            UNION ALL
+
+            SELECT DISTINCT
+                CAST(org_nr AS VARCHAR) AS orgnr,
+                'foretak' AS orgnr_type,
+                CAST('{path_period}' AS DATE) AS bof_period_date
+            FROM read_parquet('{path_str}')
+            """)
+
+    if not union_parts:
+        return None
+
+    placements_sql = UNION_ALL.join(union_parts)
+    return f"""
+        placements AS (
+            {placements_sql}
+        ),
+
+        latest_placement AS (
+            SELECT
+                orgnr,
+                orgnr_type
+            FROM (
+                SELECT
+                    orgnr,
+                    orgnr_type,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY orgnr
+                        ORDER BY
+                            bof_period_date DESC,
+                            CASE orgnr_type
+                                WHEN 'orgnrbed' THEN 1
+                                ELSE 0
+                            END DESC
+                    ) AS placement_rank
+                FROM placements
+                WHERE
+                    orgnr IS NOT NULL AND
+                    TRIM(orgnr) != '' AND
+                    orgnr != '000000000'
+            )
+            WHERE placement_rank = 1
+        )
+    """
+
+
 def _create_empty_view(
     alias: str,
     connection: db.DuckDBPyConnection,
@@ -162,31 +223,23 @@ def _generate_bof_unique_orgnrbed_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    """All the unique orgnrbed from october-files and the first and last files with orgnrbed in."""
-    paths = _get_all_bof_situttak_october_paths()
-    union_parts: list[str] = []
-    for path in paths:
-        path_str = str(path).replace("'", "''")
-        union_parts.append(f"""
-            SELECT DISTINCT
-                orgnrbed
-            FROM read_parquet('{path_str}')
-            """)
+    """All unique orgnrbed values, keeping only the latest BOF placement per orgnr."""
+    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
 
-    if not union_parts:
+    if latest_placement_ctes_sql is None:
         logger.warning(
             "Found no BOF files with orgnrbed to build the unique orgnrbed view. Creating an empty view."
         )
         _create_empty_view(alias, connection, {"orgnrbed": "VARCHAR"})
         return
 
-    union_sql = UNION_ALL.join(union_parts)
-
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
-        SELECT DISTINCT orgnrbed
-        FROM ({union_sql})
-        WHERE orgnrbed IS NOT NULL AND TRIM(CAST(orgnrbed AS VARCHAR)) != ''
+        WITH {latest_placement_ctes_sql}
+        SELECT DISTINCT
+            orgnr AS orgnrbed
+        FROM latest_placement
+        WHERE orgnr_type = 'orgnrbed'
         ;
     """
 
@@ -197,31 +250,22 @@ def _generate_bof_unique_orgnr_foretak_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    """All the unique orgnrbed from october-files and the first and last files with orgnrbed in."""
-    paths = _get_all_bof_situttak_october_paths()
-    union_parts: list[str] = []
-    for path in paths:
-        path_str = str(path).replace("'", "''")
-        union_parts.append(f"""
-            SELECT DISTINCT
-                org_nr as orgnr
-            FROM read_parquet('{path_str}')
-            """)
+    """All unique orgnr_foretak values, keeping only the latest BOF placement per orgnr."""
+    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
 
-    if not union_parts:
+    if latest_placement_ctes_sql is None:
         logger.warning(
             "Found no BOF files with orgnr to build the unique orgnr_foretak view. Creating an empty view."
         )
         _create_empty_view(alias, connection, {"orgnr": "VARCHAR"})
         return
 
-    union_sql = UNION_ALL.join(union_parts)
-
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
+        WITH {latest_placement_ctes_sql}
         SELECT DISTINCT orgnr
-        FROM ({union_sql})
-        WHERE orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != ''
+        FROM latest_placement
+        WHERE orgnr_type = 'foretak'
         ;
     """
 
@@ -249,6 +293,7 @@ def _generate_bof_dated_orgnr_connections_view(
 ) -> None:
     """All the unique orgnr <-> orgnrbed connections from october-files and the first and last files with orgnrbed in."""
     paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
+    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
@@ -262,7 +307,7 @@ def _generate_bof_dated_orgnr_connections_view(
             FROM read_parquet('{path_str}')
             """)
 
-    if not union_parts:
+    if not union_parts or latest_placement_ctes_sql is None:
         logger.warning(
             "Found no BOF files with orgnr/orgnrbed to build dated orgnr connections. Creating an empty view."
         )
@@ -281,12 +326,28 @@ def _generate_bof_dated_orgnr_connections_view(
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
-        SELECT *
-        FROM ({union_sql})
-        WHERE
-            orgnrbed IS NOT NULL AND  -- Removes many rows, so most efficient to have first?
-            orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != '' AND orgnr != '000000000' AND
-            TRIM(CAST(orgnrbed AS VARCHAR)) != '' AND orgnrbed != '000000000'
+        WITH raw_connections AS (
+            SELECT *
+            FROM ({union_sql})
+            WHERE
+                orgnrbed IS NOT NULL AND  -- Removes many rows, so most efficient to have first?
+                orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != '' AND orgnr != '000000000' AND
+                TRIM(CAST(orgnrbed AS VARCHAR)) != '' AND orgnrbed != '000000000'
+        ),
+
+        {latest_placement_ctes_sql}
+
+        SELECT
+            conn.orgnr,
+            conn.orgnrbed,
+            conn.bof_period_date
+        FROM raw_connections AS conn
+        JOIN latest_placement AS orgnr_class
+            ON CAST(conn.orgnr AS VARCHAR) = orgnr_class.orgnr
+           AND orgnr_class.orgnr_type = 'foretak'
+        JOIN latest_placement AS orgnrbed_class
+            ON CAST(conn.orgnrbed AS VARCHAR) = orgnrbed_class.orgnr
+           AND orgnrbed_class.orgnr_type = 'orgnrbed'
         ;
     """
 
