@@ -25,6 +25,11 @@ from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
 )
 from nudb_use.datasets.nuskat import _generate_nuskat_table
+from nudb_use.datasets.old_nudb_data import _generate_f_utd_demografi_view
+from nudb_use.datasets.old_nudb_data import _generate_f_utd_kurs_view
+from nudb_use.datasets.old_nudb_data import _generate_f_utd_person_view
+from nudb_use.datasets.old_nudb_data import _generate_tab_alle_snr_view
+from nudb_use.datasets.old_nudb_data import _generate_tab_utd_person_view
 from nudb_use.datasets.person import _generate_bokommune_16aar_snr
 from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
@@ -76,6 +81,12 @@ class _NudbDatabase:
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
+            # Old NUDB
+            "f_utd_kurs": _generate_f_utd_kurs_view,
+            "f_utd_person": _generate_f_utd_person_view,
+            "f_utd_demografi": _generate_f_utd_demografi_view,
+            "tab_utd_person": _generate_tab_utd_person_view,
+            "tab_alle_snr": _generate_tab_alle_snr_view,
             # NudbData() - Private
             "_snr2alder16": _generate_snr2alder16_view,
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
