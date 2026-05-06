@@ -3,7 +3,6 @@ from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
-from typing import Literal
 from typing import cast
 
 import duckdb as db
@@ -291,7 +290,7 @@ QUERY:
 
     def join(
         self,
-        data: str | pd.DataFrame | Literal["NudbData"],
+        data: "str | pd.DataFrame | NudbData",
         how: str = "inner",
         as_name: str | None = None,
     ) -> "NudbData":
@@ -305,6 +304,9 @@ QUERY:
 
         Returns:
             NudbData: An NudbData object.
+
+        Raises:
+            ValueError: If `how` is not a supported join type.
         """
         if isinstance(data, str):
             try:
@@ -349,7 +351,7 @@ QUERY:
         return out
 
     def left_join(
-        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+        self, data: "str | pd.DataFrame | NudbData", as_name: str = ""
     ) -> "NudbData":
         """Specify (inner part) of the LEFT JOIN statement in SQL query.
 
@@ -364,7 +366,7 @@ QUERY:
         return self.join(data, how="left", as_name=as_name)
 
     def right_join(
-        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+        self, data: "str | pd.DataFrame | NudbData", as_name: str = ""
     ) -> "NudbData":
         """Specify (inner part) of the RIGHT JOIN statement in SQL query.
 
@@ -379,7 +381,7 @@ QUERY:
         return self.join(data, how="right", as_name=as_name)
 
     def inner_join(
-        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+        self, data: "str | pd.DataFrame | NudbData", as_name: str = ""
     ) -> "NudbData":
         """Specify (inner part) of the INNER JOIN statement in SQL query.
 
@@ -394,7 +396,7 @@ QUERY:
         return self.join(data, how="inner", as_name=as_name)
 
     def full_join(
-        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+        self, data: "str | pd.DataFrame | NudbData", as_name: str = ""
     ) -> "NudbData":
         """Specify (inner part) of the FULL JOIN statement in SQL query.
 
@@ -409,7 +411,7 @@ QUERY:
         return self.join(data, how="full", as_name=as_name)
 
     def cross_join(
-        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+        self, data: "str | pd.DataFrame | NudbData", as_name: str = ""
     ) -> "NudbData":
         """Specify (inner part) of the CROSS JOIN statement in SQL query.
 
@@ -424,7 +426,7 @@ QUERY:
         return self.join(data, how="cross", as_name=as_name)
 
     def self_join(
-        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+        self, data: "str | pd.DataFrame | NudbData", as_name: str = ""
     ) -> "NudbData":
         """Specify (inner part) of the SELF JOIN statement in SQL query.
 
