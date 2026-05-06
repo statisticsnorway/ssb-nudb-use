@@ -81,6 +81,20 @@ def test_nudbdata(
     NudbData("igang")
     NudbData("utd_foreldres_utdnivaa")
 
+    # Test methods
+    hoeyeste_last = NudbData("utd_hoeyeste_last").select("snr", "utd_hoeyeste_nus2000")
+    hoeyeste_last_df = hoeyeste_last.df()
+
+    # Check if SQL generation works
+    NudbData("avslutta").right_join(
+        NudbData("igang")
+        .select_distinct("snr")
+        .as_name("T1")
+        .left_join(hoeyeste_last_df, as_name="T2")
+        .on("t1.snr=t2.snr"),
+        as_name="T3",
+    ).on("t1.snr=t3.snr")
+
 
 def test_fetch_string_column_and_tables() -> None:
     database = nudb_database_module.nudb_database
