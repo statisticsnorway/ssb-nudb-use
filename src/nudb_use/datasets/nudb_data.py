@@ -19,14 +19,14 @@ JOIN_TYPES = {"left", "right", "inner", "cross", "full", "outer", "self"}
 
 def _indent(
     x: str,
-    indent_first_line: bool = True,
-    indent_last_line: bool = True,
+    indent_first: bool = True,
+    indent_last: bool = True,
     pad: str = 4 * " ",
 ) -> str:
-    if indent_first_line:
+    if indent_first:
         x = pad + x
 
-    if not indent_last_line:
+    if not indent_last:
         split = x.split("\n")
         prev = split[: (len(split) - 1)]
         last = split[-1]
@@ -105,7 +105,7 @@ NUDB DATASET:
     is_view:  {self.is_view}
 
 QUERY:
-    {_indent(query, indent_first_line = False)};
+    {_indent(query, indent_first = False)};
 """
 
     def __repr__(self) -> str:
@@ -201,7 +201,25 @@ QUERY:
         self._as = other._as
         self._on = other._on
 
+    def _check_query_validity(self) -> None:
+        if self._join and not self._using and not self._on:
+            raise ValueError(f"Missing USING/ON statement for {self._join_type} JOIN!")
+
+        if self._using and not self._join:
+            raise ValueError("Missing JOIN statement for USING statement!")
+
+        if self._on and not self._join:
+            raise ValueError("Missing JOIN statement for ON statement!")
+
+        if self._using and self._on:
+            raise ValueError(
+                "The USING statement cannot be used at the same time as the ON statement!"
+            )
+
     def _get_query(self, check_validity: bool = False) -> str:
+        if check_validity:
+            self._check_query_validity()
+
         # SELECT ... FROM ...
         query = f"SELECT\n    {self._select}\nFROM\n    {self.alias}"
 
@@ -211,28 +229,11 @@ QUERY:
 
         # <TYPE> JOIN ...
         if self._join and self._join_type:
-            meat = _indent(self._join, indent_first_line=False, indent_last_line=False)
-
-            query += f"\n{self._join_type} JOIN {meat}"
-
-            if self._join_as:
-                query += " AS " + self._join_as
-
-            if check_validity and not self._using and not self._on:
-                raise ValueError(
-                    f"Missing USING/ON statement for {self._join_type} JOIN!"
-                )
+            query += f"\n{self._join_type} JOIN {_indent(self._join, indent_first=False, indent_last=False)}"
 
         # USING ...
         if self._using:
             query += f"\nUSING (\n{_indent(self._using)}\n)"
-
-            if check_validity and not self._join:
-                raise ValueError("Missing JOIN statement for USING statement!")
-            elif check_validity and self._on:
-                raise ValueError(
-                    "The USING statement cannot be used at the same time as the ON statement!"
-                )
 
         if self._on:
             query += f"\nON\n{_indent(self._on)}"
