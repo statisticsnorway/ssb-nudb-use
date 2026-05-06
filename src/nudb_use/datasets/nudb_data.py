@@ -231,6 +231,9 @@ QUERY:
         if self._join and self._join_type:
             query += f"\n{self._join_type} JOIN {_indent(self._join, indent_first=False, indent_last=False)}"
 
+            if self._join_as:
+                query += " AS " + self._join_as
+
         # USING ...
         if self._using:
             query += f"\nUSING (\n{_indent(self._using)}\n)"
