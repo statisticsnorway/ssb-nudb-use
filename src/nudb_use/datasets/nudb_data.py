@@ -1,10 +1,12 @@
 import copy
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 from typing import Any
 from typing import Literal
 from typing import cast
 
+import duckdb as db
 import pandas as pd
 
 from nudb_use.datasets.nudb_database import STRING_DTYPE
@@ -14,6 +16,24 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
 JOIN_TYPES = {"left", "right", "inner", "cross", "full", "outer", "self"}
+
+
+def _indent(
+    x: str,
+    indent_first_line: bool = True,
+    indent_last_line: bool = True,
+    pad: str = 4 * " ",
+) -> str:
+    if indent_first_line:
+        x = pad + x
+
+    if not indent_last_line:
+        split = x.split("\n")
+        prev = split[: (len(split) - 1)]
+        last = split[-1]
+        return ("\n" + pad).join(prev) + "\n" + last
+    else:
+        return x.replace("\n", "\n" + pad)
 
 
 class NudbData:
@@ -45,7 +65,7 @@ class NudbData:
                     sorted(nudb_database._dataset_generators.keys())
                 )
                 raise ValueError(
-                    f"Unrecognized NUDB dataset!\nAvailable datasets:\n\t{available}"
+                    f"Unrecognized NUDB dataset ({name})!\nAvailable datasets:\n\t{available}"
                 )
 
             self.name: str = name
@@ -73,6 +93,73 @@ class NudbData:
             if attach_using_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
+
+    def __str__(self) -> str:
+        """Get string representation of NUDB dataset."""
+        query = self._get_query(check_validity=False)
+
+        return f"""
+NUDB DATASET:
+    name:     {self.name}
+    alias:    {self.alias}
+    exists:   {self.exists}
+    is_view:  {self.is_view}
+
+QUERY:
+    {_indent(query, indent_first_line = False)};
+"""
+
+    def __repr__(self) -> str:
+        """Get string representation of NUDB dataset."""
+        return self.__str__()
+
+    @classmethod
+    def from_parquet(
+        cls,
+        path: str | Path,
+        name: str | None = None,
+        force: bool = False,
+        **kwargs: Any,
+    ) -> "NudbData":
+        """Create NudbData object from a path of a parquet file."""
+        if isinstance(path, str):
+            path = Path(path)
+        elif not isinstance(path, Path):
+            raise TypeError("path must be either a string or a pathlib.Path object!")
+
+        if not path.is_file() or path.suffix.lower() != ".parquet":
+            raise ValueError("path must point to a parquet file!")
+
+        if not name:
+            name = path.name.replace(".", "_").replace("-", "_").lower()
+
+        alias = "NUDB_" + name.upper()
+        logger.info(f"Creating NudbData object with name='{name}'...")
+        logger.debug(f"Creating NudbData object with alias={alias}...")
+
+        if name in nudb_database._dataset_generators:
+            if not force:
+                raise ValueError(
+                    f"Name {name} is already defined, if you really want to overwrite it pass `force=True`"
+                )
+
+            logger.warning(f"Overwriting existing dataset: {name}")
+
+        def generator(alias: str, connection: db.DuckDBPyConnection) -> None:
+            query = f"""
+            CREATE OR REPLACE VIEW
+                {alias} AS
+            SELECT * FROM
+                read_parquet('{path}')
+            """
+
+            connection.execute(query)
+
+        logger.debug("Attaching generator...")
+        nudb_database._dataset_generators[name] = generator
+        nudb_database._dataset_names = list(nudb_database._dataset_generators.keys())
+
+        return cls(name=name, **kwargs)
 
     def _attach(self) -> None:
         self.generator(alias=self.alias, connection=nudb_database.get_connection())
@@ -125,14 +212,12 @@ class NudbData:
 
         # <TYPE> JOIN ...
         if self._join and self._join_type:
-            query += (
-                f"\n{self._join_type} JOIN \n    {self._join.replace("\n", "\n    ")}"
-            )
+            meat = _indent(self._join, indent_first_line=False, indent_last_line=False)
+
+            query += f"\n{self._join_type} JOIN {meat}"
 
             if self._join_as:
-                query += self._join_as
-
-            query += "\n"
+                query += " AS " + self._join_as
 
             if check_validity and not self._using and not self._on:
                 raise ValueError(
@@ -141,7 +226,7 @@ class NudbData:
 
         # USING ...
         if self._using:
-            query += f"\nUSING (\n    {self._using.replace("\n", "\n    ")}\n)"
+            query += f"\nUSING (\n{_indent(self._using)}\n)"
 
             if check_validity and not self._join:
                 raise ValueError("Missing JOIN statement for USING statement!")
@@ -151,15 +236,15 @@ class NudbData:
                 )
 
         if self._on:
-            query += f"\nON\n    {self._on.replace("\n", "\n    ")}"
+            query += f"\nON\n{_indent(self._on)}"
 
         # WHERE ...
         if self._where:
-            query += f"\nWHERE\n\t{self._where.replace("\n", "\n    ")}"
+            query += f"\nWHERE\n{_indent(self._where)}"
 
         # LIMIT ...
         if self._limit:
-            query += f"\nLIMIT\n\t{self._limit}"
+            query += f"\nLIMIT\n{_indent(self._limit)}"
 
         # SELECT
         #   ...
@@ -175,41 +260,33 @@ class NudbData:
         # LIMIT ...;
         return query
 
-    def __str__(self) -> str:
-        """Get string representation of NUDB dataset."""
-        query = self._get_query(check_validity=False)
-
-        return f"""
-NUDB DATASET:
-    name:     {self.name}
-    alias:    {self.alias}
-    exists:   {self.exists}
-    is_view:  {self.is_view}
-
-QUERY:
-    {query.replace("\n", "\n    ")};
-        """
-
-    def where(self, expr: str) -> "NudbData":
+    def where(self, *exprs: str) -> "NudbData":
         """Specify (inner part) of the WHERE statement in SQL query."""
+        expr = " AND ".join(exprs)
+
         out = copy.copy(self)
         out._where = expr
+
         return out
 
-    def select(self, expr: str) -> "NudbData":
+    def select(self, *exprs: str) -> "NudbData":
         """Specify (inner part) of the SELECT statement in SQL query."""
+        expr = ", ".join(exprs)
+
         out = copy.copy(self)
         out._select = expr
+
         return out
 
-    def select_distinct(self, expr: str) -> "NudbData":
+    def select_distinct(self, *exprs: str) -> "NudbData":
         """Specify (inner part) of the SELECT DISTINCT statement in SQL query."""
+        expr = ", ".join(exprs)
         return self.select("DISTINCT " + expr)
 
-    def limit(self, expr: str) -> "NudbData":
+    def limit(self, expr: str | int) -> "NudbData":
         """Specify (inner part) of the LIMIT statement in SQL query."""
         out = copy.copy(self)
-        out._limit = expr
+        out._limit = str(expr)
         return out
 
     def join(
@@ -218,7 +295,17 @@ QUERY:
         how: str = "inner",
         as_name: str | None = None,
     ) -> "NudbData":
-        """Specify (inner part) of the JOIN statement in SQL query."""
+        """Specify (inner part) of the JOIN statement in SQL query.
+
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            how: A string indicator the join type.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
+
+        Returns:
+            NudbData: An NudbData object.
+        """
         if isinstance(data, str):
             try:
                 logger.debug("Checking if string is the name of an NUDB datasett")
@@ -228,12 +315,12 @@ QUERY:
                 # Since it's the name of an NUDB datasett we can get the alias from the
                 # NudbData object. When the user passes an NudbData object directly
                 # we must get the query, but here the query should be default/empty
-                expr = nudb_data.alias
+                expr = _indent(nudb_data.alias)
                 _as = nudb_data._as
 
             except Exception:
                 logger.debug("Using raw string...")
-                expr = data
+                expr = _indent(data)
                 _as = ""
 
         elif isinstance(data, NudbData):
@@ -246,9 +333,10 @@ QUERY:
         elif isinstance(data, pd.DataFrame):
             logger.debug("Registering pandas DataFrame in Database...")
             connection = nudb_database.get_connection()
-            expr = "_TMP_DATAFRAME_INPUT"
+            name = "_TMP_DATAFRAME_INPUT"
             _as = ""
-            connection.register(expr, data.copy())
+            connection.register(name, data.copy())
+            expr = _indent(name)
 
         if how.lower() not in JOIN_TYPES:
             raise ValueError(f"how must be one of: {list(JOIN_TYPES)}")
@@ -260,51 +348,120 @@ QUERY:
 
         return out
 
-    def left_join(self, data: str | pd.DataFrame | Literal["NudbData"]) -> "NudbData":
-        """Specify (inner part) of the LEFT JOIN statement in SQL query."""
-        return self.join(data, how="left")
+    def left_join(
+        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+    ) -> "NudbData":
+        """Specify (inner part) of the LEFT JOIN statement in SQL query.
 
-    def right_join(self, data: str | pd.DataFrame | Literal["NudbData"]) -> "NudbData":
-        """Specify (inner part) of the RIGHT JOIN statement in SQL query."""
-        return self.join(data, how="right")
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
 
-    def inner_join(self, data: str | pd.DataFrame | Literal["NudbData"]) -> "NudbData":
-        """Specify (inner part) of the INNER JOIN statement in SQL query."""
-        return self.join(data, how="inner")
+        Returns:
+            NudbData: An NudbData object.
+        """
+        return self.join(data, how="left", as_name=as_name)
 
-    def full_join(self, data: str | pd.DataFrame | Literal["NudbData"]) -> "NudbData":
-        """Specify (inner part) of the FULL JOIN statement in SQL query."""
-        return self.join(data, how="full")
+    def right_join(
+        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+    ) -> "NudbData":
+        """Specify (inner part) of the RIGHT JOIN statement in SQL query.
 
-    def cross_join(self, data: str | pd.DataFrame | Literal["NudbData"]) -> "NudbData":
-        """Specify (inner part) of the CROSS JOIN statement in SQL query."""
-        return self.join(data, how="cross")
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
 
-    def self_join(self, data: str | pd.DataFrame | Literal["NudbData"]) -> "NudbData":
-        """Specify (inner part) of the CROSS JOIN statement in SQL query."""
-        return self.join(data, how="self")
+        Returns:
+            NudbData: An NudbData object.
+        """
+        return self.join(data, how="right", as_name=as_name)
 
-    def using(self, expr: str) -> "NudbData":
+    def inner_join(
+        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+    ) -> "NudbData":
+        """Specify (inner part) of the INNER JOIN statement in SQL query.
+
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
+
+        Returns:
+            NudbData: An NudbData object.
+        """
+        return self.join(data, how="inner", as_name=as_name)
+
+    def full_join(
+        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+    ) -> "NudbData":
+        """Specify (inner part) of the FULL JOIN statement in SQL query.
+
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
+
+        Returns:
+            NudbData: An NudbData object.
+        """
+        return self.join(data, how="full", as_name=as_name)
+
+    def cross_join(
+        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+    ) -> "NudbData":
+        """Specify (inner part) of the CROSS JOIN statement in SQL query.
+
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
+
+        Returns:
+            NudbData: An NudbData object.
+        """
+        return self.join(data, how="cross", as_name=as_name)
+
+    def self_join(
+        self, data: str | pd.DataFrame | Literal["NudbData"], as_name: str = ""
+    ) -> "NudbData":
+        """Specify (inner part) of the SELF JOIN statement in SQL query.
+
+        Args:
+            data: Input data. Either an NudbData object, a string indicating the name
+                  of the NudbData-datasett (e.g., "avslutta"), or a pandas DataFrame.
+            as_name: Should the dataset be given an alias in the join (e.g., "T2")?
+
+        Returns:
+            NudbData: An NudbData object.
+        """
+        return self.join(data, how="self", as_name=as_name)
+
+    def using(self, *exprs: str) -> "NudbData":
         """Specify (inner part) of the USING statement in SQL query."""
+        expr = ", ".join(exprs)
+
         out = copy.copy(self)
         out._using = expr
+
         return out
 
-    def on(self, expr: str) -> "NudbData":
+    def on(self, *exprs: str) -> "NudbData":
         """Specify (inner part) of the ON statement in SQL query."""
+        expr = " AND ".join(exprs)
+
         out = copy.copy(self)
         out._on = expr
+
         return out
 
     def as_name(self, expr: str) -> "NudbData":
         """Specify (inner part) of the AS statement in SQL query."""
         out = copy.copy(self)
         out._as = expr
-        return out
 
-    def __repr__(self) -> str:
-        """Get string representation of NUDB dataset."""
-        return self.__str__()
+        return out
 
     def df(self) -> pd.DataFrame:
         """Return dataset as a pandas DataFrame."""
