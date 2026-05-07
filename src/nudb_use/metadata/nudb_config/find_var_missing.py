@@ -70,7 +70,10 @@ def find_var(var_name: str) -> VariableMetadata | None:
     variables = settings.variables
     var_data: VariableMetadata | None = None
     key = var_name.lower()
-    variable_keys = {variable_name.lower(): variable_name for variable_name in variables}
+    variable_keys = {
+        str(variable_name).lower(): str(variable_name)
+        for variable_name in variables.keys()
+    }
     if key in variable_keys:
         variable_name = variable_keys[key]
         var_data = _normalize_variable(variables[variable_name], variable_name)
@@ -78,9 +81,12 @@ def find_var(var_name: str) -> VariableMetadata | None:
     else:
         flip: dict[str, VariableMetadata] = {}
         for variable_name, variable in variables.items():
+            current_name = str(variable_name)
             renamed_from = _get_value(variable, "renamed_from") or []
             for old_name in renamed_from:
-                flip[old_name.lower()] = _normalize_variable(variable, variable_name)
+                flip[str(old_name).lower()] = _normalize_variable(
+                    variable, current_name
+                )
         if flip.get(key):
             logger.info(f"Column renamed {key} -> {flip.get(key)} - rename it?")
             var_data = flip[key]
