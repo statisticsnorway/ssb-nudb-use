@@ -185,9 +185,9 @@ def variables_missing_from_config(col_list: Iterable[str]) -> list[str]:
 
 def find_var_renames(var_names: list[str]) -> dict[str, list[str]]:
     """Find only the renames of variables from the config, filtering away other info.
-    
+
     Args:
-        var_name: List of string-names of columns, can be the old or new names...
+        var_names: List of string-names of columns, can be the old or new names...
 
     Returns:
         dict[str, list[str]]: Key is new variable name, values are the old variable names as a list of strings.
@@ -195,9 +195,10 @@ def find_var_renames(var_names: list[str]) -> dict[str, list[str]]:
     lookup = find_vars(var_names)
     return {k: v["renamed_from"] for k, v in lookup.items()}
 
+
 def find_var_renames_for_dataset(dataset_name: str) -> dict[str, list[str]]:
     """Find the renames for a given dataset, from the config.
-    
+
     Args:
         dataset_name: The name of the dataset according to the config.
 
