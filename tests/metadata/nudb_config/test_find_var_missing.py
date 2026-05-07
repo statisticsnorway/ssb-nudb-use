@@ -125,11 +125,11 @@ def test_find_var_renames(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(find_var_module, "klass", SimpleNamespace())
     expected = {"new": ["old", "other_old"]}
 
-    result = find_var_renames("new")
+    result = find_var_renames(["new"])
     assert result == expected
-    result = find_var_renames("old")
+    result = find_var_renames(["old"])
     assert result == expected
-    result = find_var_renames("other_old")
+    result = find_var_renames(["other_old"])
     assert result == expected
 
 

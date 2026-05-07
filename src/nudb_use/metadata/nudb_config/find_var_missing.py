@@ -193,7 +193,11 @@ def find_var_renames(var_names: list[str]) -> dict[str, list[str]]:
         dict[str, list[str]]: Key is new variable name, values are the old variable names as a list of strings.
     """
     lookup = find_vars(var_names)
-    return {k: v["renamed_from"] for k, v in lookup.items()}
+    return {
+        k: v["renamed_from"]
+        for k, v in lookup.items()
+        if v is not None and "renamed_from" in v and len(v["renamed_from"])
+    }
 
 
 def find_var_renames_for_dataset(dataset_name: str) -> dict[str, list[str]]:
