@@ -1,6 +1,8 @@
 """Convenience exports for NUDB configuration metadata helpers."""
 
 from .find_var_missing import find_var
+from .find_var_missing import find_var_renames
+from .find_var_missing import find_var_renames_for_dataset
 from .find_var_missing import find_vars
 from .find_var_missing import get_list_of_columns_for_dataset
 from .find_var_missing import look_up_dtype_length_for_dataset
@@ -17,6 +19,8 @@ from .variable_names import update_colnames
 __all__ = [
     "find_var",
     "find_var_missing",
+    "find_var_renames",
+    "find_var_renames_for_dataset",
     "find_vars",
     "get_cols2drop",
     "get_cols2keep",
