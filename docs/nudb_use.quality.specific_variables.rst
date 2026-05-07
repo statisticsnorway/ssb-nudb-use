@@ -42,6 +42,14 @@ nudb\_use.quality.specific\_variables.nus2000 module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.quality.specific\_variables.orgnr module
+--------------------------------------------------
+
+.. automodule:: nudb_use.quality.specific_variables.orgnr
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.quality.specific\_variables.run\_all module
 -----------------------------------------------------
 

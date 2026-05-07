@@ -1,6 +1,14 @@
 nudb\_use.datasets package
 ==========================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   nudb_use.datasets.microdata_variables
+
 
 nudb\_use.datasets.avslutta module
 ----------------------------------
@@ -50,6 +58,14 @@ nudb\_use.datasets.macros module
    :show-inheritance:
    :undoc-members:
 
+nudb\_use.datasets.microdata module
+-----------------------------------
+
+.. automodule:: nudb_use.datasets.microdata
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 nudb\_use.datasets.nudb\_data module
 ------------------------------------
 
@@ -70,6 +86,14 @@ nudb\_use.datasets.nuskat module
 --------------------------------
 
 .. automodule:: nudb_use.datasets.nuskat
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+nudb\_use.datasets.old\_nudb\_data module
+-----------------------------------------
+
+.. automodule:: nudb_use.datasets.old_nudb_data
    :members:
    :show-inheritance:
    :undoc-members:
