@@ -78,6 +78,7 @@ def _generate_utd_hoeyeste_view(
                 {eksamen_avslutta_hoeyeste.alias}
         ),
 
+        /* Cumulative Max Rangering Between Years */
         T1 AS (
             SELECT
                 *,
@@ -85,9 +86,21 @@ def _generate_utd_hoeyeste_view(
                     PARTITION BY snr
                     ORDER BY utd_hoeyeste_aar
                     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS cmax_utd_hoeyeste_rangering
+                ) AS cummax_between_rangering,
             FROM
                 T0
+        ),
+
+        /* Cumulative Max Between, Max Within Years */
+        T2 AS (
+            SELECT
+                *,
+                MAX(cummax_between_rangering) OVER (
+                    PARTITION BY snr, utd_hoeyeste_aar
+                ) AS cummax_between_max_within_rangering
+
+            FROM
+                T1
         )
 
         SELECT
@@ -99,9 +112,9 @@ def _generate_utd_hoeyeste_view(
             utd_hoeyeste_rangering,
             nus2000 AS utd_hoeyeste_nus2000
         FROM
-            T1
+            T2
         WHERE
-            utd_hoeyeste_rangering==cmax_utd_hoeyeste_rangering
+            utd_hoeyeste_rangering==cummax_between_max_within_rangering;
     """
 
     connection.execute(query)
