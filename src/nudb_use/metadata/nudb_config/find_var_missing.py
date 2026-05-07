@@ -13,15 +13,19 @@ from nudb_use.nudb_logger import logger
 VariableMetadata = dict[str, Any]
 
 
-def _normalize_variable(variable: Any) -> VariableMetadata:
+def _normalize_variable(variable: Any, name: str | None = None) -> VariableMetadata:
     """Return a mutable dict representation of the provided variable metadata."""
     if isinstance(variable, dict):
-        return dict(variable)
-    if hasattr(variable, "model_dump"):
-        return dict(variable.model_dump())
-    if hasattr(variable, "dict"):
-        return dict(variable.dict())
-    return dict(vars(variable))
+        normalized = dict(variable)
+    elif hasattr(variable, "model_dump"):
+        normalized = dict(variable.model_dump())
+    elif hasattr(variable, "dict"):
+        normalized = dict(variable.dict())
+    else:
+        normalized = dict(vars(variable))
+    if name is not None:
+        normalized.setdefault("name", name)
+    return normalized
 
 
 def _get_value(source: Any, key: str) -> Any:
@@ -45,7 +49,7 @@ def find_vars(var_names: Iterable[str]) -> dict[str, VariableMetadata | None]:
     for name in var_names:
         found_data = find_var(name)
         if found_data:
-            logger.info(f"{name} -> {found_data['name']}")
+            logger.info(f"{name} -> {found_data.get('name')}")
             result[name] = found_data
         else:
             logger.warning(f"Couldnt find metadata for {name}")
@@ -66,15 +70,17 @@ def find_var(var_name: str) -> VariableMetadata | None:
     variables = settings.variables
     var_data: VariableMetadata | None = None
     key = var_name.lower()
-    if key in variables:
-        var_data = _normalize_variable(variables[key])
+    variable_keys = {variable_name.lower(): variable_name for variable_name in variables}
+    if key in variable_keys:
+        variable_name = variable_keys[key]
+        var_data = _normalize_variable(variables[variable_name], variable_name)
 
     else:
         flip: dict[str, VariableMetadata] = {}
-        for variable in variables.values():
+        for variable_name, variable in variables.items():
             renamed_from = _get_value(variable, "renamed_from") or []
             for old_name in renamed_from:
-                flip[old_name] = _normalize_variable(variable)
+                flip[old_name.lower()] = _normalize_variable(variable, variable_name)
         if flip.get(key):
             logger.info(f"Column renamed {key} -> {flip.get(key)} - rename it?")
             var_data = flip[key]
@@ -194,8 +200,8 @@ def find_var_renames(var_names: list[str]) -> dict[str, list[str]]:
     """
     lookup = find_vars(var_names)
     return {
-        k: v["renamed_from"]
-        for k, v in lookup.items()
+        v["name"]: v["renamed_from"]
+        for v in lookup.values()
         if v is not None and "renamed_from" in v and len(v["renamed_from"])
     }
 
