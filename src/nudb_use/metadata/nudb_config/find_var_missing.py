@@ -13,15 +13,19 @@ from nudb_use.nudb_logger import logger
 VariableMetadata = dict[str, Any]
 
 
-def _normalize_variable(variable: Any) -> VariableMetadata:
+def _normalize_variable(variable: Any, name: str | None = None) -> VariableMetadata:
     """Return a mutable dict representation of the provided variable metadata."""
     if isinstance(variable, dict):
-        return dict(variable)
-    if hasattr(variable, "model_dump"):
-        return dict(variable.model_dump())
-    if hasattr(variable, "dict"):
-        return dict(variable.dict())
-    return dict(vars(variable))
+        normalized = dict(variable)
+    elif hasattr(variable, "model_dump"):
+        normalized = dict(variable.model_dump())
+    elif hasattr(variable, "dict"):
+        normalized = dict(variable.dict())
+    else:
+        normalized = dict(vars(variable))
+    if name is not None:
+        normalized.setdefault("name", name)
+    return normalized
 
 
 def _get_value(source: Any, key: str) -> Any:
@@ -45,7 +49,7 @@ def find_vars(var_names: Iterable[str]) -> dict[str, VariableMetadata | None]:
     for name in var_names:
         found_data = find_var(name)
         if found_data:
-            logger.info(f"{name} -> {found_data['name']}")
+            logger.info(f"{name} -> {found_data.get('name')}")
             result[name] = found_data
         else:
             logger.warning(f"Couldnt find metadata for {name}")
@@ -66,15 +70,23 @@ def find_var(var_name: str) -> VariableMetadata | None:
     variables = settings.variables
     var_data: VariableMetadata | None = None
     key = var_name.lower()
-    if key in variables:
-        var_data = _normalize_variable(variables[key])
+    variable_keys = {
+        str(variable_name).lower(): str(variable_name)
+        for variable_name in variables.keys()
+    }
+    if key in variable_keys:
+        variable_name = variable_keys[key]
+        var_data = _normalize_variable(variables[variable_name], variable_name)
 
     else:
         flip: dict[str, VariableMetadata] = {}
-        for variable in variables.values():
+        for variable_name, variable in variables.items():
+            current_name = str(variable_name)
             renamed_from = _get_value(variable, "renamed_from") or []
             for old_name in renamed_from:
-                flip[old_name] = _normalize_variable(variable)
+                flip[str(old_name).lower()] = _normalize_variable(
+                    variable, current_name
+                )
         if flip.get(key):
             logger.info(f"Column renamed {key} -> {flip.get(key)} - rename it?")
             var_data = flip[key]
@@ -181,3 +193,33 @@ def variables_missing_from_config(col_list: Iterable[str]) -> list[str]:
         an empty list if all variables are found.
     """
     return [col for col in col_list if col not in settings.variables.keys()]
+
+
+def find_var_renames(var_names: list[str]) -> dict[str, list[str]]:
+    """Find only the renames of variables from the config, filtering away other info.
+
+    Args:
+        var_names: List of string-names of columns, can be the old or new names...
+
+    Returns:
+        dict[str, list[str]]: Key is new variable name, values are the old variable names as a list of strings.
+    """
+    lookup = find_vars(var_names)
+    return {
+        v["name"]: v["renamed_from"]
+        for v in lookup.values()
+        if v is not None and "renamed_from" in v and len(v["renamed_from"])
+    }
+
+
+def find_var_renames_for_dataset(dataset_name: str) -> dict[str, list[str]]:
+    """Find the renames for a given dataset, from the config.
+
+    Args:
+        dataset_name: The name of the dataset according to the config.
+
+    Returns:
+        dict[str, list[str]]: Key is new variable name, values are the old variable names as a list of strings.
+    """
+    columns_in_dataset = get_list_of_columns_for_dataset(dataset_name)
+    return find_var_renames(columns_in_dataset)

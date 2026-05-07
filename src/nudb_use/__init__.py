@@ -7,6 +7,8 @@ from nudb_config import settings
 from nudb_use.datasets.microdata import MicroData
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.metadata import find_var
+from nudb_use.metadata import find_var_renames
+from nudb_use.metadata import find_var_renames_for_dataset
 from nudb_use.metadata import find_vars
 from nudb_use.metadata import get_dtypes
 from nudb_use.metadata import get_list_of_columns_for_dataset
@@ -27,6 +29,8 @@ __all__ = [
     "NudbData",
     "derive",
     "find_var",
+    "find_var_renames",
+    "find_var_renames_for_dataset",
     "find_vars",
     "get_dtypes",
     "get_list_of_columns_for_dataset",
