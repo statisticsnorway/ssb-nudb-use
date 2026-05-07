@@ -10,6 +10,9 @@ find_var_module = importlib.import_module(
 from nudb_use.metadata.nudb_config.find_var_missing import find_var
 from nudb_use.metadata.nudb_config.find_var_missing import find_vars
 from nudb_use.metadata.nudb_config.find_var_missing import variables_missing_from_config
+from nudb_use.metadata.nudb_config.find_var_missing import find_var_renames
+from nudb_use.metadata.nudb_config.find_var_missing import find_var_renames_for_dataset
+
 
 
 class FakeSettings:
@@ -111,3 +114,36 @@ def test_look_up_dtype_length_for_dataset(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert "DATETIME" in result.split("\n")[2]
     assert "STRING" in result.split("\n")[3] and "10" in result.split("\n")[3]
+
+
+
+def test_find_var_renames(monkeypatch: pytest.MonkeyPatch -> None:
+    fake_settings = FakeSettings(
+        variables={"new": SimpleNamespace(name="new", renamed_from=["old", "other_old"])}
+    )
+    monkeypatch.setattr(find_var_module, "settings", fake_settings)
+    monkeypatch.setattr(find_var_module, "klass", SimpleNamespace())
+    expected = {"new": ["old", "other_old"]}
+
+    result = find_var_renames("new")
+    assert result == expected
+    result = find_var_renames("old")
+    assert result == expected
+    result = find_var_renames("other_old")
+    assert result == expected
+    
+
+def test_find_var_renames_for_dataset(monkeypatch: pytest.MonkeyPatch -> None:
+    
+    fake_settings = SimpleNamespace(
+        datasets={"dataset": SimpleNamespace(variables=["new"])},
+        variables={
+            "new": SimpleNamespace(renamed_from=["old", "other_old"]),
+        },
+    )
+    monkeypatch.setattr(find_var_module, "settings", fake_settings)
+
+    expected = {"new": ["old", "other_old"]}
+    
+    result = find_var_renames_for_dataset("dataset")
+    assert result == expected
