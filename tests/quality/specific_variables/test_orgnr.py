@@ -141,8 +141,7 @@ def test_subcheck_orgnrbed_orgnr_foretak_connected_reports_missing_bof_pairs(
         lambda **_kwargs: "SELECT fake_bof_connections",
     )
     monkeypatch.setattr(
-        orgnr_quality.nudb_database,
-        "get_connection",
+        "nudb_use.quality.specific_variables.orgnr.nudb_database.get_connection",
         lambda: FakeConnection(),
     )
 
@@ -200,8 +199,7 @@ def test_check_orgnrbed_reports_invalid_connections_with_stubbed_bof(
         lambda **_kwargs: "SELECT fake_bof_connections",
     )
     monkeypatch.setattr(
-        orgnr_quality.nudb_database,
-        "get_connection",
+        "nudb_use.quality.specific_variables.orgnr.nudb_database.get_connection",
         lambda: FakeConnection(),
     )
 
