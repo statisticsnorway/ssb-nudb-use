@@ -80,14 +80,13 @@ def _generate_utd_hoeyeste_view(
 
         T1 AS (
             SELECT
-                *,
+                T0.*,
                 MAX(utd_hoeyeste_rangering) OVER (
                     PARTITION BY snr
                     ORDER BY utd_hoeyeste_aar
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS cmax_utd_hoeyeste_rangering
-            FROM
-                T0
+                    RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) AS cummax_between_max_within_rangering
+            FROM T0
         )
 
         SELECT
@@ -101,7 +100,7 @@ def _generate_utd_hoeyeste_view(
         FROM
             T1
         WHERE
-            utd_hoeyeste_rangering==cmax_utd_hoeyeste_rangering
+            utd_hoeyeste_rangering==cummax_between_max_within_rangering;
     """
 
     connection.execute(query)
