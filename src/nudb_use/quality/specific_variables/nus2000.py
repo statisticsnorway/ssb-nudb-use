@@ -79,7 +79,7 @@ def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None
     nus_maske_ok = (col.str[0].isin([str(x) for x in range(1, 9)])) & (
         col.str.len() == 6
     )
-    non_valid_nus = ", ".join(list(col[~nus_maske_ok].unique()))
+    non_valid_nus = ", ".join(str(nus) for nus in col[~nus_maske_ok].unique())
 
     if len(non_valid_nus):
         err = NudbQualityError(f"Nonvalid nuscodes: {non_valid_nus}")
