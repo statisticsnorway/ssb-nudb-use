@@ -122,23 +122,29 @@ def test_subcheck_orgnrbed_orgnr_foretak_connected_reports_missing_bof_pairs(
         dtype="string",
     )
 
-    class FakeNudbData:
-        def __init__(self, name: str) -> None:
-            assert name == "_bof_dated_orgnr_connections"
-
-        def select(self, expr: str) -> "FakeNudbData":
-            assert expr == "DISTINCT orgnr, orgnrbed"
-            return self
-
-        def where(self, expr: str) -> "FakeNudbData":
-            assert "orgnr in" in expr
-            assert "orgnrbed in" in expr
-            return self
-
+    class FakeResult:
         def df(self) -> pd.DataFrame:
             return bof_connections.copy()
 
-    monkeypatch.setattr(orgnr_quality, "NudbData", FakeNudbData)
+    class FakeConnection:
+        def register(self, alias: str, df: pd.DataFrame) -> None:
+            assert alias == "orgnr_connection_check_input"
+            assert len(df) == 3
+
+        def sql(self, sql: str) -> FakeResult:
+            assert sql == "SELECT fake_bof_connections"
+            return FakeResult()
+
+    monkeypatch.setattr(
+        orgnr_quality,
+        "_bof_dated_orgnr_connections_lookup_sql",
+        lambda **_kwargs: "SELECT fake_bof_connections",
+    )
+    monkeypatch.setattr(
+        orgnr_quality.nudb_database,
+        "get_connection",
+        lambda: FakeConnection(),
+    )
 
     err = subcheck_orgnrbed_orgnr_foretak_connected(
         col_foretak=pd.Series(
@@ -175,20 +181,29 @@ def test_check_orgnrbed_reports_invalid_connections_with_stubbed_bof(
         dtype="string",
     )
 
-    class FakeNudbData:
-        def __init__(self, name: str) -> None:
-            assert name == "_bof_dated_orgnr_connections"
-
-        def select(self, expr: str) -> "FakeNudbData":
-            return self
-
-        def where(self, expr: str) -> "FakeNudbData":
-            return self
-
+    class FakeResult:
         def df(self) -> pd.DataFrame:
             return bof_connections.copy()
 
-    monkeypatch.setattr(orgnr_quality, "NudbData", FakeNudbData)
+    class FakeConnection:
+        def register(self, alias: str, df: pd.DataFrame) -> None:
+            assert alias == "orgnr_connection_check_input"
+            assert len(df) == 3
+
+        def sql(self, sql: str) -> FakeResult:
+            assert sql == "SELECT fake_bof_connections"
+            return FakeResult()
+
+    monkeypatch.setattr(
+        orgnr_quality,
+        "_bof_dated_orgnr_connections_lookup_sql",
+        lambda **_kwargs: "SELECT fake_bof_connections",
+    )
+    monkeypatch.setattr(
+        orgnr_quality.nudb_database,
+        "get_connection",
+        lambda: FakeConnection(),
+    )
 
     df = pd.DataFrame(
         {

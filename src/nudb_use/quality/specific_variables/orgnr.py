@@ -1,6 +1,9 @@
+from time import perf_counter
+
 import pandas as pd
 
-from nudb_use.datasets.nudb_data import NudbData
+from nudb_use.datasets.bof import _bof_dated_orgnr_connections_lookup_sql
+from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
@@ -212,29 +215,62 @@ def subcheck_orgnrbed_orgnr_foretak_connected(
     check_connections.columns = [col_foretak_name, col_orgnrbed_name]
     check_connections = check_connections[check_connections.notna().all(axis=1)]
     check_connections = check_connections.astype("string").drop_duplicates()
+    logger.info(
+        "Prepared "
+        f"{len(check_connections)} distinct non-empty {col_foretak_name}/{col_orgnrbed_name} "
+        "pairs to validate against BOF."
+    )
 
     if check_connections.empty:
+        logger.info(
+            f"No complete {col_foretak_name}/{col_orgnrbed_name} pairs to validate."
+        )
         return None
 
-    orgnr_foretak_str = "', '".join(
-        str(value).replace("'", "''")
-        for value in check_connections[col_foretak_name].unique()
-    )
-    orgnrbed_str = "', '".join(
-        str(value).replace("'", "''")
-        for value in check_connections[col_orgnrbed_name].unique()
-    )
-    bof_connections = (
-        NudbData("_bof_dated_orgnr_connections")
-        .select("DISTINCT orgnr, orgnrbed")
-        .where(
-            f"""orgnr in ('{orgnr_foretak_str}') OR orgnrbed in ('{orgnrbed_str}')"""
-        )
-        .df()
-        .astype("string")
-        .rename(columns={"orgnr": col_foretak_name})
+    n_unique_orgnr_foretak = check_connections[col_foretak_name].nunique(dropna=True)
+    n_unique_orgnrbed = check_connections[col_orgnrbed_name].nunique(dropna=True)
+    logger.info(
+        "Preparing BOF connection lookup for "
+        f"{n_unique_orgnr_foretak} unique {col_foretak_name} values and "
+        f"{n_unique_orgnrbed} unique {col_orgnrbed_name} values."
     )
 
+    logger.info("Registering input orgnr connection pairs in DuckDB.")
+    con = nudb_database.get_connection()
+    con.register("orgnr_connection_check_input", check_connections)
+    lookup_sql = _bof_dated_orgnr_connections_lookup_sql(
+        input_alias="orgnr_connection_check_input",
+        orgnr_col=col_foretak_name,
+        orgnrbed_col=col_orgnrbed_name,
+    )
+
+    if lookup_sql is None:
+        logger.warning(
+            "Found no BOF files to build targeted orgnr connection lookup. Treating BOF lookup as empty."
+        )
+        bof_connections = pd.DataFrame(columns=["orgnr", "orgnrbed"])
+    else:
+        logger.info(
+            "Executing targeted BOF connection lookup query. If processing stops here, "
+            "DuckDB is scanning BOF files for only the orgnr values present in this dataset."
+        )
+        start = perf_counter()
+        bof_connections = con.sql(lookup_sql).df()
+        logger.info(
+            "Finished targeted BOF connection lookup query in "
+            f"{perf_counter() - start:.1f}s. Got {len(bof_connections)} distinct BOF pairs."
+        )
+
+    logger.info(
+        "Finished BOF connection lookup preparation for "
+        f"{n_unique_orgnr_foretak} unique {col_foretak_name} values and "
+        f"{n_unique_orgnrbed} unique {col_orgnrbed_name} values."
+    )
+    bof_connections = bof_connections.astype("string").rename(
+        columns={"orgnr": col_foretak_name}
+    )
+
+    logger.info("Merging input pairs with BOF connection lookup result.")
     missing_connections_df = check_connections.merge(
         bof_connections,
         on=[col_foretak_name, col_orgnrbed_name],
@@ -244,6 +280,9 @@ def subcheck_orgnrbed_orgnr_foretak_connected(
     missing_connections_df = missing_connections_df[
         missing_connections_df["_merge"] == "left_only"
     ][[col_foretak_name, col_orgnrbed_name]]
+    logger.info(
+        f"Found {len(missing_connections_df)} missing BOF connection pairs after merge."
+    )
 
     if missing_connections_df.empty:
         return None

@@ -14,7 +14,9 @@ from nudb_use.variables.checks import pyarrow_columns_from_metadata
 UNION_ALL = "\nUNION ALL\n"
 
 
-def _bof_latest_orgnr_placement_ctes_sql() -> str | None:
+def _bof_latest_orgnr_placement_ctes_sql(
+    relevant_orgnr_cte: str | None = None,
+) -> str | None:
     """Return CTE SQL for latest BOF placement of each orgnr."""
     paths = _get_all_bof_situttak_october_paths()
     union_parts: list[str] = []
@@ -41,6 +43,11 @@ def _bof_latest_orgnr_placement_ctes_sql() -> str | None:
     if not union_parts:
         return None
 
+    relevant_orgnr_filter = (
+        ""
+        if relevant_orgnr_cte is None
+        else f"AND orgnr IN (SELECT orgnr FROM {relevant_orgnr_cte})"
+    )
     placements_sql = UNION_ALL.join(union_parts)
     return f"""
         placements AS (
@@ -69,6 +76,7 @@ def _bof_latest_orgnr_placement_ctes_sql() -> str | None:
                     orgnr IS NOT NULL AND
                     TRIM(orgnr) != '' AND
                     orgnr != '000000000'
+                    {relevant_orgnr_filter}
             )
             WHERE placement_rank = 1
         )
@@ -292,8 +300,17 @@ def _generate_bof_dated_orgnr_connections_view(
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All the unique orgnr <-> orgnrbed connections from october-files and the first and last files with orgnrbed in."""
+    logger.info("Finding BOF files for dated orgnr connections.")
     paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
+    logger.info(f"Found {len(paths)} BOF files for dated orgnr connections.")
+
+    logger.info("Building latest orgnr placement CTE for dated orgnr connections.")
     latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
+    logger.info(
+        "Latest orgnr placement CTE for dated orgnr connections is "
+        f"{'available' if latest_placement_ctes_sql is not None else 'empty'}."
+    )
+
     union_parts: list[str] = []
     for path in paths:
         path_str = str(path).replace("'", "''")
@@ -322,6 +339,9 @@ def _generate_bof_dated_orgnr_connections_view(
         )
         return
 
+    logger.info(
+        f"Building dated orgnr connections view SQL from {len(union_parts)} BOF file parts."
+    )
     union_sql = UNION_ALL.join(union_parts)
 
     query = f"""
@@ -351,7 +371,90 @@ def _generate_bof_dated_orgnr_connections_view(
         ;
     """
 
+    logger.info(f"Creating DuckDB view {alias} for dated orgnr connections.")
     connection.sql(query)
+    logger.info(f"Created DuckDB view {alias} for dated orgnr connections.")
+
+
+def _bof_dated_orgnr_connections_lookup_sql(
+    input_alias: str,
+    orgnr_col: str,
+    orgnrbed_col: str,
+) -> str | None:
+    """Return SQL for BOF connections limited to orgnr values in an input table."""
+    paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
+    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(
+        relevant_orgnr_cte="relevant_orgnr"
+    )
+    union_parts: list[str] = []
+    for path in paths:
+        path_str = str(path).replace("'", "''")
+        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+
+        union_parts.append(f"""
+            SELECT DISTINCT
+                CAST(org_nr AS VARCHAR) AS orgnr,
+                CAST(orgnrbed AS VARCHAR) AS orgnrbed,
+                CAST('{path_period}' AS DATE) AS bof_period_date
+            FROM read_parquet('{path_str}')
+            """)
+
+    if not union_parts or latest_placement_ctes_sql is None:
+        return None
+
+    union_sql = UNION_ALL.join(union_parts)
+    return f"""
+        WITH input_foretak AS (
+            SELECT DISTINCT
+                CAST({orgnr_col} AS VARCHAR) AS orgnr
+            FROM {input_alias}
+            WHERE
+                {orgnr_col} IS NOT NULL AND
+                TRIM(CAST({orgnr_col} AS VARCHAR)) != '' AND
+                CAST({orgnr_col} AS VARCHAR) != '000000000'
+        ),
+
+        input_orgnrbed AS (
+            SELECT DISTINCT
+                CAST({orgnrbed_col} AS VARCHAR) AS orgnr
+            FROM {input_alias}
+            WHERE
+                {orgnrbed_col} IS NOT NULL AND
+                TRIM(CAST({orgnrbed_col} AS VARCHAR)) != '' AND
+                CAST({orgnrbed_col} AS VARCHAR) != '000000000'
+        ),
+
+        relevant_orgnr AS (
+            SELECT orgnr FROM input_foretak
+            UNION
+            SELECT orgnr FROM input_orgnrbed
+        ),
+
+        raw_connections AS (
+            SELECT *
+            FROM ({union_sql})
+            WHERE
+                orgnrbed IS NOT NULL AND
+                orgnr IS NOT NULL AND TRIM(orgnr) != '' AND orgnr != '000000000' AND
+                TRIM(orgnrbed) != '' AND orgnrbed != '000000000' AND
+                orgnr IN (SELECT orgnr FROM input_foretak) AND
+                orgnrbed IN (SELECT orgnr FROM input_orgnrbed)
+        ),
+
+        {latest_placement_ctes_sql}
+
+        SELECT DISTINCT
+            conn.orgnr,
+            conn.orgnrbed
+        FROM raw_connections AS conn
+        JOIN latest_placement AS orgnr_class
+            ON conn.orgnr = orgnr_class.orgnr
+           AND orgnr_class.orgnr_type = 'foretak'
+        JOIN latest_placement AS orgnrbed_class
+            ON conn.orgnrbed = orgnrbed_class.orgnr
+           AND orgnrbed_class.orgnr_type = 'orgnrbed'
+        ;
+    """
 
 
 @lru_cache

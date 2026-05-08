@@ -208,7 +208,10 @@ def find_var_renames(var_names: list[str]) -> dict[str, list[str]]:
     return {
         v["name"]: v["renamed_from"]
         for v in lookup.values()
-        if v is not None and "renamed_from" in v and len(v["renamed_from"])
+        if v is not None and 
+            "renamed_from" in v and 
+            v["renamed_from"] is not None and 
+            len(v["renamed_from"])
     }
 
 
