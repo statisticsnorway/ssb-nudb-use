@@ -20,12 +20,7 @@ def _check_dtype_column(x: pd.Series, name: str) -> NudbQualityError | None:
     dtype = metadata.dtype
 
     # Is the metadata valid?
-    if not dtype:
-        logger.warning(
-            f"Variable '{name}' does not have a specified dtype in the config!"
-        )
-        return None
-    elif dtype not in mappings.keys():
+    if dtype not in mappings.keys():
         logger.error(f"Unable to find pandas dtype for '{dtype}'!")
         return None
 

@@ -1,10 +1,10 @@
 import pandas as pd
 
-from nudb_use.quality.duplicated_columns import check_dtypes
+from nudb_use.quality.dtypes import check_dtypes
 from tests.utils_testing.validate_errors import validate_NudbQualityError_list
 
 
-def test_check_dtypes():
+def test_check_dtypes() -> None:
     df = pd.DataFrame(
         {
             "snr": [
