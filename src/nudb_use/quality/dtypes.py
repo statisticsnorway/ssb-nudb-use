@@ -45,6 +45,8 @@ def _check_dtype_column(x: pd.Series, name: str) -> NudbQualityError | None:
                 f"Variable could not be casted to the correct dtype ({target})! Message:\n{err}"
             )
 
+    return None
+
 
 def check_dtypes(
     df: pd.DataFrame,
