@@ -62,9 +62,7 @@ def check_dtypes(
         list[NudbQualityError]: Errors describing columns whose values are outside
         the allowed width definitions, or an empty list when all pass.
     """
-    with LoggerStack(
-        "Checking the widths of values in columns according to a dict sent in or gotten from the config."
-    ):
+    with LoggerStack("Checking the dtypes of columns according to config"):
         errors = []
 
         for col in df.columns:
