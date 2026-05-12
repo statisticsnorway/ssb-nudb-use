@@ -8,6 +8,7 @@ from nudb_use.exceptions.groups import raise_exception_group
 from nudb_use.metadata.nudb_klass import check_klass_codes
 from nudb_use.nudb_logger import logger
 from nudb_use.quality.check_bool_string_columns import check_bool_string_columns
+from nudb_use.quality.dtypes import check_dtypes
 from nudb_use.quality.duplicated_columns import check_duplicated_columns
 from nudb_use.quality.missing import check_columns_only_missing
 from nudb_use.quality.missing import check_missing_thresholds_dataset_name
@@ -53,6 +54,7 @@ def run_quality_suite(
     errors += check_column_presence(df, dataset_name=dataset_name, raise_errors=False)
     errors += check_outdated_variables(df)
     errors += check_duplicated_columns(df)
+    errors += check_dtypes(df)
     errors += check_column_widths(df, raise_errors=False)
     errors += check_bool_string_columns(df, raise_errors=False)
 
@@ -69,6 +71,7 @@ def run_quality_suite(
         use_external_datasets=use_external_datasets,
         **kwargs,
     )
+
     if errors and raise_errors:
         raise_exception_group(errors)
     if not errors:
