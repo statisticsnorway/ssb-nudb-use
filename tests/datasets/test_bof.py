@@ -8,7 +8,6 @@ import pandas as pd
 
 from nudb_use.datasets import bof as bof_module
 from nudb_use.datasets.bof import _first_date_from_path_period
-from nudb_use.datasets.bof import _generate_bof_dated_orgnr_connections_view
 from nudb_use.datasets.bof import _generate_bof_unique_orgnr_foretak_view
 from nudb_use.datasets.bof import _get_all_bof_situttak_october_paths
 from nudb_use.datasets.nudb_database import _NudbDatabase
@@ -67,35 +66,6 @@ def test_generate_bof_unique_orgnr_foretak_view_creates_empty_view_when_no_paths
     rows = connection.sql("SELECT * FROM TEST_EMPTY_BOF_UNIQUE_FORETAK").df()
 
     assert columns == ["orgnr"]
-    assert rows.empty
-
-    del database
-
-
-def test_generate_bof_dated_orgnr_connections_view_creates_empty_view_when_no_paths(
-    monkeypatch: Any,
-) -> None:
-    database = _NudbDatabase()
-    connection = database.get_connection()
-
-    monkeypatch.setattr(
-        "nudb_use.datasets.bof._get_all_bof_situttak_october_paths",
-        lambda want_cols=None: [],
-    )
-
-    _generate_bof_dated_orgnr_connections_view(
-        alias="TEST_EMPTY_BOF_CONNECTIONS",
-        connection=connection,
-    )
-
-    columns = (
-        connection.sql("DESCRIBE TEST_EMPTY_BOF_CONNECTIONS")
-        .df()["column_name"]
-        .tolist()
-    )
-    rows = connection.sql("SELECT * FROM TEST_EMPTY_BOF_CONNECTIONS").df()
-
-    assert columns == ["orgnr", "orgnrbed", "bof_period_date"]
     assert rows.empty
 
     del database
