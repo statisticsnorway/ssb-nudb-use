@@ -162,7 +162,10 @@ def test_bof_connection_lookup_sql_builders_use_shared_parts(
     monkeypatch.setattr(
         bof_module,
         "_bof_connection_lookup_sql_parts",
-        lambda: ("SELECT 'f' AS orgnr, 'b' AS orgnrbed, DATE '2025-10-01' AS bof_period_date", "latest_placement AS (SELECT 'f' AS orgnr, 'foretak' AS orgnr_type)"),
+        lambda: (
+            "SELECT 'f' AS orgnr, 'b' AS orgnrbed, DATE '2025-10-01' AS bof_period_date",
+            "latest_placement AS (SELECT 'f' AS orgnr, 'foretak' AS orgnr_type)",
+        ),
     )
 
     pair_lookup_sql = _bof_dated_orgnr_connections_lookup_sql(
