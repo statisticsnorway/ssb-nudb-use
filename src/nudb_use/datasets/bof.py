@@ -295,12 +295,7 @@ def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
     raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
 
 
-def _bof_dated_orgnr_connections_lookup_sql(
-    input_alias: str,
-    orgnr_col: str,
-    orgnrbed_col: str,
-) -> str | None:
-    """Return SQL for BOF connections limited to orgnr values in an input table."""
+def _bof_connection_lookup_sql_parts() -> tuple[str, str] | None:
     paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
     latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(
         relevant_orgnr_cte="relevant_orgnr"
@@ -321,7 +316,20 @@ def _bof_dated_orgnr_connections_lookup_sql(
     if not union_parts or latest_placement_ctes_sql is None:
         return None
 
-    union_sql = UNION_ALL.join(union_parts)
+    return UNION_ALL.join(union_parts), latest_placement_ctes_sql
+
+
+def _bof_dated_orgnr_connections_lookup_sql(
+    input_alias: str,
+    orgnr_col: str,
+    orgnrbed_col: str,
+) -> str | None:
+    """Return SQL for BOF connections limited to orgnr values in an input table."""
+    lookup_parts = _bof_connection_lookup_sql_parts()
+    if lookup_parts is None:
+        return None
+
+    union_sql, latest_placement_ctes_sql = lookup_parts
     return f"""
         WITH input_foretak AS (
             SELECT DISTINCT
@@ -383,27 +391,11 @@ def _bof_orgnrbed_to_foretak_lookup_sql(
     row_id_col: str,
 ) -> str | None:
     """Return SQL mapping input orgnrbed values to dated orgnr_foretak values."""
-    paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
-    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(
-        relevant_orgnr_cte="relevant_orgnr"
-    )
-    union_parts: list[str] = []
-    for path in paths:
-        path_str = str(path).replace("'", "''")
-        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
-
-        union_parts.append(f"""
-            SELECT DISTINCT
-                CAST(org_nr AS VARCHAR) AS orgnr,
-                CAST(orgnrbed AS VARCHAR) AS orgnrbed,
-                CAST('{path_period}' AS DATE) AS bof_period_date
-            FROM read_parquet('{path_str}')
-            """)
-
-    if not union_parts or latest_placement_ctes_sql is None:
+    lookup_parts = _bof_connection_lookup_sql_parts()
+    if lookup_parts is None:
         return None
 
-    union_sql = UNION_ALL.join(union_parts)
+    union_sql, latest_placement_ctes_sql = lookup_parts
     return f"""
         WITH input_clean AS (
             SELECT
@@ -536,27 +528,11 @@ def _bof_foretak_to_orgnrbed_lookup_sql(
     row_id_col: str,
 ) -> str | None:
     """Return SQL mapping input orgnr_foretak values to dated one-to-one orgnrbed values."""
-    paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
-    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(
-        relevant_orgnr_cte="relevant_orgnr"
-    )
-    union_parts: list[str] = []
-    for path in paths:
-        path_str = str(path).replace("'", "''")
-        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
-
-        union_parts.append(f"""
-            SELECT DISTINCT
-                CAST(org_nr AS VARCHAR) AS orgnr,
-                CAST(orgnrbed AS VARCHAR) AS orgnrbed,
-                CAST('{path_period}' AS DATE) AS bof_period_date
-            FROM read_parquet('{path_str}')
-            """)
-
-    if not union_parts or latest_placement_ctes_sql is None:
+    lookup_parts = _bof_connection_lookup_sql_parts()
+    if lookup_parts is None:
         return None
 
-    union_sql = UNION_ALL.join(union_parts)
+    union_sql, latest_placement_ctes_sql = lookup_parts
     return f"""
         WITH input_clean AS (
             SELECT

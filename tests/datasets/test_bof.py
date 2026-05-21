@@ -7,6 +7,10 @@ from uuid import uuid4
 import pandas as pd
 
 from nudb_use.datasets import bof as bof_module
+from nudb_use.datasets.bof import _bof_connection_lookup_sql_parts
+from nudb_use.datasets.bof import _bof_dated_orgnr_connections_lookup_sql
+from nudb_use.datasets.bof import _bof_foretak_to_orgnrbed_lookup_sql
+from nudb_use.datasets.bof import _bof_orgnrbed_to_foretak_lookup_sql
 from nudb_use.datasets.bof import _first_date_from_path_period
 from nudb_use.datasets.bof import _generate_bof_unique_orgnr_foretak_view
 from nudb_use.datasets.bof import _get_all_bof_situttak_october_paths
@@ -95,6 +99,137 @@ def test_first_date_from_path_period_accepts_datetime(monkeypatch: Any) -> None:
     result = _first_date_from_path_period("ignored_p2024-10_v1.parquet")
 
     assert result.isoformat() == "2024-10-02"
+
+
+def test_bof_connection_lookup_sql_parts_builds_union_and_latest_cte(
+    monkeypatch: Any,
+) -> None:
+    workdir = Path.cwd() / f".pytest-bof-sql-{uuid4().hex}"
+    workdir.mkdir()
+    bof_path = workdir / "vof's_p2025-10_v1.parquet"
+    bof_path.touch()
+
+    monkeypatch.setattr(
+        bof_module,
+        "_get_all_bof_situttak_october_paths",
+        lambda want_cols=None: [bof_path],
+    )
+    monkeypatch.setattr(
+        bof_module,
+        "_first_date_from_path_period",
+        lambda _path: pd.Timestamp("2025-10-01").date(),
+    )
+    monkeypatch.setattr(
+        bof_module,
+        "_bof_latest_orgnr_placement_ctes_sql",
+        lambda relevant_orgnr_cte=None: f"latest_placement AS (SELECT '{relevant_orgnr_cte}' AS source)",
+    )
+
+    try:
+        result = _bof_connection_lookup_sql_parts()
+    finally:
+        shutil.rmtree(workdir)
+
+    assert result is not None
+    union_sql, latest_cte_sql = result
+    assert "CAST(org_nr AS VARCHAR) AS orgnr" in union_sql
+    assert "CAST(orgnrbed AS VARCHAR) AS orgnrbed" in union_sql
+    assert "2025-10-01" in union_sql
+    assert "vof''s_p2025-10_v1.parquet" in union_sql
+    assert "relevant_orgnr" in latest_cte_sql
+
+
+def test_bof_connection_lookup_sql_parts_returns_none_without_inputs(
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setattr(
+        bof_module,
+        "_get_all_bof_situttak_october_paths",
+        lambda want_cols=None: [],
+    )
+    monkeypatch.setattr(
+        bof_module,
+        "_bof_latest_orgnr_placement_ctes_sql",
+        lambda relevant_orgnr_cte=None: "latest_placement AS (SELECT 1)",
+    )
+
+    assert _bof_connection_lookup_sql_parts() is None
+
+
+def test_bof_connection_lookup_sql_builders_use_shared_parts(
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setattr(
+        bof_module,
+        "_bof_connection_lookup_sql_parts",
+        lambda: ("SELECT 'f' AS orgnr, 'b' AS orgnrbed, DATE '2025-10-01' AS bof_period_date", "latest_placement AS (SELECT 'f' AS orgnr, 'foretak' AS orgnr_type)"),
+    )
+
+    pair_lookup_sql = _bof_dated_orgnr_connections_lookup_sql(
+        input_alias="input_pairs",
+        orgnr_col="orgnr_foretak",
+        orgnrbed_col="orgnrbed",
+    )
+    bed_lookup_sql = _bof_orgnrbed_to_foretak_lookup_sql(
+        input_alias="input_rows",
+        orgnrbed_col="orgnrbed",
+        join_date_col="join_date",
+        row_id_col="_row_id",
+    )
+    foretak_lookup_sql = _bof_foretak_to_orgnrbed_lookup_sql(
+        input_alias="input_rows",
+        orgnr_col="orgnr",
+        join_date_col="join_date",
+        row_id_col="_row_id",
+    )
+
+    assert pair_lookup_sql is not None
+    assert "FROM input_pairs" in pair_lookup_sql
+    assert "input_foretak" in pair_lookup_sql
+    assert "SELECT DISTINCT" in pair_lookup_sql
+
+    assert bed_lookup_sql is not None
+    assert "TRIM(CAST(orgnrbed AS VARCHAR)) AS orgnrbed" in bed_lookup_sql
+    assert "conn_changes" in bed_lookup_sql
+    assert "resolved.orgnr" in bed_lookup_sql
+
+    assert foretak_lookup_sql is not None
+    assert "TRIM(CAST(orgnr AS VARCHAR)) AS orgnr" in foretak_lookup_sql
+    assert "conn_periods" in foretak_lookup_sql
+    assert "resolved.orgnrbed" in foretak_lookup_sql
+
+
+def test_bof_connection_lookup_sql_builders_return_none_without_shared_parts(
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setattr(bof_module, "_bof_connection_lookup_sql_parts", lambda: None)
+
+    assert (
+        _bof_dated_orgnr_connections_lookup_sql(
+            input_alias="input_pairs",
+            orgnr_col="orgnr_foretak",
+            orgnrbed_col="orgnrbed",
+        )
+        is None
+    )
+    assert (
+        _bof_orgnrbed_to_foretak_lookup_sql(
+            input_alias="input_rows",
+            orgnrbed_col="orgnrbed",
+            join_date_col="join_date",
+            row_id_col="_row_id",
+        )
+        is None
+    )
+    assert (
+        _bof_foretak_to_orgnrbed_lookup_sql(
+            input_alias="input_rows",
+            orgnr_col="orgnr",
+            join_date_col="join_date",
+            row_id_col="_row_id",
+        )
+        is None
+    )
 
 
 def test_get_all_bof_situttak_october_paths_filters_and_adds_first_last(
