@@ -11,7 +11,6 @@ import duckdb as db
 import nudb_use.datasets.external as external_datasets
 from nudb_use.datasets.avslutta import _generate_avslutta_fullfoert_view
 from nudb_use.datasets.avslutta import _generate_avslutta_view
-from nudb_use.datasets.bof import _generate_bof_dated_orgnr_connections_view
 from nudb_use.datasets.bof import _generate_bof_eierforhold_view
 from nudb_use.datasets.bof import _generate_bof_unique_orgnr_foretak_view
 from nudb_use.datasets.bof import _generate_bof_unique_orgnrbed_view
@@ -92,7 +91,6 @@ class _NudbDatabase:
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "_bof_unique_orgnrbed": _generate_bof_unique_orgnrbed_view,
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
-            "_bof_dated_orgnr_connections": _generate_bof_dated_orgnr_connections_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,
             # MicroData()
             MICRODATA_PREFIX

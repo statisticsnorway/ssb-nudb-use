@@ -6,6 +6,8 @@ from typing import cast
 
 import pandas as pd
 
+from nudb_use.datasets.bof import _bof_foretak_to_orgnrbed_lookup_sql
+from nudb_use.datasets.bof import _bof_orgnrbed_to_foretak_lookup_sql
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.metadata.external_apis.brreg_api import get_enhet
@@ -240,115 +242,26 @@ def _find_orgnr_foretak_bof(
 
         original_index = orgnrbed_col.index
 
-        logger.info("Initialize the dataset for the bof connections")
-        bof_rel = NudbData("_bof_dated_orgnr_connections")
-
         logger.info("Attach created pandas dataframe to the nudb_database connection.")
         con = nudb_database.get_connection()
         con.register("input_df", input_df)
 
-        logger.info(
-            "Executing join on dates for data and orgnrbed -> orgnr_foretak connections"
+        lookup_sql = _bof_orgnrbed_to_foretak_lookup_sql(
+            input_alias="input_df",
+            orgnrbed_col="orgnrbed",
+            join_date_col="join_date",
+            row_id_col="_row_id",
         )
-        result_df = con.sql(f"""
-            WITH input_clean AS (
-                SELECT
-                    _row_id,
-                    TRIM(orgnrbed) AS orgnrbed,
-                    CAST(join_date AS DATE) AS join_date
-                FROM input_df
-                WHERE orgnrbed IS NOT NULL
-                  AND TRIM(orgnrbed) <> ''
-                  AND orgnrbed <> '000000000'
-                  AND join_date IS NOT NULL
-            ),
-
-            input_keys AS (
-                SELECT DISTINCT
-                    orgnrbed,
-                    join_date
-                FROM input_clean
-            ),
-
-            relevant_orgnrbed AS (
-                SELECT DISTINCT
-                    orgnrbed
-                FROM input_keys
-            ),
-
-            conn_base AS (
-                SELECT
-                    CAST(conn.orgnrbed AS VARCHAR) AS orgnrbed,
-                    CAST(conn.orgnr AS VARCHAR) AS orgnr,
-                    CAST(conn.bof_period_date AS DATE) AS bof_period_date
-                FROM {bof_rel.alias} AS conn
-                JOIN relevant_orgnrbed AS r
-                    ON CAST(conn.orgnrbed AS VARCHAR) = r.orgnrbed
-            ),
-
-            conn_changes AS (
-                SELECT
-                    orgnrbed,
-                    orgnr,
-                    bof_period_date
-                FROM (
-                    SELECT
-                        orgnrbed,
-                        orgnr,
-                        bof_period_date,
-                        LAG(orgnr) OVER (
-                            PARTITION BY orgnrbed
-                            ORDER BY bof_period_date
-                        ) AS prev_orgnr
-                    FROM conn_base
-                )
-                WHERE prev_orgnr IS NULL
-                   OR orgnr IS DISTINCT FROM prev_orgnr
-            ),
-
-            resolved_keys AS (
-                SELECT
-                    k.orgnrbed,
-                    k.join_date,
-                    COALESCE(
-                        (
-                            SELECT c.orgnr
-                            FROM conn_changes AS c
-                            WHERE c.orgnrbed = k.orgnrbed
-                              AND c.bof_period_date <= k.join_date
-                            ORDER BY c.bof_period_date DESC
-                            LIMIT 1
-                        ),
-                        (
-                            SELECT c.orgnr
-                            FROM conn_changes AS c
-                            WHERE c.orgnrbed = k.orgnrbed
-                              AND c.bof_period_date > k.join_date
-                            ORDER BY c.bof_period_date ASC
-                            LIMIT 1
-                        )
-                    ) AS orgnr
-                FROM input_keys AS k
-            ),
-
-            resolved AS (
-                SELECT
-                    inp._row_id,
-                    rk.orgnr
-                FROM input_clean AS inp
-                LEFT JOIN resolved_keys AS rk
-                    ON inp.orgnrbed = rk.orgnrbed
-                   AND inp.join_date = rk.join_date
+        if lookup_sql is None:
+            logger.warning(
+                "Found no BOF files to build targeted orgnrbed -> orgnr_foretak lookup. Returning empty result."
             )
+            return pd.Series(pd.NA, index=original_index, dtype="string")
 
-            SELECT
-                raw._row_id,
-                resolved.orgnr
-            FROM input_df AS raw
-            LEFT JOIN resolved
-                ON raw._row_id = resolved._row_id
-            ORDER BY raw._row_id
-            """).df()
+        logger.info(
+            "Executing targeted join on dates for data and orgnrbed -> orgnr_foretak connections"
+        )
+        result_df = con.sql(lookup_sql).df()
 
         result = result_df["orgnr"].astype("string").set_axis(original_index)
         return result
@@ -402,112 +315,24 @@ def _find_orgnrbed_enkelbedforetak_bof(
 
         original_index = orgnr_foretak_col.index
 
-        logger.info("Initialize the dataset for the bof connections")
-        bof_rel = NudbData("_bof_dated_orgnr_connections")
-
         logger.info("Attach created pandas dataframe to the nudb_database connection.")
         con = nudb_database.get_connection()
         con.register("input_df", input_df)
 
-        logger.info("Executing join from orgnr_foretak to orgnrbed")
-        result_df = con.sql(f"""
-            WITH input_clean AS (
-                SELECT
-                    _row_id,
-                    TRIM(orgnr) AS orgnr,
-                    CAST(join_date AS DATE) AS join_date
-                FROM input_df
-                WHERE orgnr IS NOT NULL
-                  AND TRIM(orgnr) <> ''
-                  AND orgnr <> '000000000'
-                  AND join_date IS NOT NULL
-            ),
-
-            input_keys AS (
-                SELECT DISTINCT
-                    orgnr,
-                    join_date
-                FROM input_clean
-            ),
-
-            relevant_orgnr AS (
-                SELECT DISTINCT
-                    orgnr
-                FROM input_keys
-            ),
-
-            -- One row per orgnr + period, summarizing whether that period is 1:1 or 1:m.
-            conn_periods AS (
-                SELECT
-                    CAST(conn.orgnr AS VARCHAR) AS orgnr,
-                    CAST(conn.bof_period_date AS DATE) AS bof_period_date,
-                    COUNT(DISTINCT CAST(conn.orgnrbed AS VARCHAR)) AS orgnrbed_count,
-                    MIN(CAST(conn.orgnrbed AS VARCHAR)) AS single_orgnrbed
-                FROM {bof_rel.alias} AS conn
-                JOIN relevant_orgnr AS r
-                    ON CAST(conn.orgnr AS VARCHAR) = r.orgnr
-                GROUP BY
-                    CAST(conn.orgnr AS VARCHAR),
-                    CAST(conn.bof_period_date AS DATE)
-            ),
-
-            chosen_periods AS (
-                SELECT
-                    k.orgnr,
-                    k.join_date,
-                    COALESCE(
-                        (
-                            SELECT p.bof_period_date
-                            FROM conn_periods AS p
-                            WHERE p.orgnr = k.orgnr
-                              AND p.bof_period_date <= k.join_date
-                            ORDER BY p.bof_period_date DESC
-                            LIMIT 1
-                        ),
-                        (
-                            SELECT p.bof_period_date
-                            FROM conn_periods AS p
-                            WHERE p.orgnr = k.orgnr
-                              AND p.bof_period_date > k.join_date
-                            ORDER BY p.bof_period_date ASC
-                            LIMIT 1
-                        )
-                    ) AS chosen_period
-                FROM input_keys AS k
-            ),
-
-            resolved_keys AS (
-                SELECT
-                    cp.orgnr,
-                    cp.join_date,
-                    CASE
-                        WHEN p.orgnrbed_count = 1 THEN p.single_orgnrbed
-                        ELSE NULL
-                    END AS orgnrbed
-                FROM chosen_periods AS cp
-                LEFT JOIN conn_periods AS p
-                    ON p.orgnr = cp.orgnr
-                   AND p.bof_period_date = cp.chosen_period
-            ),
-
-            resolved AS (
-                SELECT
-                    inp._row_id,
-                    rk.orgnrbed
-                FROM input_clean AS inp
-                LEFT JOIN resolved_keys AS rk
-                    ON inp.orgnr = rk.orgnr
-                   AND inp.join_date = rk.join_date
+        lookup_sql = _bof_foretak_to_orgnrbed_lookup_sql(
+            input_alias="input_df",
+            orgnr_col="orgnr",
+            join_date_col="join_date",
+            row_id_col="_row_id",
+        )
+        if lookup_sql is None:
+            logger.warning(
+                "Found no BOF files to build targeted orgnr_foretak -> orgnrbed lookup. Returning empty result."
             )
+            return pd.Series(pd.NA, index=original_index, dtype="string")
 
-            SELECT
-                raw._row_id,
-                resolved.orgnrbed
-            FROM input_df AS raw
-            LEFT JOIN resolved
-                ON raw._row_id = resolved._row_id
-            ORDER BY raw._row_id
-            """).df()
+        logger.info("Executing join from orgnr_foretak to orgnrbed")
+        result_df = con.sql(lookup_sql).df()
 
         result = result_df["orgnrbed"].astype("string").set_axis(original_index)
         return result

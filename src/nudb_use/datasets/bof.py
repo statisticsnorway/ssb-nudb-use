@@ -295,93 +295,7 @@ def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
     raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
 
 
-def _generate_bof_dated_orgnr_connections_view(
-    alias: str,
-    connection: db.DuckDBPyConnection,
-) -> None:
-    """All the unique orgnr <-> orgnrbed connections from october-files and the first and last files with orgnrbed in."""
-    logger.info("Finding BOF files for dated orgnr connections.")
-    paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
-    logger.info(f"Found {len(paths)} BOF files for dated orgnr connections.")
-
-    logger.info("Building latest orgnr placement CTE for dated orgnr connections.")
-    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
-    logger.info(
-        "Latest orgnr placement CTE for dated orgnr connections is "
-        f"{'available' if latest_placement_ctes_sql is not None else 'empty'}."
-    )
-
-    union_parts: list[str] = []
-    for path in paths:
-        path_str = str(path).replace("'", "''")
-        path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
-
-        union_parts.append(f"""
-            SELECT DISTINCT
-                org_nr as orgnr,
-                orgnrbed,
-                CAST('{path_period}' as DATE) as bof_period_date
-            FROM read_parquet('{path_str}')
-            """)
-
-    if not union_parts or latest_placement_ctes_sql is None:
-        logger.warning(
-            "Found no BOF files with orgnr/orgnrbed to build dated orgnr connections. Creating an empty view."
-        )
-        _create_empty_view(
-            alias,
-            connection,
-            {
-                "orgnr": "VARCHAR",
-                "orgnrbed": "VARCHAR",
-                "bof_period_date": "DATE",
-            },
-        )
-        return
-
-    logger.info(
-        f"Building dated orgnr connections view SQL from {len(union_parts)} BOF file parts."
-    )
-    union_sql = UNION_ALL.join(union_parts)
-
-    query = f"""
-        CREATE OR REPLACE VIEW {alias} AS
-        WITH raw_connections AS (
-            SELECT *
-            FROM ({union_sql})
-            WHERE
-                orgnrbed IS NOT NULL AND  -- Removes many rows, so most efficient to have first?
-                orgnr IS NOT NULL AND TRIM(CAST(orgnr AS VARCHAR)) != '' AND orgnr != '000000000' AND
-                TRIM(CAST(orgnrbed AS VARCHAR)) != '' AND orgnrbed != '000000000'
-        ),
-
-        {latest_placement_ctes_sql}
-
-        SELECT
-            conn.orgnr,
-            conn.orgnrbed,
-            conn.bof_period_date
-        FROM raw_connections AS conn
-        JOIN latest_placement AS orgnr_class
-            ON CAST(conn.orgnr AS VARCHAR) = orgnr_class.orgnr
-           AND orgnr_class.orgnr_type = 'foretak'
-        JOIN latest_placement AS orgnrbed_class
-            ON CAST(conn.orgnrbed AS VARCHAR) = orgnrbed_class.orgnr
-           AND orgnrbed_class.orgnr_type = 'orgnrbed'
-        ;
-    """
-
-    logger.info(f"Creating DuckDB view {alias} for dated orgnr connections.")
-    connection.sql(query)
-    logger.info(f"Created DuckDB view {alias} for dated orgnr connections.")
-
-
-def _bof_dated_orgnr_connections_lookup_sql(
-    input_alias: str,
-    orgnr_col: str,
-    orgnrbed_col: str,
-) -> str | None:
-    """Return SQL for BOF connections limited to orgnr values in an input table."""
+def _bof_connection_lookup_sql_parts() -> tuple[str, str] | None:
     paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
     latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(
         relevant_orgnr_cte="relevant_orgnr"
@@ -402,7 +316,20 @@ def _bof_dated_orgnr_connections_lookup_sql(
     if not union_parts or latest_placement_ctes_sql is None:
         return None
 
-    union_sql = UNION_ALL.join(union_parts)
+    return UNION_ALL.join(union_parts), latest_placement_ctes_sql
+
+
+def _bof_dated_orgnr_connections_lookup_sql(
+    input_alias: str,
+    orgnr_col: str,
+    orgnrbed_col: str,
+) -> str | None:
+    """Return SQL for BOF connections limited to orgnr values in an input table."""
+    lookup_parts = _bof_connection_lookup_sql_parts()
+    if lookup_parts is None:
+        return None
+
+    union_sql, latest_placement_ctes_sql = lookup_parts
     return f"""
         WITH input_foretak AS (
             SELECT DISTINCT
@@ -453,6 +380,286 @@ def _bof_dated_orgnr_connections_lookup_sql(
         JOIN latest_placement AS orgnrbed_class
             ON conn.orgnrbed = orgnrbed_class.orgnr
            AND orgnrbed_class.orgnr_type = 'orgnrbed'
+        ;
+    """
+
+
+def _bof_orgnrbed_to_foretak_lookup_sql(
+    input_alias: str,
+    orgnrbed_col: str,
+    join_date_col: str,
+    row_id_col: str,
+) -> str | None:
+    """Return SQL mapping input orgnrbed values to dated orgnr_foretak values."""
+    lookup_parts = _bof_connection_lookup_sql_parts()
+    if lookup_parts is None:
+        return None
+
+    union_sql, latest_placement_ctes_sql = lookup_parts
+    return f"""
+        WITH input_clean AS (
+            SELECT
+                {row_id_col} AS _row_id,
+                TRIM(CAST({orgnrbed_col} AS VARCHAR)) AS orgnrbed,
+                CAST({join_date_col} AS DATE) AS join_date
+            FROM {input_alias}
+            WHERE
+                {orgnrbed_col} IS NOT NULL AND
+                TRIM(CAST({orgnrbed_col} AS VARCHAR)) != '' AND
+                CAST({orgnrbed_col} AS VARCHAR) != '000000000' AND
+                {join_date_col} IS NOT NULL
+        ),
+
+        input_keys AS (
+            SELECT DISTINCT
+                orgnrbed,
+                join_date
+            FROM input_clean
+        ),
+
+        relevant_orgnrbed AS (
+            SELECT DISTINCT
+                orgnrbed
+            FROM input_keys
+        ),
+
+        raw_connections AS (
+            SELECT *
+            FROM ({union_sql})
+            WHERE
+                orgnrbed IS NOT NULL AND
+                orgnr IS NOT NULL AND TRIM(orgnr) != '' AND orgnr != '000000000' AND
+                TRIM(orgnrbed) != '' AND orgnrbed != '000000000' AND
+                orgnrbed IN (SELECT orgnrbed FROM relevant_orgnrbed)
+        ),
+
+        relevant_orgnr AS (
+            SELECT orgnr FROM raw_connections
+            UNION
+            SELECT orgnrbed AS orgnr FROM raw_connections
+        ),
+
+        {latest_placement_ctes_sql},
+
+        conn_base AS (
+            SELECT
+                conn.orgnrbed,
+                conn.orgnr,
+                conn.bof_period_date
+            FROM raw_connections AS conn
+            JOIN latest_placement AS orgnr_class
+                ON conn.orgnr = orgnr_class.orgnr
+               AND orgnr_class.orgnr_type = 'foretak'
+            JOIN latest_placement AS orgnrbed_class
+                ON conn.orgnrbed = orgnrbed_class.orgnr
+               AND orgnrbed_class.orgnr_type = 'orgnrbed'
+        ),
+
+        conn_changes AS (
+            SELECT
+                orgnrbed,
+                orgnr,
+                bof_period_date
+            FROM (
+                SELECT
+                    orgnrbed,
+                    orgnr,
+                    bof_period_date,
+                    LAG(orgnr) OVER (
+                        PARTITION BY orgnrbed
+                        ORDER BY bof_period_date
+                    ) AS prev_orgnr
+                FROM conn_base
+            )
+            WHERE prev_orgnr IS NULL
+               OR orgnr IS DISTINCT FROM prev_orgnr
+        ),
+
+        resolved_keys AS (
+            SELECT
+                k.orgnrbed,
+                k.join_date,
+                COALESCE(
+                    (
+                        SELECT c.orgnr
+                        FROM conn_changes AS c
+                        WHERE c.orgnrbed = k.orgnrbed
+                          AND c.bof_period_date <= k.join_date
+                        ORDER BY c.bof_period_date DESC
+                        LIMIT 1
+                    ),
+                    (
+                        SELECT c.orgnr
+                        FROM conn_changes AS c
+                        WHERE c.orgnrbed = k.orgnrbed
+                          AND c.bof_period_date > k.join_date
+                        ORDER BY c.bof_period_date ASC
+                        LIMIT 1
+                    )
+                ) AS orgnr
+            FROM input_keys AS k
+        ),
+
+        resolved AS (
+            SELECT
+                inp._row_id,
+                rk.orgnr
+            FROM input_clean AS inp
+            LEFT JOIN resolved_keys AS rk
+                ON inp.orgnrbed = rk.orgnrbed
+               AND inp.join_date = rk.join_date
+        )
+
+        SELECT
+            raw.{row_id_col} AS _row_id,
+            resolved.orgnr
+        FROM {input_alias} AS raw
+        LEFT JOIN resolved
+            ON raw.{row_id_col} = resolved._row_id
+        ORDER BY raw.{row_id_col}
+        ;
+    """
+
+
+def _bof_foretak_to_orgnrbed_lookup_sql(
+    input_alias: str,
+    orgnr_col: str,
+    join_date_col: str,
+    row_id_col: str,
+) -> str | None:
+    """Return SQL mapping input orgnr_foretak values to dated one-to-one orgnrbed values."""
+    lookup_parts = _bof_connection_lookup_sql_parts()
+    if lookup_parts is None:
+        return None
+
+    union_sql, latest_placement_ctes_sql = lookup_parts
+    return f"""
+        WITH input_clean AS (
+            SELECT
+                {row_id_col} AS _row_id,
+                TRIM(CAST({orgnr_col} AS VARCHAR)) AS orgnr,
+                CAST({join_date_col} AS DATE) AS join_date
+            FROM {input_alias}
+            WHERE
+                {orgnr_col} IS NOT NULL AND
+                TRIM(CAST({orgnr_col} AS VARCHAR)) != '' AND
+                CAST({orgnr_col} AS VARCHAR) != '000000000' AND
+                {join_date_col} IS NOT NULL
+        ),
+
+        input_keys AS (
+            SELECT DISTINCT
+                orgnr,
+                join_date
+            FROM input_clean
+        ),
+
+        relevant_input_orgnr AS (
+            SELECT DISTINCT
+                orgnr
+            FROM input_keys
+        ),
+
+        raw_connections AS (
+            SELECT *
+            FROM ({union_sql})
+            WHERE
+                orgnrbed IS NOT NULL AND
+                orgnr IS NOT NULL AND TRIM(orgnr) != '' AND orgnr != '000000000' AND
+                TRIM(orgnrbed) != '' AND orgnrbed != '000000000' AND
+                orgnr IN (SELECT orgnr FROM relevant_input_orgnr)
+        ),
+
+        relevant_orgnr AS (
+            SELECT orgnr FROM raw_connections
+            UNION
+            SELECT orgnrbed AS orgnr FROM raw_connections
+        ),
+
+        {latest_placement_ctes_sql},
+
+        conn_base AS (
+            SELECT
+                conn.orgnr,
+                conn.orgnrbed,
+                conn.bof_period_date
+            FROM raw_connections AS conn
+            JOIN latest_placement AS orgnr_class
+                ON conn.orgnr = orgnr_class.orgnr
+               AND orgnr_class.orgnr_type = 'foretak'
+            JOIN latest_placement AS orgnrbed_class
+                ON conn.orgnrbed = orgnrbed_class.orgnr
+               AND orgnrbed_class.orgnr_type = 'orgnrbed'
+        ),
+
+        conn_periods AS (
+            SELECT
+                orgnr,
+                bof_period_date,
+                COUNT(DISTINCT orgnrbed) AS orgnrbed_count,
+                MIN(orgnrbed) AS single_orgnrbed
+            FROM conn_base
+            GROUP BY
+                orgnr,
+                bof_period_date
+        ),
+
+        chosen_periods AS (
+            SELECT
+                k.orgnr,
+                k.join_date,
+                COALESCE(
+                    (
+                        SELECT p.bof_period_date
+                        FROM conn_periods AS p
+                        WHERE p.orgnr = k.orgnr
+                          AND p.bof_period_date <= k.join_date
+                        ORDER BY p.bof_period_date DESC
+                        LIMIT 1
+                    ),
+                    (
+                        SELECT p.bof_period_date
+                        FROM conn_periods AS p
+                        WHERE p.orgnr = k.orgnr
+                          AND p.bof_period_date > k.join_date
+                        ORDER BY p.bof_period_date ASC
+                        LIMIT 1
+                    )
+                ) AS chosen_period
+            FROM input_keys AS k
+        ),
+
+        resolved_keys AS (
+            SELECT
+                cp.orgnr,
+                cp.join_date,
+                CASE
+                    WHEN p.orgnrbed_count = 1 THEN p.single_orgnrbed
+                    ELSE NULL
+                END AS orgnrbed
+            FROM chosen_periods AS cp
+            LEFT JOIN conn_periods AS p
+                ON p.orgnr = cp.orgnr
+               AND p.bof_period_date = cp.chosen_period
+        ),
+
+        resolved AS (
+            SELECT
+                inp._row_id,
+                rk.orgnrbed
+            FROM input_clean AS inp
+            LEFT JOIN resolved_keys AS rk
+                ON inp.orgnr = rk.orgnr
+               AND inp.join_date = rk.join_date
+        )
+
+        SELECT
+            raw.{row_id_col} AS _row_id,
+            resolved.orgnrbed
+        FROM {input_alias} AS raw
+        LEFT JOIN resolved
+            ON raw.{row_id_col} = resolved._row_id
+        ORDER BY raw.{row_id_col}
         ;
     """
 
