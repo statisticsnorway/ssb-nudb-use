@@ -90,13 +90,19 @@ def _generate_utd_hoeyeste_view(
         )
 
         SELECT
+            /*=== PERSON ====================================================================================*/
             snr,
+
+            /*=== RECORD INFO================================================================================*/
             utd_datakilde,
             utd_klassetrinn,
             utd_hoeyeste_dato,
             utd_hoeyeste_aar,
             utd_hoeyeste_rangering,
-            nus2000 AS utd_hoeyeste_nus2000
+
+            /*=== NUS2000 ===================================================================================*/
+            nus2000                                                         AS utd_hoeyeste_nus2000_ujustert,
+            DOWNGRADE_UTD_HOEYESTE_NUS2000(nus2000, utd_hoeyeste_rangering) AS utd_hoeyeste_nus2000 /* 3 -> 2 */
         FROM
             T1
         WHERE
