@@ -2,6 +2,7 @@ from nudb_config import settings
 
 VIDEREUTDANNING_UHGRUPPE = tuple(settings.constants.videreutd_uhgrupper)
 VENSTRESENSUR = settings.constants.venstresensur
+FULLF_GRUNNSKOLE_NUS2000 = "201199"
 _MACRO = "CREATE OR REPLACE MACRO"
 _UHNUS = ["6", "7", "8"]
 
@@ -200,4 +201,12 @@ _DUCKDB_MACROS = f"""
     ) FROM T3
 
 );
+
+
+{_MACRO} DOWNGRADE_UTD_HOEYESTE_NUS2000(utd_hoeyeste_nus2000, utd_hoeyeste_nus2000_rangering) AS
+    /* This code is volatile! It depends on how the ranking number is created! */
+    CASE
+        WHEN SUBSTR(utd_hoeyeste_nus2000_rangering, 1, 1) == '1' THEN '{FULLF_GRUNNSKOLE_NUS2000}'
+        ELSE utd_hoeyeste_nus2000
+    END;
 """
