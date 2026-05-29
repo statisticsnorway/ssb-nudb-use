@@ -228,6 +228,7 @@ def _generate_eksamen_avslutta_hoeyeste_view(
                 uh_gruppering_nus,
                 utd_datakilde,
                 utd_klassetrinn,
+                '3' AS utd_rectype,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
             FROM
                 {NudbData("eksamen_hoeyeste").alias}
@@ -240,6 +241,7 @@ def _generate_eksamen_avslutta_hoeyeste_view(
                 utd_klassetrinn,
                 uh_gruppering_nus,
                 utd_datakilde,
+                '4' AS utd_rectype,
                 CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
             FROM
                 {NudbData("avslutta_fullfoert").alias}

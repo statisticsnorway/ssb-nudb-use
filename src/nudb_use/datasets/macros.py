@@ -8,6 +8,11 @@ _UHNUS = ["6", "7", "8"]
 
 
 _DUCKDB_MACROS = f"""
+
+{_MACRO} RANDOM_TIE_BREAK(n) AS
+    SUBSTR(CAST(uuid() AS VARCHAR), n);
+
+
 {_MACRO} PREP_NUS2000(nus2000) AS
     COALESCE(nus2000, '999999');
 
@@ -44,7 +49,8 @@ _DUCKDB_MACROS = f"""
     COALESCE(uh_eksamen_studpoeng, 0);
 
 
-{_MACRO} IS_EKSAMENER_120_STUDP(uh_eksamen_dato, uh_eksamen_studpoeng, uh_gruppering_nus) AS
+{_MACRO} IS_EKSAMENER_120_STUDP(uh_eksamen_dato, uh_eksamen_studpoeng, uh_gruppering_nus, utd_rectype) AS
+    utd_rectype = '3' AND
     uh_eksamen_dato IS NOT NULL AND
     uh_eksamen_studpoeng IS NOT NULL AND
     uh_eksamen_studpoeng > 0 AND
@@ -58,14 +64,15 @@ _DUCKDB_MACROS = f"""
    uh_eksamen_studpoeng,
    utd_aktivitet_slutt,
    is_eksamener_120_studp,
-   utd_klassetrinn
+   utd_klassetrinn,
+   utd_rectype
 ) AS
     CASE
-        WHEN nivaa2000 IN {_UHNUS} AND NOT is_eksamener_120_studp                                                         THEN '4'
-        WHEN nivaa2000 IN {_UHNUS} AND     is_eksamener_120_studp                                                         THEN '3'
+        WHEN nivaa2000 IN {_UHNUS} AND utd_rectype == '4'                                                                 THEN '4'
+        WHEN nivaa2000 IN {_UHNUS} AND utd_rectype == '3'               AND is_eksamener_120_studp                        THEN '3'
         WHEN nivaa2000 == '3'      AND utd_klassetrinn IN ['10', '11']  AND utd_aktivitet_slutt >= make_date(1975, 10, 1) THEN '1'
         WHEN nivaa2000 == '3'                                           AND utd_aktivitet_slutt >= make_date(1995, 10, 1) THEN '1'
-        WHEN nus2000 == '999999'                                                                                          THEN '0'
+        WHEN   nus2000 == '999999'                                                                                        THEN '0'
                                                                                                                           ELSE '2'
     END;
 
@@ -92,7 +99,8 @@ _DUCKDB_MACROS = f"""
     _uh_gruppering_nus,
     _utd_aktivitet_slutt,
     _utd_klassetrinn,
-    _utd_skoleaar_start
+    _utd_skoleaar_start,
+    _utd_rectype,
 ) AS (
     /* ======================================================================================================================= */
     /* === Step 0: Handle Missing Values                                                                                   === */
@@ -106,7 +114,8 @@ _DUCKDB_MACROS = f"""
             PREP_UHGRUPPE(_uh_gruppering_nus) AS uh_gruppering_nus,
             PREP_UTD_AKTIVITET_SLUTT(_utd_aktivitet_slutt, _uh_eksamen_dato, _utd_skoleaar_start) AS utd_aktivitet_slutt,
             PREP_UTD_KLASSETRINN(_utd_klassetrinn) AS utd_klassetrinn,
-            PREP_UTD_SKOLEAAR_START(_utd_skoleaar_start) AS utd_skoleaar_start
+            PREP_UTD_SKOLEAAR_START(_utd_skoleaar_start) AS utd_skoleaar_start,
+            _utd_rectype AS utd_rectype
     ),
 
     /* ======================================================================================================================= */
@@ -119,7 +128,8 @@ _DUCKDB_MACROS = f"""
             IS_EKSAMENER_120_STUDP(
                 uh_eksamen_dato,
                 uh_eksamen_studpoeng,
-                uh_gruppering_nus
+                uh_gruppering_nus,
+                utd_rectype
             ) AS is_eksamener_120_studp,
             SUBSTR(nus2000, 1, 1) AS nivaa2000
         FROM
@@ -147,7 +157,8 @@ _DUCKDB_MACROS = f"""
                 uh_eksamen_studpoeng,
                 utd_aktivitet_slutt,
                 is_eksamener_120_studp,
-                utd_klassetrinn
+                utd_klassetrinn,
+                utd_rectype
             ) AS trinn_plassering
         FROM
             T1
@@ -197,7 +208,8 @@ _DUCKDB_MACROS = f"""
         allmenne_fag,               /* [   11] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
         ppu_forberedende_proever,   /* [   12] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
         last_date_tiebreak,         /* [13-18] [6] Last Date Tiebreak. Newer is Better.                                        */
-        nus2000                     /* [19-24] [6] NUS2000 Tiebreak. Higher NUS2000 is Better.                                 */
+        nus2000,                    /* [19-24] [6] NUS2000 Tiebreak. Higher NUS2000 is Better.                                 */
+        RANDOM_TIE_BREAK(6)         /* [25-30] [6] uuid4 + substr id for last tiebreak to avoid any duplicates                 */
     ) FROM T3
 
 );

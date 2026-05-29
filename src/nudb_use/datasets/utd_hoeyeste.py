@@ -69,7 +69,8 @@ def _generate_utd_hoeyeste_view(
                     uh_gruppering_nus,
                     utd_aktivitet_slutt,
                     utd_klassetrinn,
-                    utd_skoleaar_start
+                    utd_skoleaar_start,
+                    utd_rectype
                 ) AS utd_hoeyeste_rangering,
                 utd_datakilde,
                 utd_klassetrinn,
