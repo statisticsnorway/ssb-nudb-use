@@ -9,10 +9,6 @@ _UHNUS = ["6", "7", "8"]
 
 _DUCKDB_MACROS = f"""
 
-{_MACRO} RANDOM_TIE_BREAK(n) AS
-    SUBSTR(CAST(uuid() AS VARCHAR), n);
-
-
 {_MACRO} PREP_NUS2000(nus2000) AS
     COALESCE(nus2000, '999999');
 
@@ -24,6 +20,9 @@ _DUCKDB_MACROS = f"""
 {_MACRO} PREP_UHGRUPPE(uh_gruppering_nus) AS
     LPAD(COALESCE(CAST(uh_gruppering_nus AS VARCHAR), '00'), 2, '0');
 
+
+{_MACRO} PREP_UTD_DATAKILDE(uh_gruppering_nus) AS
+    LPAD(COALESCE(CAST(uh_gruppering_nus AS VARCHAR), '00'), 2, '0');
 
 {_MACRO} PREP_UTD_SKOLEAAR_START(utd_skoleaar_start) AS
     COALESCE(CAST(utd_skoleaar_start AS VARCHAR), '{VENSTRESENSUR}');
@@ -78,7 +77,7 @@ _DUCKDB_MACROS = f"""
 
 
 {_MACRO} DATE2STR(x) AS
-    strftime(x, '%Y%m');
+    strftime(x, '%Y%m%d');
 
 
 {_MACRO} INVERT_DATE(x) AS
@@ -101,6 +100,7 @@ _DUCKDB_MACROS = f"""
     _utd_klassetrinn,
     _utd_skoleaar_start,
     _utd_rectype,
+    _utd_datakilde
 ) AS (
     /* ======================================================================================================================= */
     /* === Step 0: Handle Missing Values                                                                                   === */
@@ -115,6 +115,7 @@ _DUCKDB_MACROS = f"""
             PREP_UTD_AKTIVITET_SLUTT(_utd_aktivitet_slutt, _uh_eksamen_dato, _utd_skoleaar_start) AS utd_aktivitet_slutt,
             PREP_UTD_KLASSETRINN(_utd_klassetrinn) AS utd_klassetrinn,
             PREP_UTD_SKOLEAAR_START(_utd_skoleaar_start) AS utd_skoleaar_start,
+            PREP_UTD_DATAKILDE(_utd_datakilde) AS utd_datakilde,
             _utd_rectype AS utd_rectype
     ),
 
@@ -199,6 +200,10 @@ _DUCKDB_MACROS = f"""
     /* ======================================================================================================================= */
     /* === Step 4: Create Ranking Number                                                                                   === */
     /* ======================================================================================================================= */
+    /*    Kjell (01/06/26): Added utd_datakilde to the end of the ranking number. The main idea here, is that we use the last  */
+    /*    8 digits as tiebreakers, ensuring that we don't get duplicates. They are not 'faglig' sound, but they are            */
+    /*    deterministic. I.e., they don't really decide what record is the best, but they stop us from getting duplicates.     */
+    /* ======================================================================================================================= */
 
     SELECT CONCAT(
         trinn_plassering,           /* [   00] [1] Record Type.                                                                */
@@ -207,9 +212,9 @@ _DUCKDB_MACROS = f"""
         utd_klassetrinn,            /* [09-10] [2] Klassetrinn (Higher = better).                                              */
         allmenne_fag,               /* [   11] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
         ppu_forberedende_proever,   /* [   12] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
-        last_date_tiebreak,         /* [13-18] [6] Last Date Tiebreak. Newer is Better.                                        */
-        nus2000,                    /* [19-24] [6] NUS2000 Tiebreak. Higher NUS2000 is Better.                                 */
-        RANDOM_TIE_BREAK(6)         /* [25-30] [6] uuid4 + substr id for last tiebreak to avoid any duplicates                 */
+        last_date_tiebreak,         /* [13-20] [8] Last Date Tiebreak. Newer is Better.                                        */
+        nus2000,                    /* [21-26] [6] NUS2000 Tiebreak. Higher NUS2000 is "Better".                               */
+        utd_datakilde               /* [27-28] [2] Kilde Tiebreak. Higher Kilde is "Better."                                   */
     ) FROM T3
 
 );
