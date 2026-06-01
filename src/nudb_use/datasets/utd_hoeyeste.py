@@ -58,9 +58,9 @@ def _generate_utd_hoeyeste_view(
         CREATE VIEW {alias} AS
 
         WITH T0 AS (
-            SELECT
+            SELECT DISTINCT
                 snr,
-                nus2000,
+                PREP_NUS2000(nus2000) AS nus2000,
                 COALESCE(utd_aktivitet_slutt, uh_eksamen_dato) AS utd_hoeyeste_dato,
                 UTD_HOEYESTE_RANGERING(
                     nus2000,
@@ -69,10 +69,12 @@ def _generate_utd_hoeyeste_view(
                     uh_gruppering_nus,
                     utd_aktivitet_slutt,
                     utd_klassetrinn,
-                    utd_skoleaar_start
+                    utd_skoleaar_start,
+                    utd_rectype,
+                    utd_datakilde
                 ) AS utd_hoeyeste_rangering,
-                utd_datakilde,
-                utd_klassetrinn,
+                PREP_UTD_DATAKILDE(utd_datakilde) AS utd_datakilde,
+                PREP_UTD_KLASSETRINN(utd_klassetrinn) AS utd_klassetrinn,
                 UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar
             FROM
                 {eksamen_avslutta_hoeyeste.alias}
