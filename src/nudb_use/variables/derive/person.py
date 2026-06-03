@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pandas as pd
 from nudb_config import settings
 
@@ -25,7 +27,10 @@ __all__ = [
 
 
 def _apply_pers320_mapping(
-    left: pd.DataFrame, name360: str, name320: str = ""
+    left: pd.DataFrame,
+    name360: str,
+    name320: str = "",
+    right_materialize_func: Callable | None = None,
 ) -> pd.DataFrame:
     name320 = name320 or name360
 
@@ -41,9 +46,14 @@ def _apply_pers320_mapping(
     dataset = datasets[0]
     keys_str = ", ".join(join_keys)
 
-    right = (
-        NudbData(dataset).select(f"DISTINCT {keys_str}, {name320} AS {name360}").df()
-    )
+    if right_materialize_func is not None:
+        right = right_materialize_func(NudbData(dataset))
+    else:
+        right = (
+            NudbData(dataset)
+            .select(f"DISTINCT {keys_str}, {name320} AS {name360}")
+            .df()
+        )
 
     original_index = left.index
     merged = left.merge(right, how="left", on=join_keys, validate="m:1")
@@ -166,8 +176,26 @@ def pers_statsborgerskap(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
     """Derive pers_statsborgerskap."""
+    name360 = "pers_statsborgerskap"
+    name320 = "statsborgerskap"
+
+    def _materialize_func(nudbdata: NudbData) -> pd.DataFrame:
+        query = f"""
+            SELECT DISTINCT
+                snr,
+                MAX({name320}) AS {name360} -- don't select 000 for dual citizenship
+            FROM
+                {nudbdata.alias}
+            GROUP BY
+                snr
+        """
+        return nudbdata.sql(query).df()
+
     return _apply_pers320_mapping(
-        left=df, name360="pers_statsborgerskap", name320="statsborgerskap"
+        left=df,
+        name360=name360,
+        name320=name320,
+        right_materialize_func=_materialize_func,
     )
 
 
