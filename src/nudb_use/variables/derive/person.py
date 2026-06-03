@@ -30,7 +30,7 @@ def _apply_pers320_mapping(
     left: pd.DataFrame,
     name360: str,
     name320: str = "",
-    right_materialize_func: Callable | None = None,
+    right_materialize_func: Callable[[NudbData], pd.DataFrame] | None = None,
 ) -> pd.DataFrame:
     name320 = name320 or name360
 
@@ -189,7 +189,13 @@ def pers_statsborgerskap(  # noqa:DOC201
             GROUP BY
                 snr
         """
-        return nudbdata.sql(query).df()
+
+        result = nudbdata.sql(query).df()
+
+        if isinstance(result, pd.DataFrame):  # make mypy happy
+            return result
+        else:
+            raise TypeError("Expected result to be of type `pandas.DataFrame`!")
 
     return _apply_pers320_mapping(
         left=df,
