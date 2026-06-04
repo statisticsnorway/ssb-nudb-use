@@ -97,7 +97,7 @@ class _NudbDatabase:
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
         }
 
-        self._dataset_paths: dict[str, Path] = {}
+        self._dataset_paths: dict[str, list[Path]] = {}
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
             self._dataset_generators[dataset_name] = getattr(
