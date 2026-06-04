@@ -7,6 +7,7 @@ import duckdb as db
 from fagfunksjoner.paths.versions import get_latest_fileversions
 from nudb_config import settings
 
+from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.path_parse import get_periods_from_path
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
@@ -15,7 +16,7 @@ UNION_ALL = "\nUNION ALL\n"
 
 
 def _bof_latest_orgnr_placement_ctes_sql(
-    relevant_orgnr_cte: str | None = None,
+    relevant_orgnr_cte: str | None = None, alias: str = ""
 ) -> str | None:
     """Return CTE SQL for latest BOF placement of each orgnr."""
     paths = _get_all_bof_situttak_october_paths()
@@ -29,7 +30,7 @@ def _bof_latest_orgnr_placement_ctes_sql(
                 CAST(orgnrbed AS VARCHAR) AS orgnr,
                 'orgnrbed' AS orgnr_type,
                 CAST('{path_period}' AS DATE) AS bof_period_date
-            FROM read_parquet('{path_str}')
+            FROM {_nudb_read_parquet(path_str, alias)}
 
             UNION ALL
 
@@ -37,7 +38,7 @@ def _bof_latest_orgnr_placement_ctes_sql(
                 CAST(org_nr AS VARCHAR) AS orgnr,
                 'foretak' AS orgnr_type,
                 CAST('{path_period}' AS DATE) AS bof_period_date
-            FROM read_parquet('{path_str}')
+            FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
     if not union_parts:
@@ -134,7 +135,7 @@ def _generate_bof_eierforhold_view(
                 NULL as undersektor_2014,
                 sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
-            FROM read_parquet('{path_str}')
+            FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
     for path in paths_post2014:
@@ -150,7 +151,7 @@ def _generate_bof_eierforhold_view(
                 undersektor_2014,
                 NULL as sektor,
                 CAST('{path_period}' as DATE) as bof_period_date
-            FROM read_parquet('{path_str}')
+            FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
     if not union_parts:
@@ -224,6 +225,7 @@ def _generate_bof_eierforhold_view(
 
         ;
     """
+
     connection.sql(query)
 
 
@@ -232,7 +234,7 @@ def _generate_bof_unique_orgnrbed_view(
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All unique orgnrbed values, keeping only the latest BOF placement per orgnr."""
-    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
+    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(alias=alias)
 
     if latest_placement_ctes_sql is None:
         logger.warning(
@@ -259,7 +261,7 @@ def _generate_bof_unique_orgnr_foretak_view(
     connection: db.DuckDBPyConnection,
 ) -> None:
     """All unique orgnr_foretak values, keeping only the latest BOF placement per orgnr."""
-    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql()
+    latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(alias=alias)
 
     if latest_placement_ctes_sql is None:
         logger.warning(
@@ -295,10 +297,10 @@ def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
     raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
 
 
-def _bof_connection_lookup_sql_parts() -> tuple[str, str] | None:
+def _bof_connection_lookup_sql_parts(alias: str) -> tuple[str, str] | None:
     paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
     latest_placement_ctes_sql = _bof_latest_orgnr_placement_ctes_sql(
-        relevant_orgnr_cte="relevant_orgnr"
+        relevant_orgnr_cte="relevant_orgnr", alias=alias
     )
     union_parts: list[str] = []
     for path in paths:
@@ -310,7 +312,7 @@ def _bof_connection_lookup_sql_parts() -> tuple[str, str] | None:
                 CAST(org_nr AS VARCHAR) AS orgnr,
                 CAST(orgnrbed AS VARCHAR) AS orgnrbed,
                 CAST('{path_period}' AS DATE) AS bof_period_date
-            FROM read_parquet('{path_str}')
+            FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
     if not union_parts or latest_placement_ctes_sql is None:
@@ -325,7 +327,7 @@ def _bof_dated_orgnr_connections_lookup_sql(
     orgnrbed_col: str,
 ) -> str | None:
     """Return SQL for BOF connections limited to orgnr values in an input table."""
-    lookup_parts = _bof_connection_lookup_sql_parts()
+    lookup_parts = _bof_connection_lookup_sql_parts(input_alias)
     if lookup_parts is None:
         return None
 
@@ -391,7 +393,7 @@ def _bof_orgnrbed_to_foretak_lookup_sql(
     row_id_col: str,
 ) -> str | None:
     """Return SQL mapping input orgnrbed values to dated orgnr_foretak values."""
-    lookup_parts = _bof_connection_lookup_sql_parts()
+    lookup_parts = _bof_connection_lookup_sql_parts(input_alias)
     if lookup_parts is None:
         return None
 
@@ -528,7 +530,7 @@ def _bof_foretak_to_orgnrbed_lookup_sql(
     row_id_col: str,
 ) -> str | None:
     """Return SQL mapping input orgnr_foretak values to dated one-to-one orgnrbed values."""
-    lookup_parts = _bof_connection_lookup_sql_parts()
+    lookup_parts = _bof_connection_lookup_sql_parts(input_alias)
     if lookup_parts is None:
         return None
 
