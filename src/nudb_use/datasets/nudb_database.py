@@ -97,6 +97,8 @@ class _NudbDatabase:
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
         }
 
+        self._dataset_paths = {}
+
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
             self._dataset_generators[dataset_name] = getattr(
                 external_datasets, f"_generate_{dataset_name}_view"
@@ -110,6 +112,7 @@ class _NudbDatabase:
         self._connection = db.connect(":memory:")
         self._connection.execute(_DUCKDB_MACROS)
         self._datasets = {}
+        self._dataset_paths = {}
 
     def __del__(self) -> None:
         """Destructor for _NudbDatabase."""

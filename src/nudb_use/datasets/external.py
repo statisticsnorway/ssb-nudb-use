@@ -3,6 +3,7 @@ from functools import partial
 import duckdb as db
 from nudb_config import settings
 
+from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.nudb_logger import LoggerStack
@@ -35,7 +36,7 @@ def _generate_view(
             {_nudb_data_select_all(last_path, connection)},
             '{dataset_name}' AS nudb_dataset_id
         FROM
-            read_parquet('{last_path}')
+            {_nudb_read_parquet(last_path, alias)}
         """
 
         connection.sql(query)

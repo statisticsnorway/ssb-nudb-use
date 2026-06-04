@@ -10,6 +10,7 @@ import pandas as pd
 
 from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
+from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
@@ -132,7 +133,7 @@ QUERY:
         if not name:
             name = path.name.replace(".", "_").replace("-", "_").lower()
 
-        alias = "NUDB_" + name.upper()
+        alias = _default_alias_from_name(name)
         logger.info(f"Creating NudbData object with name='{name}'...")
         logger.debug(f"Creating NudbData object with alias={alias}...")
 
@@ -143,13 +144,21 @@ QUERY:
                 )
 
             logger.warning(f"Overwriting existing dataset: {name}")
+            del nudb_database._datasets[name]
+
+            if alias in nudb_database._dataset_paths.keys():
+                previous_paths = nudb_database._dataset_paths[alias]
+                logger.warning(
+                    f"Overwriting existing dataset input paths:\n{previous_paths}"
+                )
+                del nudb_database._dataset_paths[alias]
 
         def generator(alias: str, connection: db.DuckDBPyConnection) -> None:
             query = f"""
             CREATE OR REPLACE VIEW
                 {alias} AS
             SELECT * FROM
-                read_parquet('{path}')
+                {_nudb_read_parquet(path, alias)}
             """
 
             connection.execute(query)
@@ -158,7 +167,7 @@ QUERY:
         nudb_database._dataset_generators[name] = generator
         nudb_database._dataset_names = list(nudb_database._dataset_generators.keys())
 
-        return cls(name=name, **kwargs)
+        return cls(name=name, alias=alias, **kwargs)
 
     def _attach(self) -> None:
         self.generator(alias=self.alias, connection=nudb_database.get_connection())
@@ -484,6 +493,14 @@ QUERY:
     def execute(self, expr: str) -> Any:
         """Use execute method of database connection."""
         return nudb_database.get_connection().execute(expr)
+
+    @property
+    def input_paths(self) -> None | list[Path]:
+        """Get input paths used to create data. Returned in the order they were read."""
+        if self.alias in nudb_database._dataset_paths.keys():
+            return nudb_database._dataset_paths[self.alias]
+        else:
+            return None
 
 
 def _is_view(alias: str) -> bool:
