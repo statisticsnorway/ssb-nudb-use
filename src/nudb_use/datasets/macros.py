@@ -24,8 +24,13 @@ _DUCKDB_MACROS = f"""
 {_MACRO} PREP_UTD_DATAKILDE(uh_gruppering_nus) AS
     LPAD(COALESCE(CAST(uh_gruppering_nus AS VARCHAR), '00'), 2, '0');
 
+
 {_MACRO} PREP_UTD_SKOLEAAR_START(utd_skoleaar_start) AS
     COALESCE(CAST(utd_skoleaar_start AS VARCHAR), '{VENSTRESENSUR}');
+
+
+{_MACRO} PREP_AND_INVERT_UTD_STUDIELAND(utd_studieland) AS /* Use substr to avoid underflow in 999 - .... */
+    LPAD(CAST(999 - CAST(SUBSTR(COALESCE(utd_studieland, '999'), 1, 3) AS INTEGER) AS VARCHAR), 3, '0');
 
 
 {_MACRO} YEAR_PLUS_ONE(utd_skoleaar_start) AS
@@ -100,6 +105,7 @@ _DUCKDB_MACROS = f"""
     _utd_klassetrinn,
     _utd_skoleaar_start,
     _utd_rectype,
+    _utd_studieland,
     _utd_datakilde
 ) AS (
     /* ======================================================================================================================= */
@@ -116,6 +122,7 @@ _DUCKDB_MACROS = f"""
             PREP_UTD_KLASSETRINN(_utd_klassetrinn) AS utd_klassetrinn,
             PREP_UTD_SKOLEAAR_START(_utd_skoleaar_start) AS utd_skoleaar_start,
             PREP_UTD_DATAKILDE(_utd_datakilde) AS utd_datakilde,
+            PREP_AND_INVERT_UTD_STUDIELAND(_utd_studieland) AS utd_inverse_studieland,
             _utd_rectype AS utd_rectype
     ),
 
@@ -214,7 +221,8 @@ _DUCKDB_MACROS = f"""
         ppu_forberedende_proever,   /* [   12] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
         last_date_tiebreak,         /* [13-20] [8] Last Date Tiebreak. Newer is Better.                                        */
         nus2000,                    /* [21-26] [6] NUS2000 Tiebreak. Higher NUS2000 is "Better".                               */
-        utd_datakilde               /* [27-28] [2] Kilde Tiebreak. Higher Kilde is "Better."                                   */
+        utd_inverse_studieland,     /* [27-29] [3] Studieland Tiebreak. Lower Studieland is "Better" (Norway is "Best")        */
+        utd_datakilde               /* [29-30] [2] Kilde Tiebreak. Higher Kilde is "Better."                                   */
     ) FROM T3
 
 );

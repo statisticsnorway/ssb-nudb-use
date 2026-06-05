@@ -71,10 +71,12 @@ def _generate_utd_hoeyeste_view(
                     utd_klassetrinn,
                     utd_skoleaar_start,
                     utd_rectype,
+                    utd_studieland,
                     utd_datakilde
                 ) AS utd_hoeyeste_rangering,
                 PREP_UTD_DATAKILDE(utd_datakilde) AS utd_datakilde,
                 PREP_UTD_KLASSETRINN(utd_klassetrinn) AS utd_klassetrinn,
+                utd_studieland,
                 UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar
             FROM
                 {eksamen_avslutta_hoeyeste.alias}
@@ -98,6 +100,7 @@ def _generate_utd_hoeyeste_view(
             /*=== RECORD INFO================================================================================*/
             utd_datakilde,
             utd_klassetrinn,
+            utd_studieland,
             utd_hoeyeste_dato,
             utd_hoeyeste_aar,
             utd_hoeyeste_rangering,
