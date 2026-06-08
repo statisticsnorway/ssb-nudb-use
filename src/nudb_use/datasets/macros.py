@@ -82,7 +82,7 @@ _DUCKDB_MACROS = f"""
 
 
 {_MACRO} DATE2STR(x) AS
-    strftime(x, '%Y%m%d');
+    strftime(x, '%Y%m');
 
 
 {_MACRO} INVERT_DATE(x) AS
