@@ -5,6 +5,9 @@ VENSTRESENSUR = settings.constants.venstresensur
 FULLF_GRUNNSKOLE_NUS2000 = "201199"
 _MACRO = "CREATE OR REPLACE MACRO"
 _UHNUS = ["6", "7", "8"]
+_DATE_WIDTH = 8
+_MAX_DATE = "9" * _DATE_WIDTH
+_MIN_DATE = "0" * _DATE_WIDTH
 
 
 _DUCKDB_MACROS = f"""
@@ -82,11 +85,11 @@ _DUCKDB_MACROS = f"""
 
 
 {_MACRO} DATE2STR(x) AS
-    strftime(x, '%Y%m');
+    strftime(x, '%Y%m%d');
 
 
 {_MACRO} INVERT_DATE(x) AS
-    lpad(CAST(999999 - CAST(DATE2STR(x) AS INTEGER) AS VARCHAR), 6, '0');
+    LPAD(CAST({_MAX_DATE} - CAST(DATE2STR(x) AS INTEGER) AS VARCHAR), {_DATE_WIDTH}, '0');
 
 
 {_MACRO} UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS
@@ -187,7 +190,7 @@ _DUCKDB_MACROS = f"""
             *,
             CASE
                 WHEN SUBSTR(trinn_plassering, 1, 1) == '3'        THEN INVERT_DATE(utd_aktivitet_slutt)
-                WHEN SUBSTR(trinn_plassering, 1, 1) IN ('2', '4') THEN '000000'
+                WHEN SUBSTR(trinn_plassering, 1, 1) IN ('2', '4') THEN '{_MIN_DATE}'
                                                                   ELSE DATE2STR(utd_aktivitet_slutt)
             END AS first_date_tiebreak,
             DATE2STR(utd_aktivitet_slutt) AS last_date_tiebreak,
@@ -214,15 +217,15 @@ _DUCKDB_MACROS = f"""
 
     SELECT CONCAT(
         trinn_plassering,           /* [   00] [1] Record Type.                                                                */
-        first_date_tiebreak,        /* [01-06] [6] First Date Tiebreak with Inverted Date for Exam Records.                    */
-        nivaa2000_overflowed,       /* [   07] [1] Nivaa nus2000 overflowed such that 9 is mapped to 0.                        */
-        utd_klassetrinn,            /* [09-10] [2] Klassetrinn (Higher = better).                                              */
-        allmenne_fag,               /* [   11] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
-        ppu_forberedende_proever,   /* [   12] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
-        last_date_tiebreak,         /* [13-20] [8] Last Date Tiebreak. Newer is Better.                                        */
-        nus2000,                    /* [21-26] [6] NUS2000 Tiebreak. Higher NUS2000 is "Better".                               */
-        utd_inverse_studieland,     /* [27-29] [3] Studieland Tiebreak. Lower Studieland is "Better" (Norway is "Best")        */
-        utd_datakilde               /* [29-30] [2] Kilde Tiebreak. Higher Kilde is "Better."                                   */
+        first_date_tiebreak,        /* [01-09] [8] First Date Tiebreak with Inverted Date for Exam Records.                    */
+        nivaa2000_overflowed,       /* [   10] [1] Nivaa nus2000 overflowed such that 9 is mapped to 0.                        */
+        utd_klassetrinn,            /* [11-12] [2] Klassetrinn (Higher = better).                                              */
+        allmenne_fag,               /* [   13] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
+        ppu_forberedende_proever,   /* [   14] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
+        last_date_tiebreak,         /* [15-22] [8] Last Date Tiebreak. Newer is Better.                                        */
+        nus2000,                    /* [23-28] [6] NUS2000 Tiebreak. Higher NUS2000 is "Better".                               */
+        utd_inverse_studieland,     /* [29-31] [3] Studieland Tiebreak. Lower Studieland is "Better" (Norway is "Best")        */
+        utd_datakilde               /* [32-33] [2] Kilde Tiebreak. Higher Kilde is "Better."                                   */
     ) FROM T3
 
 );
