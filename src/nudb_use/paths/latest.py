@@ -8,6 +8,8 @@ from nudb_config import settings
 
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+from nudb_use.paths.path_date import _file_has_valid_date
+from nudb_use.paths.path_date import _nudb_use_dated_paths
 
 ENV_DAPLA = "daplalab_mounted"
 ENV_BAKKE = "on_prem"
@@ -107,10 +109,7 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
         logger.info(
             f"Found relevant files locally in POSSIBLE_PATHS, not using glob from config: {files}"
         )
-        return files
-
-    # Fall back to the dataset config for external datasets that live in other teams
-    if (
+    elif (  # Fall back to the dataset config for external datasets that live in other teams
         filename in settings.datasets
         and settings.datasets[filename].team != settings.dapla_team
     ):
@@ -120,13 +119,19 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
                 f"{SHARED_ROOT_EXTERNAL}/{datameta.team}/{datameta.bucket}/"
             )
             found_files = list(local_path.glob(datameta.path_glob))
+
             if found_files:
-                return found_files
-        # If we are here, the file looks external, but we couldnt find it locally
-        msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
-        msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
-        msg += f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
-        raise FileNotFoundError(msg)
+                files = found_files
+
+        if not files:
+            # If we are here, the file looks external, but we couldnt find it locally
+            msg = f"Either you need to get access to and mount locally the bucket {datameta.bucket} from the team {datameta.team}.\n"
+            msg += f"Or the config is missing an important value for the dataset `{filename}`, the team name: `{datameta.team}`,"
+            msg += f"the bucket name: `{datameta.bucket}` or full path glob: `/buckets/shared/{datameta.team}/{datameta.bucket}/{datameta.path_glob}`"
+            raise FileNotFoundError(msg)
+
+    if files and _nudb_use_dated_paths():
+        files = [file for file in files if _file_has_valid_date(file, default=True)]
 
     return files
 
