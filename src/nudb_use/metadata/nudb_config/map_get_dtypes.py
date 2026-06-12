@@ -34,15 +34,17 @@ BackendName: TypeAlias = Literal["pandas"]  # add others later when necessary
 InnerMap: TypeAlias = dict[DTypeName, PandasDTypeLiteral]
 MappingSpec: TypeAlias = dict[BackendName, InnerMap]
 
-DTYPE_MAPPINGS_PANDAS = {
-    DATETIME_DTYPE_NAME: "datetime64[s]",
-    STRING_DTYPE_NAME: "string[pyarrow]",
-    INTEGER_DTYPE_NAME: "Int64",
-    FLOAT_DTYPE_NAME: "Float64",
-    BOOL_DTYPE_NAME: "bool[pyarrow]",
+DTYPE_MAPPINGS: Final[MappingSpec] = {
+    "pandas": {
+        DATETIME_DTYPE_NAME: "datetime64[s]",
+        STRING_DTYPE_NAME: "string[pyarrow]",
+        INTEGER_DTYPE_NAME: "Int64",
+        FLOAT_DTYPE_NAME: "Float64",
+        BOOL_DTYPE_NAME: "bool[pyarrow]",
+    }
 }
 
-DTYPE_MAPPINGS: Final[MappingSpec] = {"pandas": DTYPE_MAPPINGS_PANDAS}
+DTYPE_MAPPINGS_PANDAS = DTYPE_MAPPINGS["pandas"]
 
 
 def get_dtype_from_dict(
@@ -187,29 +189,31 @@ def map_to_preferred_dtypes(df: pd.DataFrame) -> dict[str, str]:
     Returns:
         dict[str, str]: Dict with mapping from column names to new dtypes.
     """
-    astype = {}
+    astype: dict[str, str] = {}
 
     for col in df.columns:
         dtype = df[col].dtype
 
         if pd.api.types.is_integer_dtype(dtype):
-            astype[col] = DTYPE_MAPPINGS_PANDAS[INTEGER_DTYPE_NAME]
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[INTEGER_DTYPE_NAME])
 
         elif pd.api.types.is_float_dtype(dtype):
-            astype[col] = DTYPE_MAPPINGS_PANDAS[FLOAT_DTYPE_NAME]
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[FLOAT_DTYPE_NAME])
 
         elif pd.api.types.is_bool_dtype(dtype):
-            astype[col] = DTYPE_MAPPINGS_PANDAS[BOOL_DTYPE_NAME]
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[BOOL_DTYPE_NAME])
 
         elif (
             pd.api.types.is_string_dtype(dtype)
             or pd.api.types.is_object_dtype(dtype)
-            or pd.api.types.is_categorical_dtype(dtype)
+            or isinstance(
+                dtype, pd.CategoricalDtype
+            )  # pd.api.types.is_categorical_dtype() is deprecated
         ):
-            astype[col] = DTYPE_MAPPINGS_PANDAS[STRING_DTYPE_NAME]
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[STRING_DTYPE_NAME])
 
         elif pd.api.types.is_datetime64_any_dtype(dtype):
-            astype[col] = DTYPE_MAPPINGS_PANDAS[DATETIME_DTYPE_NAME]
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[DATETIME_DTYPE_NAME])
 
     return astype
 
