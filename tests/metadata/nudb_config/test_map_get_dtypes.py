@@ -1,10 +1,12 @@
 import importlib
 
+import pandas as pd
 import pytest
 
 get_dtypes_module = importlib.import_module(
     "nudb_use.metadata.nudb_config.map_get_dtypes"
 )
+from nudb_use.metadata.nudb_config.map_get_dtypes import cast_to_preferred_dtypes
 from nudb_use.metadata.nudb_config.map_get_dtypes import get_dtype_from_dict
 from nudb_use.metadata.nudb_config.map_get_dtypes import (
     get_dtypes as get_dtypes_function,
@@ -61,3 +63,26 @@ def test_get_dtypes_maps_missing_and_renamed(monkeypatch: pytest.MonkeyPatch) ->
         "old_date": "string[pyarrow]",
         "old_num1": "Int64",
     }
+
+
+def test_cast_to_preferred_dtypes() -> None:
+
+    test_data = pd.DataFrame(
+        {
+            "x": pd.Series([1, 2, 3], dtype="int64"),
+            "z": pd.Series([3.14, 0.7218, 0.070400], dtype="float64"),
+            "y": pd.Series([True, True, False], dtype="bool"),
+            "w": pd.Series(["Hello", "there", "!"], dtype="str"),
+            "g": pd.to_datetime(
+                pd.Series(["2020-01-01", "2021-01-01", "2022-01-01"])
+            ).astype("datetime64[ns]"),
+        }
+    )
+
+    casted = cast_to_preferred_dtypes(test_data)
+
+    assert casted["x"].dtype == "Int64"
+    assert casted["z"].dtype == "Float64"
+    assert casted["y"].dtype == "bool[pyarrow]"
+    assert casted["w"].dtype == "string[pyarrow]"
+    assert casted["g"].dtype == "datetime64[s]"
