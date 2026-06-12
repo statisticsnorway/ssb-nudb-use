@@ -11,7 +11,7 @@ NUDB_DATE = None
 
 @functools.total_ordering
 class DaplaFileDate:
-    """Handle resolution variable dates."""
+    """Variable resolution representation of dates, from file names on Dapla."""
 
     def __init__(self, datestr: str) -> None:
         split = [int(x) for x in datestr.split("-")]
@@ -20,8 +20,11 @@ class DaplaFileDate:
         self.month = split[1] if len(split) > 1 else None
         self.day = split[2] if len(split) > 2 else None
 
-    def __eq__(self, other: "DaplaFileDate") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Are dates equivalent?"""
+        if not isinstance(other, DaplaFileDate):
+            return NotImplemented
+
         if self.year is None or other.year is None:
             return True  # both empty
 
@@ -37,8 +40,11 @@ class DaplaFileDate:
 
         return self.day == other.day
 
-    def __lt__(self, other: "DaplaFileDate") -> bool:
+    def __lt__(self, other: object) -> bool:
         """Is date less than other date?"""
+        if not isinstance(other, DaplaFileDate):
+            return NotImplemented
+
         if self.year is None or other.year is None:
             return False  # both empty
 
@@ -95,7 +101,7 @@ def set_nudb_date(
     NUDB_DATE = DaplaFileDate(val)
 
 
-def get_nudb_date() -> dt.datetime | None:
+def get_nudb_date() -> DaplaFileDate | None:
     """Get NUDB_DATE."""
     return NUDB_DATE
 
@@ -106,7 +112,15 @@ def _file_has_valid_date(filepath: Path, default: bool = True) -> bool:
 
     try:
         date = _get_dapla_last_file_date_from_path(filepath)
+
+        if date is None:
+            logger.warning(
+                f"Could not validate file date, got 'None'! Returning {default=}!"
+            )
+            return default
+
         return date <= get_nudb_date()
+
     except Exception as err:
         logger.warning(
             f"Could not validate file date! Returning {default=}!\nMessage:{err}"
