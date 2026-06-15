@@ -237,4 +237,12 @@ _DUCKDB_MACROS = f"""
         WHEN SUBSTR(utd_hoeyeste_nus2000_rangering, 1, 1) == '1' THEN '{FULLF_GRUNNSKOLE_NUS2000}'
         ELSE utd_hoeyeste_nus2000
     END;
+
+
+{_MACRO} VJUST_UTD_HOEYESTE_AAR(utd_hoeyeste_aar, utd_foerste_aar) AS
+    /* utd_hoeyeste_aar is the current year of the BU/UTD_HOEYESTE record, and utd_foreste_aar is the year           */
+    /* in which a person got their first BU/UTD_HOEYESTE record. When deriving SOSBAK/UTD_FORELDRES_UTDNIVAA         */
+    /* We keep the first valid BU record of the parent, if there are no records before the child has turned 16       */
+    /* We achieve this by VJUSTING the first record, to the first possible value of utd_hoeyeste_aar (VENSTRESENSUR) */
+    CASE WHEN utd_hoeyeste_aar <= utd_foerste_aar THEN {VENSTRESENSUR} ELSE utd_hoeyeste_aar END;
 """

@@ -101,6 +101,10 @@ def _generate_utd_hoeyeste_view(
             utd_datakilde,
             utd_klassetrinn,
             utd_studieland,
+
+            /* First year we a have registered value. Relevant for utd_foreldres_utdnivaa_16aar */
+            MIN(utd_hoeyeste_aar) OVER (PARTITION BY snr) AS utd_foerste_aar,
+
             utd_hoeyeste_dato,
             utd_hoeyeste_aar,
             utd_hoeyeste_rangering,
