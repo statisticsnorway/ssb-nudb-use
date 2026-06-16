@@ -32,7 +32,7 @@ def _check_dtype_column(x: pd.Series, name: str) -> NudbQualityError | None:
         return None
 
     elif have != target:
-        logger.warning(
+        logger.notice(  # type: ignore[attr-defined]
             f"Variable '{name}' does not have the correct dtype (got={have}, want={target})"
         )
 
@@ -42,7 +42,7 @@ def _check_dtype_column(x: pd.Series, name: str) -> NudbQualityError | None:
             return None
         except Exception as err:
             return NudbQualityError(
-                f"Variable could not be casted to the correct dtype ({target})! Message:\n{err}"
+                f"Variable '{name}' could not be casted to the correct dtype ({target})! Message:\n{err}"
             )
 
     return None
