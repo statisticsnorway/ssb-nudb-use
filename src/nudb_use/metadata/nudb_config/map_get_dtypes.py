@@ -6,6 +6,7 @@ from typing import Literal
 from typing import TypeAlias
 from typing import cast
 
+import pandas as pd
 from nudb_config import settings as SETTINGS
 
 from nudb_use.nudb_logger import logger
@@ -42,6 +43,8 @@ DTYPE_MAPPINGS: Final[MappingSpec] = {
         BOOL_DTYPE_NAME: "bool[pyarrow]",
     }
 }
+
+DTYPE_MAPPINGS_PANDAS = DTYPE_MAPPINGS["pandas"]
 
 
 def get_dtype_from_dict(
@@ -169,3 +172,65 @@ def _map_single_dtype(
         engine=engine,
         datetimes_as_string=datetimes_as_string,
     )
+
+
+def map_to_preferred_dtypes(df: pd.DataFrame) -> dict[str, str]:
+    """Get mapping from dataframe dtypes to preferred modern types that handle nullable cells better.
+
+    - int64 -> Int64 (nullable integer)
+    - float64 -> Float64 (nullable float)
+    - bool -> boolean[pyarrow] (nullable boolean)
+    - str, object, category, string -> string[pyarrow] (nullable string)
+    - datetime64[ns] -> datetime64[s] (second precision)
+
+    Args:
+        df: The dataframe to set dtypes for.
+
+    Returns:
+        dict[str, str]: Dict with mapping from column names to new dtypes.
+    """
+    astype: dict[str, str] = {}
+
+    for col in df.columns:
+        dtype = df[col].dtype
+
+        if pd.api.types.is_integer_dtype(dtype):
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[INTEGER_DTYPE_NAME])
+
+        elif pd.api.types.is_float_dtype(dtype):
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[FLOAT_DTYPE_NAME])
+
+        elif pd.api.types.is_bool_dtype(dtype):
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[BOOL_DTYPE_NAME])
+
+        elif (
+            pd.api.types.is_string_dtype(dtype)
+            or pd.api.types.is_object_dtype(dtype)
+            or isinstance(
+                dtype, pd.CategoricalDtype
+            )  # pd.api.types.is_categorical_dtype() is deprecated
+        ):
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[STRING_DTYPE_NAME])
+
+        elif pd.api.types.is_datetime64_any_dtype(dtype):
+            astype[col] = str(DTYPE_MAPPINGS_PANDAS[DATETIME_DTYPE_NAME])
+
+    return astype
+
+
+def cast_to_preferred_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """Cast dataframe dtypes to preferred modern types that handle nullable cells better.
+
+    - int64 -> Int64 (nullable integer)
+    - float64 -> Float64 (nullable float)
+    - bool -> boolean[pyarrow] (nullable boolean)
+    - str, object, category, string -> string[pyarrow] (nullable string)
+    - datetime64[ns] -> datetime64[s] (second precision)
+
+    Args:
+        df: The dataframe to set dtypes for.
+
+    Returns:
+        pd.DataFrame: The modified pandas dataframe.
+    """
+    return df.astype(map_to_preferred_dtypes(df))
