@@ -20,7 +20,7 @@ def test_set_nudb_date(monkeypatch: Any, tmp_path: Path) -> None:
     file_b.write_text("b")
     file_c.write_text("c")
 
-    def files():
+    def files() -> list[Path]:
         return sorted(latest._get_available_files("tmp_test_file"))
 
     assert files() == [file_a, file_b, file_c]
