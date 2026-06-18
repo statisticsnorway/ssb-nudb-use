@@ -1,5 +1,4 @@
 import pandas as pd
-from nudb_config import settings
 
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.datasets.nudb_database import nudb_database
@@ -35,35 +34,34 @@ def utd_foreldres_utdnivaa_16aar(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _derive_utd_foreldres_utdnivaa_var(
-    df: pd.DataFrame,
-    *,
-    varname: str,
-    merge_keys: list[str] | None,
+    df: pd.DataFrame, *, varname: str
 ) -> pd.DataFrame:
     """Generic DuckDB derivation helper for variables from `utd_foreldres_utdnivaa`."""
     df = df.copy()
 
     if varname in df.columns:
-        logger.warning(f"{varname} already exists... Replacing it!")
+        logger.warning(
+            f'{varname} already exists... If `priority="old"` some values might not get updated!'
+        )
         df = df.drop(columns=varname)
 
-    merge_keys = merge_keys or []
-    utd_foreldres_utdnivaa = NudbData("utd_foreldres_utdnivaa")
-
+    sosbak = NudbData("utd_foreldres_utdnivaa")
     con = nudb_database.get_connection()
-    con.register("_tmp_df", df)
+    con.register("_tmp_df", df[["snr"]].drop_duplicates())
 
-    result = con.sql(f"""
-        SELECT
-            T1.*,
-            T2.{varname}
+    mapping = con.sql(f"""
+        SELECT DISTINCT
+            T1.snr,
+            T2.{varname} AS {varname}
         FROM
             _tmp_df AS T1
         LEFT JOIN
-            {utd_foreldres_utdnivaa.alias} AS T2
+            {sosbak.alias} AS T2
         ON
-           T1.snr = T2.snr;
+            T1.snr = T2.snr;
     """).df()
+
+    result = df.merge(right=mapping, on="snr", how="left", validate="m:1")
 
     if result.shape[0] > df.shape[0]:
         logger.warning(
@@ -74,36 +72,24 @@ def _derive_utd_foreldres_utdnivaa_var(
             f"Number of observations decreased from {df.shape[0]} to {result.shape[0]}!"
         )
 
-    return result
+    return result[varname]
 
 
 @wrap_derive
 def utd_foreldres_utdnivaa_16aar_nus2000(df: pd.DataFrame) -> pd.DataFrame:
     """Derive `utd_foreldres_utdnivaa_16aar_nus2000`."""
     return _derive_utd_foreldres_utdnivaa_var(
-        df,
-        varname="utd_foreldres_utdnivaa_16aar_nus2000",
-        merge_keys=(
-            settings.variables.utd_foreldres_utdnivaa_16aar_nus2000.derived_join_keys
-        ),
+        df, varname="utd_foreldres_utdnivaa_16aar_nus2000"
     )
 
 
 @wrap_derive
 def utd_hoeyeste_mor_nus2000(df: pd.DataFrame) -> pd.DataFrame:
     """Derive `utd_hoeyeste_mor_nus2000`."""
-    return _derive_utd_foreldres_utdnivaa_var(
-        df,
-        varname="utd_hoeyeste_mor_nus2000",
-        merge_keys=settings.variables.utd_hoeyeste_mor_nus2000.derived_join_keys,
-    )
+    return _derive_utd_foreldres_utdnivaa_var(df, varname="utd_hoeyeste_mor_nus2000")
 
 
 @wrap_derive
 def utd_hoeyeste_far_nus2000(df: pd.DataFrame) -> pd.DataFrame:
     """Derive `utd_hoeyeste_far_nus2000`."""
-    return _derive_utd_foreldres_utdnivaa_var(
-        df,
-        varname="utd_hoeyeste_far_nus2000",
-        merge_keys=settings.variables.utd_hoeyeste_far_nus2000.derived_join_keys,
-    )
+    return _derive_utd_foreldres_utdnivaa_var(df, varname="utd_hoeyeste_far_nus2000")

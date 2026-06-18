@@ -54,17 +54,16 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
 
 
 @wrap_derive
-def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.DataFrame:
+def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Series:
     """Derive `utd_hoyeste_nus2000`."""
     df = df.copy()
 
     varname = "utd_hoeyeste_nus2000"
     if varname in df.columns:
-        logger.warning(f"{varname} already exists... Replacing it!")
+        logger.warning(
+            f'{varname} already exists... If `priority="old"` some values might not get updated!'
+        )
         df = df.drop(columns=varname)
-
-    merge_keys_raw = settings.variables.utd_hoeyeste_nus2000.derived_join_keys
-    merge_keys = merge_keys_raw or []
 
     year_col_right = "utd_hoeyeste_aar"
     if not year_col:
@@ -73,18 +72,15 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
 
     df[year_col_right] = df[year_col].astype(INTEGER_DTYPE)
 
-    if year_col_right not in merge_keys:
-        merge_keys += [year_col_right]
-
     utd_hoeyeste = NudbData("utd_hoeyeste")
-    df = df.rename(columns={year_col: "utd_hoeyeste_aar"})
 
     con = nudb_database.get_connection()
-    con.register("_tmp_df", df)
+    con.register("_tmp_df", df[["snr", year_col_right]].drop_duplicates())
 
-    result = con.sql(f"""
-        SELECT
-            T1.*,
+    mapping = con.sql(f"""
+        SELECT DISTINCT
+            T1.snr,
+            T1.{year_col_right},
             T2.utd_hoeyeste_nus2000 AS {varname}
         FROM
             _tmp_df AS T1
@@ -95,6 +91,10 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
             T2.{year_col_right} <= T1.{year_col_right};
     """).df()
 
+    result = df.merge(
+        right=mapping, on=["snr", year_col_right], how="left", validate="m:1"
+    )
+
     if result.shape[0] > df.shape[0]:
         logger.warning(
             f"Number of observations grew from {df.shape[0]} to {result.shape[0]}!"
@@ -104,4 +104,4 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Da
             f"Number of observations decreased from {df.shape[0]} to {result.shape[0]}!"
         )
 
-    return result
+    return result[varname]
