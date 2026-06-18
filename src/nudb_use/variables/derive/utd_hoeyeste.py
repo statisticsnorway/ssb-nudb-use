@@ -19,6 +19,9 @@ VENSTRESENSUR = settings.constants.venstresensur
 INTEGER_DTYPE: ExtensionDtype | np_dtype[np_generic] = pandas_dtype(
     settings.constants.datadoc_pandas_dtype_mapping.INTEGER
 )
+STRING_DTYPE: ExtensionDtype | np_dtype[np_generic] = pandas_dtype(
+    settings.constants.datadoc_pandas_dtype_mapping.STRING
+)
 VIDEREUTDANNING_UHGRUPPE = settings.constants.videreutd_uhgrupper
 
 
@@ -70,6 +73,7 @@ def utd_hoeyeste_nus2000(df: pd.DataFrame, year_col: str | None = None) -> pd.Se
         year_col = year_col_right
         df[year_col] = dt.datetime.now().year
 
+    df["snr"] = df["snr"].astype(STRING_DTYPE)
     df[year_col_right] = df[year_col].astype(INTEGER_DTYPE)
 
     utd_hoeyeste = NudbData("utd_hoeyeste")
