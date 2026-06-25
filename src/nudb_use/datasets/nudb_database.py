@@ -14,6 +14,7 @@ from nudb_use.datasets.avslutta import _generate_avslutta_view
 from nudb_use.datasets.bof import _generate_bof_eierforhold_view
 from nudb_use.datasets.bof import _generate_bof_unique_orgnr_foretak_view
 from nudb_use.datasets.bof import _generate_bof_unique_orgnrbed_view
+from nudb_use.datasets.bu_igang import _generate_bu_igang_table
 from nudb_use.datasets.eksamen import _generate_eksamen_aggregated_view
 from nudb_use.datasets.eksamen import _generate_eksamen_avslutta_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
@@ -80,6 +81,7 @@ class _NudbDatabase:
             "utd_foreldres_utdnivaa": _generate_utd_foreldres_utdnivaa_view,
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
+            "bu_igang": _generate_bu_igang_table,
             # Old NUDB
             "f_utd_kurs": _generate_f_utd_kurs_view,
             "f_utd_person": _generate_f_utd_person_view,
