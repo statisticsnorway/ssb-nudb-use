@@ -42,8 +42,6 @@ def _generate_bu_igang_table(
             LENGTH(snr) == 7 /* Keep only valid snrs */
     """).df()
 
-    bu_igang["utd_hoeyeste_year"] = pd.NA
-
     with LoggerStack(f"Generating BU_IGANG_p{yfirst}_p{ylast}..."):
 
         for year in range(yfirst, ylast + 1):
