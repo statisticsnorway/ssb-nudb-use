@@ -245,4 +245,17 @@ _DUCKDB_MACROS = f"""
     /* We keep the first valid BU record of the parent, if there are no records before the child has turned 16       */
     /* We achieve this by VJUSTING the first record, to the first possible value of utd_hoeyeste_aar (VENSTRESENSUR) */
     CASE WHEN utd_hoeyeste_aar <= utd_foerste_aar THEN {VENSTRESENSUR} ELSE utd_hoeyeste_aar END;
+
+
+{_MACRO} BOOL2DUMMY(x) AS
+    COALESCE(CAST(CAST(x AS BOOLEAN) AS INTEGER), 0);
+
+{_MACRO} UTD_HOVEDAKTIVITET_PRIO(uh_erhovedaktivitet, fa_erhovedaktivitet, vg_erhovedaktivitet) AS
+    /* Higher is better, if you have missing/False in all you get 0, otherwise we have 1 for vg */
+    /* 2 for fagskole, and 3 for uh                                                             */
+    GREATEST(
+        3 * BOOL2DUMMY(uh_erhovedaktivitet),
+        2 * BOOL2DUMMY(fa_erhovedaktivitet),
+        1 * BOOL2DUMMY(vg_erhovedaktivitet)
+    );
 """

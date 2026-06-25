@@ -80,6 +80,7 @@ def test_nudbdata(
     NudbData("utd_hoeyeste")
     NudbData("igang")
     NudbData("utd_foreldres_utdnivaa")
+    NudbData("bu_igang", from_year = 2010, to_year = 2011)
 
     # Test methods
     hoeyeste_last = NudbData("utd_hoeyeste_last").select("snr", "utd_hoeyeste_nus2000")
