@@ -1,9 +1,12 @@
 import pandas as pd
+import json
+import os
 from typing import Union, Dict, Any, Optional
 
 from nudb_config import settings
 from . import file_metadata as fm
 from . import variable_quality as vq
+from fagfunksjoner.paths.versions import next_version_path
 
 def generate_metadata(
     data: Union[str, pd.DataFrame],
@@ -77,3 +80,34 @@ def generate_metadata(
         metadata["column_level_metrics"][col] = metrics
 
     return metadata
+
+def write_with_metadata(data: pd.DataFrame, base_path: str, **kwargs):
+    """
+    Writes a DataFrame to a versioned Parquet file and saves its metadata to a central directory.
+
+    Args:
+        data: The DataFrame to save.
+        base_path: The base path for the output file (e.g., /path/to/file_v0.parquet).
+        **kwargs: Additional keyword arguments to pass to generate_metadata.
+    """
+    # Determine the final versioned path for the data file
+    write_path = next_version_path(base_path)
+
+    # Write the actual data
+    data.to_parquet(write_path)
+
+    # Generate the metadata for the file just written
+    metadata = generate_metadata(data=data, file_path=write_path, **kwargs)
+    
+    # Determine the path for the metadata file
+    metadata_dir = "/buckets/produkt/nudb-data/metadata/data-quality"
+    json_filename = os.path.basename(write_path).replace(".parquet", ".json")
+    metadata_path = os.path.join(metadata_dir, json_filename)
+
+    # Create directory if it doesn't exist and save the metadata
+    os.makedirs(metadata_dir, exist_ok=True)
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2, default=str) # Use default=str to handle numpy types
+    
+    print(f"Data written to: {write_path}")
+    print(f"Metadata written to: {metadata_path}")

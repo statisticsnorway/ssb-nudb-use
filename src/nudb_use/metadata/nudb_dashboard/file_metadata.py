@@ -3,6 +3,7 @@ import re
 import git
 import pandas as pd
 from datetime import datetime
+from importlib import metadata
 
 def get_file_details(file_path: str) -> dict:
     """
@@ -49,12 +50,26 @@ def get_environment_details(repo_path: str) -> dict:
         
     commit_hash = repo.head.object.hexsha
     
-    packages = {p.project_name: p.version for p in __import__("pip")._internal.main(["list"])}
+    # Construct commit URL from remote URL
+    commit_url = None
+    try:
+        remote_url = repo.remotes.origin.url
+        if remote_url.startswith("https://"):
+            repo_url = remote_url.removesuffix(".git")
+            commit_url = f"{repo_url}/commit/{commit_hash}"
+        elif remote_url.startswith("git@"):
+            repo_url = remote_url.replace("git@github.com:", "https://github.com/").removesuffix(".git")
+            commit_url = f"{repo_url}/commit/{commit_hash}"
+    except Exception:
+        commit_url = "Could not determine remote URL."
+
+    packages = {dist.name: dist.version for dist in metadata.distributions()}
 
     return {
         "git": {
             "branch": branch,
             "commit_hash": commit_hash,
+            "commit_url": commit_url,
         },
         "python_packages": packages,
     }
