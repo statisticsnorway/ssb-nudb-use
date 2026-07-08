@@ -54,6 +54,10 @@ def get_environment_details(repo_path: str) -> dict:
     commit_url = None
     try:
         remote_url = repo.remotes.origin.url
+        # Clean up URL to create a shareable link
+        if "@" in remote_url:
+            remote_url = "https://" + remote_url.split("@")[1]
+            
         if remote_url.startswith("https://"):
             repo_url = remote_url.removesuffix(".git")
             commit_url = f"{repo_url}/commit/{commit_hash}"
