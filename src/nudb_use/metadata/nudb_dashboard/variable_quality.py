@@ -1,28 +1,15 @@
 import pandas as pd
 import numpy as np
-from typing import Set, List
+from klass import get_classification
+from nudb_config import settings
+from typing import Set, List, Optional
 
 def calculate_fill_rate(series: pd.Series) -> float:
-    """Calculates the fill rate of a pandas Series.
-
-    Args:
-        series: The pandas Series to calculate the fill rate for.
-
-    Returns:
-        The fill rate as a float between 0 and 1.
-    """
+    """Calculates the fill rate of a pandas Series."""
     return 1 - (series.isnull().sum() / len(series))
 
 def calculate_missing_ratios(series: pd.Series, missing_values: list) -> dict:
-    """Calculates the ratio of missing/nan/filled values in a pandas Series.
-
-    Args:
-        series: The pandas Series to calculate the ratios for.
-        missing_values: A list of values to be considered as missing.
-
-    Returns:
-        A dictionary with the ratios for missing, nan, and filled values.
-    """
+    """Calculates the ratio of missing/nan/filled values in a pandas Series."""
     total_count = len(series)
     nan_count = series.isnull().sum()
     missing_count = series.isin(missing_values).sum()
@@ -35,17 +22,7 @@ def calculate_missing_ratios(series: pd.Series, missing_values: list) -> dict:
     }
 
 def calculate_snr_validity(series: pd.Series) -> dict:
-    """Calculates the ratio of valid SNRs, UUIDs, and other invalid values.
-
-    A valid snr is 7 characters long.
-    A UUID is 32 characters long.
-
-    Args:
-        series: The pandas Series containing 'snr' values.
-
-    Returns:
-        A dictionary with the ratios for valid, uuid, and other invalid values.
-    """
+    """Calculates the ratio of valid SNRs, UUIDs, and other invalid values."""
     total_count = len(series)
     valid_snr_count = (series.str.len() == 7).sum()
     uuid_count = (series.str.len() == 32).sum()
@@ -57,33 +34,35 @@ def calculate_snr_validity(series: pd.Series) -> dict:
         "other_invalid_ratio": other_invalid_count / total_count if total_count > 0 else 0,
     }
 
-def verify_klass_codes(series: pd.Series, valid_codes: Set[str]) -> dict:
-    """Verifies categorical codes against a set of valid codes from KLASS.
+def verify_klass_codes(series: pd.Series, variable_name: str) -> Optional[dict]:
+    """Verifies categorical codes against a set of valid codes from KLASS."""
+    try:
+        variable_config = settings.variables.get(variable_name)
 
-    Args:
-        series: The pandas Series with categorical codes.
-        valid_codes: A set of valid codes.
+        if not variable_config or not getattr(variable_config, 'klass_codelist', 0):
+            return None
 
-    Returns:
-        A dictionary with the ratio of valid codes and a list of invalid ones.
-    """
-    total_count = len(series)
-    valid_mask = series.isin(valid_codes)
-    valid_count = valid_mask.sum()
-    invalid_codes = list(series[~valid_mask].unique())
+        klass_id = variable_config.klass_codelist
+        if not klass_id:
+            return None
 
-    return {
-        "valid_code_ratio": valid_count / total_count if total_count > 0 else 0,
-        "invalid_codes": invalid_codes,
-    }
+        classification = get_classification(str(klass_id))
+        valid_codes_df = classification.get_codes().data
+        valid_codes = set(valid_codes_df['code'])
+        
+        total_count = len(series)
+        valid_mask = series.isin(valid_codes)
+        valid_count = valid_mask.sum()
+        invalid_codes = list(series[~valid_mask].unique())
+
+        return {
+            "valid_code_ratio": valid_count / total_count if total_count > 0 else 0,
+            "invalid_codes": invalid_codes,
+        }
+    except Exception as e:
+        print(f"Could not verify KLASS codes for {variable_name}: {e}")
+        return None
 
 def calculate_unique_value_count(series: pd.Series) -> int:
-    """Calculates the number of unique values in a pandas Series.
-
-    Args:
-        series: The pandas Series to calculate the unique value count for.
-
-    Returns:
-        The number of unique values as an integer.
-    """
+    """Calculates the number of unique values in a pandas Series."""
     return series.nunique()
