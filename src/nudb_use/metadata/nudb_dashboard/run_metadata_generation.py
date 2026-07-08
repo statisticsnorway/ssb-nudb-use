@@ -9,14 +9,16 @@ def generate_metadata(
     data: Union[str, pd.DataFrame],
     file_path: Optional[str] = None,
     repo_path: str = ".",
+    full_klass_verification: bool = False,
 ) -> Dict[str, Any]:
     """
     Generates a complete metadata dictionary for a given dataset.
 
     Args:
         data: A file path to a Parquet file or a pandas DataFrame.
-        file_path: Optional. The original file path for the data. If not provided, it's inferred from `data` if it's a string.
+        file_path: Optional. The original file path for the data.
         repo_path: Optional. The path to the git repository.
+        full_klass_verification: Optional. If True, run the slow, detailed, version-aware KLASS verification.
 
     Returns:
         A dictionary containing the complete metadata.
@@ -59,9 +61,14 @@ def generate_metadata(
             metrics["snr_validity"] = vq.calculate_snr_validity(series)
         
         # Automatic KLASS verification
-        klass_verification = vq.verify_klass_codes(series, col)
-        if klass_verification is not None:
-            metrics["klass_verification"] = klass_verification
+        if full_klass_verification:
+            klass_verification = vq.verify_klass_codes_by_version(series, col)
+            if klass_verification is not None:
+                metrics["klass_verification_by_version"] = klass_verification
+        else:
+            klass_verification = vq.verify_klass_codes(series, col)
+            if klass_verification is not None:
+                metrics["klass_verification"] = klass_verification
         
         metadata["column_level_metrics"][col] = metrics
 
