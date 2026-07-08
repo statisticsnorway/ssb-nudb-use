@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Union, Dict, Any, Optional
 
 from nudb_config import settings
-from .file_metadata import generate_file_metadata
+from . import file_metadata as fm
 from . import variable_quality as vq
 
 def generate_metadata(
@@ -35,8 +35,12 @@ def generate_metadata(
     # Generate file-level metadata
     metadata = {}
     if file_path:
-        metadata = generate_file_metadata(file_path=file_path, repo_path=repo_path)
+        metadata = fm.generate_file_metadata(file_path=file_path, repo_path=repo_path)
     
+    # Calculate source contribution if column exists
+    if "nudb_dataset_id" in df.columns:
+        metadata["source_contribution"] = fm.calculate_source_contribution(df["nudb_dataset_id"])
+
     metadata["column_level_metrics"] = {}
 
     # Generate column-level metrics

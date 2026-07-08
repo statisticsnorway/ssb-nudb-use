@@ -59,6 +59,19 @@ def get_environment_details(repo_path: str) -> dict:
         "python_packages": packages,
     }
 
+def calculate_source_contribution(series: pd.Series) -> dict:
+    """Calculates the contribution of each source to the dataset."""
+    total_count = len(series)
+    source_counts = series.value_counts()
+    
+    contribution_dict = {}
+    for source, count in source_counts.items():
+        contribution_dict[source] = {
+            "count": count,
+            "percentage": round(count / total_count if total_count > 0 else 0, 2),
+        }
+    return contribution_dict
+
 def generate_file_metadata(file_path: str, repo_path: str) -> dict:
     """
     Generates a dictionary with file and environment metadata.
@@ -74,4 +87,3 @@ def generate_file_metadata(file_path: str, repo_path: str) -> dict:
         "file_details": get_file_details(file_path),
         "environment": get_environment_details(repo_path),
     }
-

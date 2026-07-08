@@ -7,7 +7,7 @@ from collections import defaultdict
 
 def calculate_fill_rate(series: pd.Series) -> float:
     """Calculates the fill rate of a pandas Series."""
-    return 1 - (series.isnull().sum() / len(series))
+    return round(1 - (series.isnull().sum() / len(series)), 2)
 
 def calculate_missing_ratios(series: pd.Series, missing_values: list) -> dict:
     """Calculates the ratio of missing/nan/filled values in a pandas Series."""
@@ -17,9 +17,9 @@ def calculate_missing_ratios(series: pd.Series, missing_values: list) -> dict:
     filled_count = total_count - nan_count - missing_count
     
     return {
-        "missing_ratio": missing_count / total_count if total_count > 0 else 0,
-        "nan_ratio": nan_count / total_count if total_count > 0 else 0,
-        "filled_ratio": filled_count / total_count if total_count > 0 else 0,
+        "missing_ratio": round(missing_count / total_count if total_count > 0 else 0, 2),
+        "nan_ratio": round(nan_count / total_count if total_count > 0 else 0, 2),
+        "filled_ratio": round(filled_count / total_count if total_count > 0 else 0, 2),
     }
 
 def calculate_snr_validity(series: pd.Series) -> dict:
@@ -30,9 +30,9 @@ def calculate_snr_validity(series: pd.Series) -> dict:
     other_invalid_count = total_count - valid_snr_count - uuid_count
 
     return {
-        "valid_snr_ratio": valid_snr_count / total_count if total_count > 0 else 0,
-        "uuid_ratio": uuid_count / total_count if total_count > 0 else 0,
-        "other_invalid_ratio": other_invalid_count / total_count if total_count > 0 else 0,
+        "valid_snr_ratio": round(valid_snr_count / total_count if total_count > 0 else 0, 2),
+        "uuid_ratio": round(uuid_count / total_count if total_count > 0 else 0, 2),
+        "other_invalid_ratio": round(other_invalid_count / total_count if total_count > 0 else 0, 2),
     }
 
 def verify_klass_codes(series: pd.Series, variable_name: str) -> Optional[dict]:
@@ -57,8 +57,8 @@ def verify_klass_codes(series: pd.Series, variable_name: str) -> Optional[dict]:
         invalid_codes = list(series[~valid_mask].unique())
 
         return {
-            "valid_code_ratio": valid_count / total_count if total_count > 0 else 0,
-            "invalid_codes": invalid_codes,
+            "valid_code_ratio": round(valid_count / total_count if total_count > 0 else 0, 2),
+            "invalid_codes": invalid_codes[:20],
         }
     except Exception as e:
         print(f"Could not verify KLASS codes for {variable_name}: {e}")
@@ -108,8 +108,8 @@ def verify_klass_codes_by_version(series: pd.Series, variable_name: str) -> Opti
 
         # Calculate ratios
         for version_key, data in results["validity_by_version"].items():
-            data["ratio"] = data["count"] / total_count if total_count > 0 else 0
-        results["invalid"]["ratio"] = results["invalid"]["count"] / total_count if total_count > 0 else 0
+            data["ratio"] = round(data["count"] / total_count if total_count > 0 else 0, 2)
+        results["invalid"]["ratio"] = round(results["invalid"]["count"] / total_count if total_count > 0 else 0, 2)
         
         # Convert defaultdict to dict for the final output
         results["validity_by_version"] = dict(results["validity_by_version"])
