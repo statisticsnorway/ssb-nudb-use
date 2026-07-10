@@ -1,19 +1,19 @@
 import pandas as pd
-import json
 import os
-from typing import Union, Dict, Any, Optional
+from typing import Union, Optional, list
 
 from nudb_config import settings
 from . import file_metadata as fm
 from . import variable_quality as vq
 from fagfunksjoner.paths.versions import next_version_path
+from pydantic import BaseModel
 
 def generate_metadata(
     data: Union[str, pd.DataFrame],
     file_path: Optional[str] = None,
     repo_path: str = ".",
     full_klass_verification: bool = False,
-) -> Dict[str, Any]:
+) -> list[BaseModel]:
     """
     Generates a complete metadata dictionary for a given dataset.
 
@@ -24,7 +24,7 @@ def generate_metadata(
         full_klass_verification: Optional. If True, run the slow, detailed, version-aware KLASS verification.
 
     Returns:
-        A dictionary containing the complete metadata.
+        A list of Pydantic models containing the complete metadata.
     """
     if isinstance(data, str):
         file_path = data if file_path is None else file_path
@@ -32,54 +32,25 @@ def generate_metadata(
     else:
         df = data
 
-    # Load missing values mapping from nudb_config
-    missing_values_map = settings.constants.get("missing_vals", {})
+    statlog = []
 
-    # Generate file-level metadata
-    metadata = {}
+    # Generate linage and release information
     if file_path:
-        metadata = fm.generate_file_metadata(file_path=file_path, repo_path=repo_path)
-    
-    # Calculate source contribution if column exists
-    if "nudb_dataset_id" in df.columns:
-        metadata["source_contribution"] = fm.calculate_source_contribution(df["nudb_dataset_id"])
-
-    metadata["column_level_metrics"] = {}
+        data_sources = []
+        if "nudb_dataset_id" in df.columns:
+            data_sources = df["nudb_dataset_id"].unique().tolist()
+        
+        statlog.append(fm.generate_linage(data_source=data_sources, data_target=[file_path], step="write_with_metadata"))
+        statlog.append(fm.generate_release(repo_path=repo_path, data_source=[file_path]))
 
     # Generate column-level metrics
-    for col in df.columns:
-        series = df[col]
-        metrics = {}
+    if file_path:
+        project_name = fm.generate_release(repo_path=repo_path, data_source=[file_path]).statistics_name
+        year = fm.get_file_details(file_path)['year']
+        quality_results = vq.run_quality_checks(df, project_name, [file_path], str(year) , full_klass_verification)
+        statlog.extend(quality_results)
 
-        # General metrics for all columns
-        missing_values_config = missing_values_map.get(col)
-        if missing_values_config is None:
-            missing_values = []
-        elif isinstance(missing_values_config, list):
-            missing_values = missing_values_config
-        else:
-            missing_values = [missing_values_config]
-            
-        metrics["fill_rate"] = vq.calculate_fill_rate(series)
-        metrics["value_ratios"] = vq.calculate_missing_ratios(series, missing_values)
-
-        # Special metrics for specific columns
-        if col == "snr":
-            metrics["snr_validity"] = vq.calculate_snr_validity(series)
-        
-        # Automatic KLASS verification
-        if full_klass_verification:
-            klass_verification = vq.verify_klass_codes_by_version(series, col)
-            if klass_verification is not None:
-                metrics["klass_verification_by_version"] = klass_verification
-        else:
-            klass_verification = vq.verify_klass_codes(series, col)
-            if klass_verification is not None:
-                metrics["klass_verification"] = klass_verification
-        
-        metadata["column_level_metrics"][col] = metrics
-
-    return metadata
+    return statlog
 
 def write_with_metadata(data: pd.DataFrame, base_path: str, **kwargs):
     """
@@ -97,17 +68,18 @@ def write_with_metadata(data: pd.DataFrame, base_path: str, **kwargs):
     data.to_parquet(write_path)
 
     # Generate the metadata for the file just written
-    metadata = generate_metadata(data=data, file_path=write_path, **kwargs)
+    statlog = generate_metadata(data=data, file_path=write_path, **kwargs)
     
     # Determine the path for the metadata file
     metadata_dir = "/buckets/produkt/nudb-data/metadata/data-quality"
-    json_filename = os.path.basename(write_path).replace(".parquet", ".json")
+    json_filename = os.path.basename(write_path).replace(".parquet", ".jsonl")
     metadata_path = os.path.join(metadata_dir, json_filename)
 
     # Create directory if it doesn't exist and save the metadata
     os.makedirs(metadata_dir, exist_ok=True)
     with open(metadata_path, 'w') as f:
-        json.dump(metadata, f, indent=2, default=str) # Use default=str to handle numpy types
+        for item in statlog:
+            f.write(item.model_dump_json() + "\n")
     
     print(f"Data written to: {write_path}")
     print(f"Metadata written to: {metadata_path}")

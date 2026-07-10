@@ -1,9 +1,13 @@
+import hashlib
 import os
 import re
 import git
+import toml
 import pandas as pd
 from datetime import datetime
 from importlib import metadata
+from ssb_poc_statlog_model.linage import Linage
+from ssb_poc_statlog_model.release import Release
 
 def get_file_details(file_path: str) -> dict:
     """
@@ -91,18 +95,58 @@ def calculate_source_contribution(series: pd.Series) -> dict:
         }
     return contribution_dict
 
-def generate_file_metadata(file_path: str, repo_path: str) -> dict:
+def generate_linage(data_source: list[str], data_target: list[str], step: str) -> Linage:
     """
-    Generates a dictionary with file and environment metadata.
+    Generates a Linage object.
 
     Args:
-        file_path: The path to the file.
-        repo_path: The path to the git repository.
+        data_source: A list of input datasets.
+        data_target: A list of output datasets.
+        step: The step in the process.
 
     Returns:
-        A dictionary with file and environment metadata.
+        A Linage object.
     """
-    return {
-        "file_details": get_file_details(file_path),
-        "environment": get_environment_details(repo_path),
-    }
+    file_hashes = []
+    for file_path in data_source:
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        file_hashes.append(sha256_hash.hexdigest())
+
+    return Linage(
+        data_source=data_source,
+        data_target=data_target,
+        step=step,
+        file_hash=file_hashes,
+    )
+
+def generate_release(repo_path: str, data_source: list[str]) -> Release:
+    """
+    Generates a Release object.
+
+    Args:
+        repo_path: The path to the git repository.
+        data_source: A list of input datasets.
+
+    Returns:
+        A Release object.
+    """
+    with open(os.path.join(repo_path, "pyproject.toml"), "r") as f:
+        pyproject = toml.load(f)
+
+    project_name = pyproject.get("project", {}).get("name", "")
+    
+    repo = git.Repo(repo_path, search_parent_directories=True)
+    commit_hash = repo.head.object.hexsha
+    git_tag = next((tag.name for tag in repo.tags if tag.commit == repo.head.commit), None)
+
+    return Release(
+        dapla_team="AI-POD",  # Assuming a static dapla team for now
+        statistics_name=project_name,
+        git_tag=git_tag,
+        git_commit_hash=commit_hash,
+        data_source=data_source,
+        daplalab_image=os.environ.get("JUPYTER_IMAGE"),
+    )
