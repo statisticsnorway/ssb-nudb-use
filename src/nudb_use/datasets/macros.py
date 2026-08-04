@@ -10,8 +10,8 @@ _MAX_DATE = "9" * _DATE_WIDTH
 _MIN_DATE = "0" * _DATE_WIDTH
 
 # hope we always only have one (allowed) width/length per variable
-_WIDTH_UH_INSTITUSJON_ID = settings.variables.uh_institusjon_id.length[0]
-_WIDTH_UTD_UTDANNINGSTYPE = settings.variables.utd_utdanningstype.length[0]
+_WIDTH_UH_INSTITUSJON_ID = settings.variables.uh_institusjon_id.length[0]  # type: ignore
+_WIDTH_UTD_UTDANNINGSTYPE = settings.variables.utd_utdanningstype.length[0]  # type: ignore
 
 _DUCKDB_MACROS = f"""
 
