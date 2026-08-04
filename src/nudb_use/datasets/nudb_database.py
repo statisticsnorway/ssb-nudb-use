@@ -38,6 +38,7 @@ from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
 from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
+from nudb_use.datasets.utd_forloep import _generate_utd_forloep_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_last_view
 from nudb_use.datasets.utd_hoeyeste import _generate_utd_hoeyeste_view
 from nudb_use.metadata.nudb_config.map_get_dtypes import DTYPE_MAPPINGS
@@ -82,6 +83,7 @@ class _NudbDatabase:
             "utd_person": _generate_utd_person_view,
             "bokommune_16aar_snr": _generate_bokommune_16aar_snr,
             "bu_igang": _generate_bu_igang_table,
+            "utd_forloep": _generate_utd_forloep_view,
             # Old NUDB
             "f_utd_kurs": _generate_f_utd_kurs_view,
             "f_utd_person": _generate_f_utd_person_view,

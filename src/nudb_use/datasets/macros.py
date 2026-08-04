@@ -9,6 +9,9 @@ _DATE_WIDTH = 8
 _MAX_DATE = "9" * _DATE_WIDTH
 _MIN_DATE = "0" * _DATE_WIDTH
 
+# hope we always only have one (allowed) width/length per variable
+_WIDTH_UH_INSTITUSJON_ID = settings.variables.uh_institusjon_id.length[0]
+_WIDTH_UTD_UTDANNINGSTYPE = settings.variables.utd_utdanningstype.length[0]
 
 _DUCKDB_MACROS = f"""
 
@@ -250,6 +253,7 @@ _DUCKDB_MACROS = f"""
 {_MACRO} BOOL2DUMMY(x) AS
     COALESCE(CAST(CAST(x AS BOOLEAN) AS INTEGER), 0);
 
+
 {_MACRO} UTD_HOVEDAKTIVITET_PRIO(uh_erhovedaktivitet, fa_erhovedaktivitet, vg_erhovedaktivitet) AS
     /* Higher is better, if you have missing/False in all you get 0, otherwise we have 1 for vg */
     /* 2 for fagskole, and 3 for uh                                                             */
@@ -258,4 +262,21 @@ _DUCKDB_MACROS = f"""
         2 * BOOL2DUMMY(fa_erhovedaktivitet),
         1 * BOOL2DUMMY(vg_erhovedaktivitet)
     );
+
+
+{_MACRO} PREP_UH_INSTITUSJON_ID(uh_institusjon_id) AS
+    LPAD(COALESCE(CAST(uh_institusjon_id AS VARCHAR), '0'), {_WIDTH_UH_INSTITUSJON_ID}, '0');
+
+
+{_MACRO} PREP_UTD_UTDANNINGSTYPE(utd_utdanningstype) AS
+    LPAD(COALESCE(CAST(utd_utdanningstype AS VARCHAR), '00'), {_WIDTH_UTD_UTDANNINGSTYPE}, '0');
+
+
+{_MACRO} UTD_KURS_ID(snr, nus2000, uh_institusjon_id, utd_utdanningstype) AS
+    CONCAT(
+        snr,
+        PREP_NUS2000(nus2000),
+        PREP_UH_INSTITUSJON_ID(uh_institusjon_id),
+        PREP_UTD_UTDANNINGSTYPE(utd_utdanningstype)
+    )
 """
