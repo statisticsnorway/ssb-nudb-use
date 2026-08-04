@@ -28,6 +28,13 @@ class DeriveError(Exception):
     ...
 
 
+def _indent_string(string: str, indent: str, first_line: bool = True) -> str:
+    if first_line:
+        string = indent + string
+
+    return string.replace("\n", "\n" + indent)
+
+
 def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
     """Return the derive function for a variable if it exists.
 
@@ -214,14 +221,18 @@ def wrap_derive(
 
     wrapper.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""
-    wrapper.__doc__ = f"""{docstring}
-
+    wrapper.__doc__ = f"""
             Args:
                 df: Dataframe that should contain prerequisites listed in {derived_from}.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated when all prerequisites are available.
+
+            Base Function Documentation:
+{_indent_string(docstring, indent = '                ')}
+            Base Function Source Code:
+{_indent_string(inspect.getsource(basefunc), indent = '                ')}
         """
     return wrapper
 
@@ -271,8 +282,7 @@ def wrap_derive_join_all_data(
 
     subfunc.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""
-    subfunc.__doc__ = f"""{docstring}
-
+    subfunc.__doc__ = f"""
             Args:
                 df: Dataframe that we should merge the variable data onto.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
@@ -280,6 +290,11 @@ def wrap_derive_join_all_data(
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated.
+
+            Base Function Documentation:
+{_indent_string(docstring, indent = '                ')}
+            Base Function Source Code:
+{_indent_string(inspect.getsource(subfunc), indent = '                ')}
         """
 
     return subfunc
