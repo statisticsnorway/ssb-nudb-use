@@ -6,7 +6,7 @@ from typing import Set, List, Optional, Dict
 from collections import defaultdict
 from ssb_poc_statlog_model.quality_control_description import QualityControlDescription, QualityControlType, Variable
 from ssb_poc_statlog_model.quality_control_result import QualityControlResult, QualityControlResults
-from datetime import datetime
+from datetime import datetime, timezone
 
 QUALITY_CONTROL_DESCRIPTIONS: Dict[str, QualityControlDescription] = {
     "fill_rate": QualityControlDescription(
@@ -45,6 +45,12 @@ QUALITY_CONTROL_DESCRIPTIONS: Dict[str, QualityControlDescription] = {
         quality_control_type=QualityControlType.I,
         variables=[Variable(variable_description="*")]
     ),
+    "boolean_ratio": QualityControlDescription(
+        quality_control_id="boolean_ratio",
+        quality_control_description="Calculates the ratio of True and False values for a boolean column.",
+        quality_control_type=QualityControlType.S,
+        variables=[Variable(variable_description="snr_mrk")]
+    ),
 }
 
 def calculate_fill_rate(series: pd.Series, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> QualityControlResult:
@@ -55,7 +61,7 @@ def calculate_fill_rate(series: pd.Series, quality_control_id: str, statistics_n
         statistics_name=statistics_name,
         data_location=data_location,
         data_period=data_period,
-        quality_control_datetime=datetime.now().isoformat(),
+        quality_control_datetime=datetime.now(timezone.utc).isoformat(),
         quality_control_results=QualityControlResults.field_0 if fill_rate == 1.0 else QualityControlResults.field_1,
         quality_result_comment=f"Fill rate: {fill_rate:.2f}"
     )
@@ -78,7 +84,7 @@ def calculate_missing_ratios(series: pd.Series, missing_values: list, quality_co
         statistics_name=statistics_name,
         data_location=data_location,
         data_period=data_period,
-        quality_control_datetime=datetime.now().isoformat(),
+        quality_control_datetime=datetime.now(timezone.utc).isoformat(),
         quality_control_results=QualityControlResults.field_0 if ratios["missing_ratio"] == 0 and ratios["nan_ratio"] == 0 else QualityControlResults.field_1,
         quality_result_comment=str(ratios)
     )
@@ -101,7 +107,7 @@ def calculate_snr_validity(series: pd.Series, quality_control_id: str, statistic
         statistics_name=statistics_name,
         data_location=data_location,
         data_period=data_period,
-        quality_control_datetime=datetime.now().isoformat(),
+        quality_control_datetime=datetime.now(timezone.utc).isoformat(),
         quality_control_results=QualityControlResults.field_0 if ratios["other_invalid_ratio"] == 0 else QualityControlResults.field_1,
         quality_result_comment=str(ratios)
     )
@@ -137,7 +143,7 @@ def verify_klass_codes(series: pd.Series, variable_name: str, quality_control_id
             statistics_name=statistics_name,
             data_location=data_location,
             data_period=data_period,
-            quality_control_datetime=datetime.now().isoformat(),
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
             quality_control_results=QualityControlResults.field_0 if result["valid_code_ratio"] == 1.0 else QualityControlResults.field_1,
             quality_result_comment=str(result)
         )
@@ -147,7 +153,7 @@ def verify_klass_codes(series: pd.Series, variable_name: str, quality_control_id
             statistics_name=statistics_name,
             data_location=data_location,
             data_period=data_period,
-            quality_control_datetime=datetime.now().isoformat(),
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
             quality_control_results=QualityControlResults.field_1,
             quality_control_run_exception=f"Could not verify KLASS codes for {variable_name}: {e}"
         )
@@ -207,7 +213,7 @@ def verify_klass_codes_by_version(series: pd.Series, variable_name: str, quality
             statistics_name=statistics_name,
             data_location=data_location,
             data_period=data_period,
-            quality_control_datetime=datetime.now().isoformat(),
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
             quality_control_results=QualityControlResults.field_0 if results["invalid"]["count"] == 0 else QualityControlResults.field_1,
             quality_result_comment=str(results)
         )
@@ -218,10 +224,37 @@ def verify_klass_codes_by_version(series: pd.Series, variable_name: str, quality
             statistics_name=statistics_name,
             data_location=data_location,
             data_period=data_period,
-            quality_control_datetime=datetime.now().isoformat(),
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
             quality_control_results=QualityControlResults.field_1,
             quality_control_run_exception=f"Could not perform version-aware KLASS verification for {variable_name}: {e}"
         )
+
+def calculate_boolean_ratio(series: pd.Series, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> Optional[QualityControlResult]:
+    """Calculates the ratio of True and False values in a boolean pandas Series."""
+    if pd.api.types.is_numeric_dtype(series):
+        series = series.astype(bool)
+
+    if not pd.api.types.is_bool_dtype(series):
+        return None
+
+    total_count = len(series)
+    true_count = series.sum()
+    false_count = (series == False).sum()
+
+    ratios = {
+        "true_ratio": true_count / total_count if total_count > 0 else 0,
+        "false_ratio": false_count / total_count if total_count > 0 else 0,
+    }
+
+    return QualityControlResult(
+        quality_control_id=quality_control_id,
+        statistics_name=statistics_name,
+        data_location=data_location,
+        data_period=data_period,
+        quality_control_datetime=datetime.now(timezone.utc).isoformat(),
+        quality_control_results=QualityControlResults.field_0,
+        quality_result_comment=str(ratios)
+    )
 
 def calculate_unique_value_count(series: pd.Series, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> QualityControlResult:
     """Calculates the number of unique values in a pandas Series."""
@@ -231,7 +264,7 @@ def calculate_unique_value_count(series: pd.Series, quality_control_id: str, sta
         statistics_name=statistics_name,
         data_location=data_location,
         data_period=data_period,
-        quality_control_datetime=datetime.now().isoformat(),
+        quality_control_datetime=datetime.now(timezone.utc).isoformat(),
         quality_control_results=QualityControlResults.field_0,
         quality_result_comment=f"Unique value count: {unique_count}"
     )
@@ -240,17 +273,23 @@ def run_quality_checks(df: pd.DataFrame, statistics_name: str, data_location: li
     """Runs all quality checks on a DataFrame."""
     results = []
     for col in df.columns:
-        results.append(calculate_fill_rate(df[col], "fill_rate", statistics_name, data_location, data_period))
-        results.append(calculate_missing_ratios(df[col], [], "missing_ratios", statistics_name, data_location, data_period))
-        results.append(calculate_unique_value_count(df[col], "unique_value_count", statistics_name, data_location, data_period))
+        results.append(calculate_fill_rate(df[col], f"fill_rate_{col}", statistics_name, data_location, data_period))
+        results.append(calculate_missing_ratios(df[col], [], f"missing_ratios_{col}", statistics_name, data_location, data_period))
+        results.append(calculate_unique_value_count(df[col], f"unique_value_count_{col}", statistics_name, data_location, data_period))
 
         if col == "snr":
-            results.append(calculate_snr_validity(df[col], "snr_validity", statistics_name, data_location, data_period))
+            results.append(calculate_snr_validity(df[col], f"snr_validity_{col}", statistics_name, data_location, data_period))
+
+        if col == "snr_mrk":
+            print(f"--- DEBUG: Found snr_mrk column, calling calculate_boolean_ratio ---")
+            boolean_ratio_result = calculate_boolean_ratio(df[col], f"boolean_ratio_{col}", statistics_name, data_location, data_period)
+            if boolean_ratio_result:
+                results.append(boolean_ratio_result)
 
         if full_klass_verification:
-            klass_result = verify_klass_codes_by_version(df[col], col, "klass_code_verification_by_version", statistics_name, data_location, data_period)
+            klass_result = verify_klass_codes_by_version(df[col], col, f"klass_code_verification_by_version_{col}", statistics_name, data_location, data_period)
         else:
-            klass_result = verify_klass_codes(df[col], col, "klass_code_verification", statistics_name, data_location, data_period)
+            klass_result = verify_klass_codes(df[col], col, f"klass_code_verification_{col}", statistics_name, data_location, data_period)
         
         if klass_result:
             results.append(klass_result)
