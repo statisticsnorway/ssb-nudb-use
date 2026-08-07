@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import json
 from klass import get_classification
 from nudb_config import settings
 from typing import Set, List, Optional, Dict
@@ -329,6 +330,69 @@ def calculate_min_max(series: pd.Series, quality_control_id: str, statistics_nam
             quality_control_run_exception=f"Could not calculate min/max for {series.name}: {e}"
         )
 
+def calculate_unique_snr_per_year(df: pd.DataFrame, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> Optional[QualityControlResult]:
+    """Calculates the number of unique SNRs per utd_skoleaar_start."""
+    if 'utd_skoleaar_start' not in df.columns or 'snr' not in df.columns:
+        return None
+
+    try:
+        snr_per_year = df.groupby('utd_skoleaar_start')['snr'].nunique().to_dict()
+        
+        # Convert keys to string to be JSON compliant
+        snr_per_year = {str(k): v for k, v in snr_per_year.items()}
+
+        return QualityControlResult(
+            quality_control_id=quality_control_id,
+            statistics_name=statistics_name,
+            data_location=data_location,
+            data_period=data_period,
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
+            quality_control_results=QualityControlResults.field_0,
+            quality_result_comment=json.dumps(snr_per_year)
+        )
+    except Exception as e:
+        return QualityControlResult(
+            quality_control_id=quality_control_id,
+            statistics_name=statistics_name,
+            data_location=data_location,
+            data_period=data_period,
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
+            quality_control_results=QualityControlResults.field_1,
+            quality_control_run_exception=f"Could not calculate unique snr per year: {e}"
+        )
+
+def calculate_nudb_dataset_id_distribution(df: pd.DataFrame, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> Optional[QualityControlResult]:
+    """Calculates the distribution of nudb_dataset_id."""
+    if 'nudb_dataset_id' not in df.columns:
+        return None
+
+    try:
+        distribution = df['nudb_dataset_id'].value_counts().to_dict()
+        
+        # Convert keys to string to be JSON compliant
+        distribution = {str(k): v for k, v in distribution.items()}
+
+        return QualityControlResult(
+            quality_control_id=quality_control_id,
+            statistics_name=statistics_name,
+            data_location=data_location,
+            data_period=data_period,
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
+            quality_control_results=QualityControlResults.field_0,
+            quality_result_comment=json.dumps(distribution)
+        )
+    except Exception as e:
+        return QualityControlResult(
+            quality_control_id=quality_control_id,
+            statistics_name=statistics_name,
+            data_location=data_location,
+            data_period=data_period,
+            quality_control_datetime=datetime.now(timezone.utc).isoformat(),
+            quality_control_results=QualityControlResults.field_1,
+            quality_control_run_exception=f"Could not calculate nudb_dataset_id distribution: {e}"
+        )
+
+
 def run_quality_checks(df: pd.DataFrame, statistics_name: str, data_location: list[str], data_period: str, full_klass_verification: bool = False) -> list[QualityControlResult]:
     """Runs all quality checks on a DataFrame."""
     results = []
@@ -356,7 +420,15 @@ def run_quality_checks(df: pd.DataFrame, statistics_name: str, data_location: li
         else:
             klass_result = verify_klass_codes(df[col], col, f"klass_code_verification_{col}", statistics_name, data_location, data_period)
         
-        if klass_result:
-            results.append(klass_result)
+    if klass_result:
+        results.append(klass_result)
+
+    unique_snr_per_year_result = calculate_unique_snr_per_year(df, "unique_snr_per_year", statistics_name, data_location, data_period)
+    if unique_snr_per_year_result:
+        results.append(unique_snr_per_year_result)
+
+    nudb_dataset_id_dist_result = calculate_nudb_dataset_id_distribution(df, "nudb_dataset_id_distribution", statistics_name, data_location, data_period)
+    if nudb_dataset_id_dist_result:
+        results.append(nudb_dataset_id_dist_result)
 
     return results
