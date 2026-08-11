@@ -155,12 +155,28 @@ def _apply_snrkat_merges(
         df_lengths["after fnr > snr merge"] = len(df)
 
     if snr_col_name in df.columns:
+        # apparently there are some duplicates on snr_utgatt->snr in snrkat
+        # How to handle these is a bit tricky...
+        snr_utgatt_map = snrkat[["snr", "snr_utgatt"]].drop_duplicates()
+
+        if snr_utgatt_map["snr_utgatt"].duplicated().any():
+            logger.warning(
+                "Found some duplicates on snr_utgatt -> snr in snrkat, trying to remove them..."
+            )
+            # order then filter
+            snr_utgatt_map = (
+                snr_utgatt_map.assign(is_valid=pd.col("snr_utgatt") == pd.col("snr"))
+                .sort_values(by="is_valid", ascending=False)
+                .drop_duplicates(subset="snr_utgatt", keep="first")
+            )
+
         df = _merge_cols(
             df,
-            snrkat,
+            snr_utgatt_map,
             ident_col_name=snr_col_name,
             snrkat_renames={"snr_utgatt": "snr", "snr": "snr_from_snr"},
         )
+
         df_lengths["after snr > snr merge"] = len(df)
 
     if update_fnr and fnr_col_name in df.columns:
