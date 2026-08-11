@@ -8,7 +8,6 @@ import pandas as pd
 from nudb_config import settings
 
 import nudb_use.variables.derive as derive
-from nudb_use.exceptions.exception_classes import NudbDerivedFromNotFoundError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.all_data_helpers import get_source_data
@@ -71,9 +70,6 @@ def wrap_derive(
     Returns:
         Callable[..., pd.DataFrame]: Wrapped derive function that
         writes/updates the derived column.
-
-    Raises:
-        NudbDerivedFromNotFoundError: No matching entry can be found in the config for the function name.
     """
 
     def get_filling_pct(x: pd.Series) -> float:
@@ -87,9 +83,8 @@ def wrap_derive(
 
     # This check runs at runtime, since that is when the function gets decorated?
     if not derived_from:
-        raise NudbDerivedFromNotFoundError(
-            f"No `derived_from` entries for variable {name}!"
-        )
+        logger.error(f"No `derived_from` entries for variable {name}!")
+        derived_from = []  # assume it needs not variables...
 
     def wrapper(
         df: pd.DataFrame,
