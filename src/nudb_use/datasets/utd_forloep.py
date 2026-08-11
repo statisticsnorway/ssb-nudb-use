@@ -10,32 +10,27 @@ def _generate_utd_forloep_view(alias: str, connection: db.DuckDBPyConnection) ->
     query = f"""
         CREATE VIEW
             {alias}
-        AS SELECT DISTINCT
-            /* Identifiers */
+        AS SELECT
+            /* UTD_KURS_ID */
             COALESCE(IGANG.snr, AVSLUTTA.snr) AS snr,
             COALESCE(IGANG.nus2000, AVSLUTTA.nus2000) AS nus2000,
             COALESCE(IGANG.uh_institusjon_id, AVSLUTTA.uh_institusjon_id) AS uh_institusjon_id,
             COALESCE(IGANG.utd_utdanningstype, AVSLUTTA.utd_utdanningstype) AS utd_utdanningstype,
             COALESCE(IGANG.utd_kurs_id, AVSLUTTA.utd_kurs_id) AS utd_kurs_id,
 
-            /* Information IGANG */
+            /* MOST IMPORTANT INFO */
             IGANG.utd_aktivitet_start,
-            IGANG.utd_skoleaar_start_igang,
-            IGANG.gro_skolenr_inn_igang,
-            IGANG.orgnr_foretak_igang,
-            IGANG.orgnrbed_igang,
-
-            /* Information AVSLUTTA */
             AVSLUTTA.utd_aktivitet_slutt,
             AVSLUTTA.utd_fullfoertkode,
-            AVSLUTTA.utd_skoleaar_start_avslutta,
-            AVSLUTTA.gro_skolenr_inn_avslutta,
-            AVSLUTTA.orgnr_foretak_avslutta,
-            AVSLUTTA.orgnrbed_avslutta,
+
+            /* UTD_HENDELSE_ID */
+            IGANG.utd_hendelse_id    AS utd_hendelse_id_igang,
+            AVSLUTTA.utd_hendelse_id AS utd_hendelse_id_avslutta,
 
             /* NUDB_DATASET_ID */
-            IGANG.nudb_dataset_id_igang,
-            AVSLUTTA.nudb_dataset_id_avslutta,
+            IGANG.nudb_dataset_id    AS nudb_dataset_id_igang,
+            AVSLUTTA.nudb_dataset_id AS nudb_dataset_id_avslutta,
+
             CASE
                 WHEN nudb_dataset_id_igang    IS NULL THEN CONCAT(nudb_dataset_id_avslutta, '>{alias}')
                 WHEN nudb_dataset_id_avslutta IS NULL THEN CONCAT(nudb_dataset_id_igang, '>{alias}')
@@ -44,8 +39,9 @@ def _generate_utd_forloep_view(alias: str, connection: db.DuckDBPyConnection) ->
                     '{alias}'
                 )
             END AS nudb_dataset_id
+
         FROM (
-            SELECT DISTINCT
+            SELECT
                 snr,
                 PREP_NUS2000(nus2000)                       AS nus2000,
                 PREP_UH_INSTITUSJON_ID(uh_institusjon_id)   AS uh_institusjon_id,
@@ -57,19 +53,14 @@ def _generate_utd_forloep_view(alias: str, connection: db.DuckDBPyConnection) ->
                     utd_utdanningstype
                 ) AS utd_kurs_id,
                 utd_aktivitet_start,
-                utd_skoleaar_start AS utd_skoleaar_start_igang,
-                gro_skolenr_inn AS gro_skolenr_inn_igang,
-                orgnr_foretak AS orgnr_foretak_igang,
-                orgnrbed AS orgnrbed_igang,
-                nudb_dataset_id AS nudb_dataset_id_igang
+                nudb_dataset_id,
+                utd_hendelse_id
             FROM
                 {igang.alias}
-            WHERE
-                snr IS NOT NULL /* Shouldn't happen, but just in case */
         ) AS IGANG
 
         FULL OUTER JOIN (
-            SELECT DISTINCT
+            SELECT
                 snr,
                 PREP_NUS2000(nus2000)                       AS nus2000,
                 PREP_UH_INSTITUSJON_ID(uh_institusjon_id)   AS uh_institusjon_id,
@@ -82,19 +73,15 @@ def _generate_utd_forloep_view(alias: str, connection: db.DuckDBPyConnection) ->
                 ) AS utd_kurs_id,
                 utd_aktivitet_slutt,
                 utd_fullfoertkode,
-                utd_skoleaar_start AS utd_skoleaar_start_avslutta,
-                gro_skolenr_inn AS gro_skolenr_inn_avslutta,
-                orgnr_foretak AS orgnr_foretak_avslutta,
-                orgnrbed AS orgnrbed_avslutta,
-                nudb_dataset_id AS nudb_dataset_id_avslutta
+                nudb_dataset_id,
+                utd_hendelse_id
             FROM
                 {avslutta.alias}
-            WHERE
-                snr IS NOT NULL /* Shouldn't happen, but just in case */
         ) AS AVSLUTTA
 
         ON
-            IGANG.utd_kurs_id = AVSLUTTA.utd_kurs_id;
+            IGANG.utd_kurs_id = AVSLUTTA.utd_kurs_id AND
+            IGANG.utd_aktivitet_start <= AVSLUTTA.utd_aktivitet_slutt; /* Can't finish before you've started... */
     """
 
     connection.sql(query)
