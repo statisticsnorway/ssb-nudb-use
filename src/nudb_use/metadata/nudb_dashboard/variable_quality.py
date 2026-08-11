@@ -367,7 +367,13 @@ def calculate_nudb_dataset_id_distribution(df: pd.DataFrame, quality_control_id:
         return None
 
     try:
-        distribution = df['nudb_dataset_id'].value_counts().to_dict()
+        # Filter for the highest year in utd_skoleaar_start
+        if 'utd_skoleaar_start' in df.columns:
+            latest_year = df['utd_skoleaar_start'].max()
+            df_filtered = df[df['utd_skoleaar_start'] == latest_year]
+            distribution = df_filtered['nudb_dataset_id'].value_counts().to_dict()
+        else:
+            distribution = df['nudb_dataset_id'].value_counts().to_dict()
         
         # Convert keys to string to be JSON compliant
         distribution = {str(k): v for k, v in distribution.items()}
