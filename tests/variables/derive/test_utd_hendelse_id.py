@@ -1,7 +1,7 @@
 import pandas as pd
 
-from nudb_use.variables.derive.utd_hendelse_id import _safe_sha256_hash
-from nudb_use.variables.derive.utd_hendelse_id import utd_hendelse_id
+from nudb_use.variables.derive.utd_hendelse import _safe_sha256_hash
+from nudb_use.variables.derive.utd_hendelse import utd_hendelse_id
 
 
 def test_utd_skoleaar_slutt() -> None:

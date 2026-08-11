@@ -10,9 +10,9 @@ __all__ = ["utd_hendelse_id"]
 _STRING_DTYPE = DTYPE_MAPPINGS["pandas"]["STRING"]
 
 
-def _safe_sha256_hash(val: Any) -> int:
+def _safe_sha256_hash(val: Any) -> str | None:
     if pd.isna(val):
-        return pd.NA
+        return None
     return hashlib.sha256(str(val).encode("utf-8")).hexdigest()
 
 
@@ -23,11 +23,11 @@ def _row_number(df: pd.DataFrame) -> pd.Series:
 @wrap_derive
 def utd_hendelse_id(df: pd.DataFrame, hashed: bool = True) -> pd.Series:
     """Derive `utd_hendelse_id`."""
-    hendelse_id = (
-        df["nudb_dataset_id"].astype(_STRING_DTYPE)
-        + "["
+    hendelse_id = (  # mypy doesn't understand this
+        df["nudb_dataset_id"].astype(_STRING_DTYPE)  # type: ignore
+        + "["  # type: ignore
         + _row_number(df).astype(_STRING_DTYPE)
-        + "]"
+        + "]"  # type: ignore
     )
 
     if hashed:
