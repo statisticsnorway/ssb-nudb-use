@@ -132,9 +132,16 @@ def calculate_snr_validity(series: pd.Series, quality_control_id: str, statistic
         quality_result_comment=str(ratios)
     )
 
-def verify_klass_codes(series: pd.Series, variable_name: str, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> Optional[QualityControlResult]:
+def verify_klass_codes(df: pd.DataFrame, variable_name: str, quality_control_id: str, statistics_name: str, data_location: list[str], data_period: str) -> Optional[QualityControlResult]:
     """Verifies categorical codes against the latest version of a KLASS classification."""
     try:
+        if 'utd_skoleaar_start' in df.columns:
+            latest_year = df['utd_skoleaar_start'].max()
+            df_filtered = df[df['utd_skoleaar_start'] == latest_year]
+            series = df_filtered[variable_name]
+        else:
+            series = df[variable_name]
+
         variable_config = settings.variables.get(variable_name)
 
         if not variable_config or not getattr(variable_config, 'klass_codelist', 0):
@@ -424,10 +431,10 @@ def run_quality_checks(df: pd.DataFrame, statistics_name: str, data_location: li
         if full_klass_verification:
             klass_result = verify_klass_codes_by_version(df[col], col, f"klass_code_verification_by_version_{col}", statistics_name, data_location, data_period)
         else:
-            klass_result = verify_klass_codes(df[col], col, f"klass_code_verification_{col}", statistics_name, data_location, data_period)
+            klass_result = verify_klass_codes(df, col, f"klass_code_verification_{col}", statistics_name, data_location, data_period)
         
-    if klass_result:
-        results.append(klass_result)
+        if klass_result:
+            results.append(klass_result)
 
     unique_snr_per_year_result = calculate_unique_snr_per_year(df, "unique_snr_per_year", statistics_name, data_location, data_period)
     if unique_snr_per_year_result:
