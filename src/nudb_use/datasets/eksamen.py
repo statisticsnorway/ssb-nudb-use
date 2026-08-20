@@ -185,12 +185,12 @@ def _generate_eksamen_hoeyeste_view(
                     utd_skoleaar_start,
 
 
-                    FIRST(nus2000 ORDER BY uh_eksamen_studpoeng) AS nus2000,
-                    FIRST(utd_datakilde ORDER BY uh_eksamen_studpoeng) AS utd_datakilde,
-                    FIRST(utd_klassetrinn ORDER BY uh_eksamen_studpoeng) AS utd_klassetrinn,
+                    FIRST(nus2000 ORDER BY uh_eksamen_studpoeng DESC) AS nus2000,
+                    FIRST(utd_datakilde ORDER BY uh_eksamen_studpoeng DESC) AS utd_datakilde,
+                    FIRST(utd_klassetrinn ORDER BY uh_eksamen_studpoeng DESC) AS utd_klassetrinn,
                     SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
                     MAX(uh_eksamen_dato) AS uh_eksamen_dato,
-                    FIRST(uh_gruppering_nus ORDER BY uh_eksamen_studpoeng) AS uh_gruppering_nus,
+                    FIRST(uh_gruppering_nus ORDER BY uh_eksamen_studpoeng DESC) AS uh_gruppering_nus,
                     FIRST(nudb_dataset_id) AS nudb_dataset_id
 
                 FROM (
