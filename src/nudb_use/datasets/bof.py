@@ -13,6 +13,13 @@ from nudb_use.paths.path_parse import get_periods_from_path
 from nudb_use.variables.checks import pyarrow_columns_from_metadata
 
 UNION_ALL = "\nUNION ALL\n"
+WANT_COLS_LATEST = (
+    "org_nr",
+    "orgnrbed",
+    "org_form",
+    "sektor_2014",
+    "undersektor_2014",
+)
 
 
 def _bof_latest_orgnr_placement_ctes_sql(
@@ -108,14 +115,8 @@ def _generate_bof_eierforhold_view(
 
     want_cols_pre2014 = ("org_nr", "sektor")
     paths_pre2014 = _get_all_bof_situttak_october_paths(want_cols_pre2014)
-    want_cols_post2014 = (
-        "org_nr",
-        "orgnrbed",
-        "org_form",
-        "sektor_2014",
-        "undersektor_2014",
-    )
-    paths_post2014 = _get_all_bof_situttak_october_paths(want_cols_post2014)
+
+    paths_post2014 = _get_all_bof_situttak_october_paths(WANT_COLS_LATEST)
     paths_pre2014 = [
         p for p in paths_pre2014 if p not in paths_post2014
     ]  # Keep only data with fewer columns if we have to
@@ -280,21 +281,6 @@ def _generate_bof_unique_orgnr_foretak_view(
     """
 
     connection.sql(query)
-
-
-def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
-    possible_date = get_periods_from_path(path_with_date)
-    if isinstance(possible_date, Iterable):
-        if not possible_date:
-            raise TypeError(
-                f"Couldn't get expected periods out from path {path_with_date} (periods are empty)."
-            )
-        return min(possible_date)
-    elif isinstance(possible_date, datetime.datetime | datetime.date):
-        return datetime.date(
-            year=possible_date.year, month=possible_date.month, day=possible_date.day
-        )
-    raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
 
 
 def _bof_connection_lookup_sql_parts(alias: str) -> tuple[str, str] | None:
@@ -666,6 +652,21 @@ def _bof_foretak_to_orgnrbed_lookup_sql(
     """
 
 
+def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
+    possible_date = get_periods_from_path(path_with_date)
+    if isinstance(possible_date, Iterable):
+        if not possible_date:
+            raise TypeError(
+                f"Couldn't get expected periods out from path {path_with_date} (periods are empty)."
+            )
+        return min(possible_date)
+    elif isinstance(possible_date, datetime.datetime | datetime.date):
+        return datetime.date(
+            year=possible_date.year, month=possible_date.month, day=possible_date.day
+        )
+    raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
+
+
 @lru_cache
 def _get_all_bof_situttak_october_paths(
     want_cols: tuple[str, ...] | None = None,
@@ -704,9 +705,9 @@ def _get_all_bof_situttak_october_paths(
 
     # If the wanted columns are missing from the last file... We raise a warning as the file might have changed away from our expectations
     last_file_columns = pyarrow_columns_from_metadata(all_bof_monthly[-1])
-    if not all(c in last_file_columns for c in want_cols_list):
+    if not all(c in last_file_columns for c in WANT_COLS_LATEST):
         logger.warning(
-            f"The last bof situttak does not have the columns we expect: {want_cols_list} - this means the nudb_use package needs fixing most likely. {all_bof_monthly[-1]}"
+            f"The last bof situttak does not have the columns we expect: {WANT_COLS_LATEST} - this means the nudb_use package needs fixing most likely. {all_bof_monthly[-1]}"
         )
 
     # If the last file's date is too far from the current year, we should be worried that they have stopped producing the files there

@@ -58,7 +58,6 @@ __all__ = [
     "utd_erforeldet_kode_nus",
     "utd_hendelse_id",
     "utd_hoeyeste_rangering",
-    "utd_hoeyeste_rangering",
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
