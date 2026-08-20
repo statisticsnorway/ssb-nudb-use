@@ -14,12 +14,12 @@ from nudb_use.variables.checks import pyarrow_columns_from_metadata
 
 UNION_ALL = "\nUNION ALL\n"
 WANT_COLS_LATEST = (
-        "org_nr",
-        "orgnrbed",
-        "org_form",
-        "sektor_2014",
-        "undersektor_2014",
-    )
+    "org_nr",
+    "orgnrbed",
+    "org_form",
+    "sektor_2014",
+    "undersektor_2014",
+)
 
 
 def _bof_latest_orgnr_placement_ctes_sql(
@@ -115,7 +115,7 @@ def _generate_bof_eierforhold_view(
 
     want_cols_pre2014 = ("org_nr", "sektor")
     paths_pre2014 = _get_all_bof_situttak_october_paths(want_cols_pre2014)
-    
+
     paths_post2014 = _get_all_bof_situttak_october_paths(WANT_COLS_LATEST)
     paths_pre2014 = [
         p for p in paths_pre2014 if p not in paths_post2014
@@ -281,7 +281,6 @@ def _generate_bof_unique_orgnr_foretak_view(
     """
 
     connection.sql(query)
-
 
 
 def _bof_connection_lookup_sql_parts(alias: str) -> tuple[str, str] | None:
