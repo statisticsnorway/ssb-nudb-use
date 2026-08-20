@@ -15,7 +15,7 @@ def get_column(df: pd.DataFrame, col: str) -> pd.Series | None:
 
 
 def add_err2list(
-    errors: list[NudbQualityError], error: None | NudbQualityError
+    errors: list[NudbQualityError], error: NudbQualityError | None
 ) -> None:
     """Append a validation error to a list if it is not None."""
     if error is not None:

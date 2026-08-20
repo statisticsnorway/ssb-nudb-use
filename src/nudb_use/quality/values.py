@@ -23,7 +23,7 @@ def get_fill_amount_per_column(df: pd.DataFrame) -> dict[str, float]:
 
 def values_not_in_column(
     col: pd.Series, values: Sequence[object] | object, raise_error: bool = False
-) -> None | ValueError:
+) -> ValueError | None:
     """Check whether certain values appear inside a column.
 
     Args:
@@ -32,7 +32,7 @@ def values_not_in_column(
         raise_error: When True, raise ValueError immediately when matches occur.
 
     Returns:
-        None | ValueError: None when the column is clean, otherwise a ValueError
+        ValueError | None: None when the column is clean, otherwise a ValueError
         describing the unexpected values.
 
     Raises:
