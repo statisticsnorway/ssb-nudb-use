@@ -281,20 +281,6 @@ def _generate_bof_unique_orgnr_foretak_view(
     connection.sql(query)
 
 
-def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
-    possible_date = get_periods_from_path(path_with_date)
-    if isinstance(possible_date, Iterable):
-        if not possible_date:
-            raise TypeError(
-                f"Couldn't get expected periods out from path {path_with_date} (periods are empty)."
-            )
-        return min(possible_date)
-    elif isinstance(possible_date, datetime.datetime | datetime.date):
-        return datetime.date(
-            year=possible_date.year, month=possible_date.month, day=possible_date.day
-        )
-    raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
-
 
 def _bof_connection_lookup_sql_parts() -> tuple[str, str] | None:
     paths = _get_all_bof_situttak_october_paths(want_cols=("org_nr", "orgnrbed"))
@@ -663,6 +649,21 @@ def _bof_foretak_to_orgnrbed_lookup_sql(
         ORDER BY raw.{row_id_col}
         ;
     """
+
+
+def _first_date_from_path_period(path_with_date: str | Path) -> datetime.date:
+    possible_date = get_periods_from_path(path_with_date)
+    if isinstance(possible_date, Iterable):
+        if not possible_date:
+            raise TypeError(
+                f"Couldn't get expected periods out from path {path_with_date} (periods are empty)."
+            )
+        return min(possible_date)
+    elif isinstance(possible_date, datetime.datetime | datetime.date):
+        return datetime.date(
+            year=possible_date.year, month=possible_date.month, day=possible_date.day
+        )
+    raise TypeError(f"Couldn't get expected periods out from path {path_with_date}")
 
 
 @lru_cache
