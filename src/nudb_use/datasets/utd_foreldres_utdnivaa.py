@@ -44,13 +44,13 @@ def _generate_utd_foreldres_utdnivaa_view(
             {utd_hoeyeste.alias} AS T3
         ON
             T1.far_snr = T3.snr AND
-            T3.utd_hoeyeste_aar <= T2.pers_aar_16
+            VJUST_UTD_HOEYESTE_AAR(T3.utd_hoeyeste_aar, T3.utd_foerste_aar) <= T2.pers_aar_16
 
         ASOF LEFT JOIN
             {utd_hoeyeste.alias} AS T4
         ON
             T1.mor_snr = T4.snr AND
-            T4.utd_hoeyeste_aar <= T2.pers_aar_16;
+            VJUST_UTD_HOEYESTE_AAR(T4.utd_hoeyeste_aar, T4.utd_foerste_aar) <= T2.pers_aar_16
     """
 
     connection.sql(query)

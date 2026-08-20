@@ -38,7 +38,10 @@ def test_latest_shared_paths_builds_mapping(monkeypatch: Any, tmp_path: Path) ->
     assert latest.latest_shared_paths("a") == file_a
 
 
-def test_hide_reveal_produkt_path() -> None:
+def test_hide_reveal_produkt_path(monkeypatch: Any) -> None:
+    # patch
+    monkeypatch.setattr(latest, "POSSIBLE_PATHS", latest.ALL_POSSIBLE_PATHS)
+
     produkt = Path(latest.PRODUKT)
     assert produkt in latest.POSSIBLE_PATHS
 

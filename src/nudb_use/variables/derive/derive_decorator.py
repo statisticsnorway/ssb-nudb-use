@@ -8,7 +8,6 @@ import pandas as pd
 from nudb_config import settings
 
 import nudb_use.variables.derive as derive
-from nudb_use.exceptions.exception_classes import NudbDerivedFromNotFoundError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.all_data_helpers import get_source_data
@@ -26,6 +25,13 @@ class DeriveError(Exception):
     """For errors that occur during deriving variables."""
 
     ...
+
+
+def _indent_string(string: str, indent: str, first_line: bool = True) -> str:
+    if first_line:
+        string = indent + string
+
+    return string.replace("\n", "\n" + indent)
 
 
 def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
@@ -64,9 +70,6 @@ def wrap_derive(
     Returns:
         Callable[..., pd.DataFrame]: Wrapped derive function that
         writes/updates the derived column.
-
-    Raises:
-        NudbDerivedFromNotFoundError: No matching entry can be found in the config for the function name.
     """
 
     def get_filling_pct(x: pd.Series) -> float:
@@ -80,9 +83,8 @@ def wrap_derive(
 
     # This check runs at runtime, since that is when the function gets decorated?
     if not derived_from:
-        raise NudbDerivedFromNotFoundError(
-            f"No `derived_from` entries for variable {name}!"
-        )
+        logger.error(f"No `derived_from` entries for variable {name}!")
+        derived_from = []  # assume it needs not variables...
 
     def wrapper(
         df: pd.DataFrame,
@@ -214,14 +216,18 @@ def wrap_derive(
 
     wrapper.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""
-    wrapper.__doc__ = f"""{docstring}
-
+    wrapper.__doc__ = f"""
             Args:
                 df: Dataframe that should contain prerequisites listed in {derived_from}.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated when all prerequisites are available.
+
+            Base Function Documentation:
+{_indent_string(docstring, indent = '                ')}
+            Base Function Source Code:
+{_indent_string(inspect.getsource(basefunc), indent = '                ')}
         """
     return wrapper
 
@@ -271,8 +277,7 @@ def wrap_derive_join_all_data(
 
     subfunc.__name__ = basefunc.__name__
     docstring = basefunc.__doc__ or ""
-    subfunc.__doc__ = f"""{docstring}
-
+    subfunc.__doc__ = f"""
             Args:
                 df: Dataframe that we should merge the variable data onto.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
@@ -280,6 +285,11 @@ def wrap_derive_join_all_data(
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated.
+
+            Base Function Documentation:
+{_indent_string(docstring, indent = '                ')}
+            Base Function Source Code:
+{_indent_string(inspect.getsource(subfunc), indent = '                ')}
         """
 
     return subfunc

@@ -1,4 +1,10 @@
 import duckdb as db
+from nudb_config import settings
+
+VSENSUR = settings.constants.venstresensur
+VSENSUR_P1 = (
+    int(VSENSUR) + 1
+)  # +1 since records in the fall belong to the next school year
 
 
 def _generate_utd_person_view(alias: str, connection: db.DuckDBPyConnection) -> None:
@@ -142,9 +148,9 @@ def _generate_snr2alder16_view(alias: str, connection: db.DuckDBPyConnection) ->
             foedselsdato AS pers_foedselsdato,
             EXTRACT(YEAR FROM foedselsdato) AS pers_foedselsaar,
             CASE
-                WHEN pers_foedselsaar + 16 >  {last_year} THEN {last_year}
-                WHEN pers_foedselsaar + 16 <  1970        THEN 1970
-                WHEN pers_foedselsaar + 16 <= {last_year} THEN pers_foedselsaar + 16
+                WHEN pers_foedselsaar + 16 >  {last_year}  THEN {last_year}
+                WHEN pers_foedselsaar + 16 <  {VSENSUR_P1} THEN {VSENSUR_P1} /* Venstrejustering */
+                WHEN pers_foedselsaar + 16 <= {last_year}  THEN pers_foedselsaar + 16
             END AS pers_aar_16
         FROM
             {freg.alias};

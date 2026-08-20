@@ -53,6 +53,30 @@ Please see the [Reference Guide] for details.
 
 ### Usage for extraction (data from NUDB)
 
+#### `NudbData()`
+
+The `NudbData` class allows easy access, filtering, and selection of data from NUDB. It automatically selects the latest version of the main datasets: AVSLUTTA, IGANG, and EKSAMEN, and also other virtual datasests like UTD_HOEYESTE.
+
+```python
+from nudb_use import NudbData
+df = (
+  NudbData("igang") # get latest version of IGANG
+  .select("snr", "nus2000", "utd_skoleaar_start") # SQL SELECT statement
+  .where("utd_skoleaar_start = '2025'") # SQL WHERE statement
+  .df() # Materialize view into a pandas DataFrame
+)
+```
+
+#### `derive`
+
+The `derive` module allows easy derivation of variables which aren't stored in the data. It automatically handles dependencies between derived variables (deriving variables in the correct order). To derive a variable `my_variable` you just do `derive.<my_variable>(<my_data>)`. For example, to derive `utd_skoleaar_slutt`:
+
+```python
+from nudb_use import derive
+df = derive.utd_skoleaar_slutt(df)
+```
+
+
 Find the latest of each file shared.
 ```python
 from nudb_use import latest_shared_paths
@@ -64,13 +88,6 @@ Get the periods out of any paths following the SSB-naming standard.
 from nudb_use import get_periods_from_path
 get_periods_from_path(path)
 ```
-
-Deriving variables not stored in data, is done by the derive module:
-```python
-from nudb_use import derive
-df = derive.utd_skoleaar_slutt(df)
-```
-
 
 ### Usage for delivery (data to NUDB)
 

@@ -25,7 +25,7 @@ def test_generate_bof_unique_orgnr_foretak_view_uses_latest_placement_cte(
 
     monkeypatch.setattr(
         "nudb_use.datasets.bof._bof_latest_orgnr_placement_ctes_sql",
-        lambda: """
+        lambda relevant_orgnr_cte=None, alias="": """
             latest_placement AS (
                 SELECT '111111111' AS orgnr, 'foretak' AS orgnr_type
                 UNION ALL
@@ -54,7 +54,7 @@ def test_generate_bof_unique_orgnr_foretak_view_creates_empty_view_when_no_paths
 
     monkeypatch.setattr(
         "nudb_use.datasets.bof._bof_latest_orgnr_placement_ctes_sql",
-        lambda: None,
+        lambda relevant_orgnr_cte=None, alias="": None,
     )
 
     _generate_bof_unique_orgnr_foretak_view(
@@ -122,11 +122,16 @@ def test_bof_connection_lookup_sql_parts_builds_union_and_latest_cte(
     monkeypatch.setattr(
         bof_module,
         "_bof_latest_orgnr_placement_ctes_sql",
-        lambda relevant_orgnr_cte=None: f"latest_placement AS (SELECT '{relevant_orgnr_cte}' AS source)",
+        lambda relevant_orgnr_cte=None, alias="": f"latest_placement AS (SELECT '{relevant_orgnr_cte}' AS source)",
+    )
+    monkeypatch.setattr(  # _bof_connection_lookup_sql_parts calls _nudb_read_parquet
+        bof_module, "_nudb_read_parquet", lambda path, alias: f"read_parquet('{path}')"
     )
 
     try:
-        result = _bof_connection_lookup_sql_parts()
+        result = _bof_connection_lookup_sql_parts(
+            alias="TEST_BOF_CONNECTION_LOOKUP_SQL_PARTS"
+        )
     finally:
         shutil.rmtree(workdir)
 
@@ -150,10 +155,13 @@ def test_bof_connection_lookup_sql_parts_returns_none_without_inputs(
     monkeypatch.setattr(
         bof_module,
         "_bof_latest_orgnr_placement_ctes_sql",
-        lambda relevant_orgnr_cte=None: "latest_placement AS (SELECT 1)",
+        lambda relevant_orgnr_cte=None, alias="": "latest_placement AS (SELECT 1)",
     )
 
-    assert _bof_connection_lookup_sql_parts() is None
+    assert (
+        _bof_connection_lookup_sql_parts(alias="TEST_BOF_CONNECTION_LOOKUP_SQL_PARTS")
+        is None
+    )
 
 
 def test_bof_connection_lookup_sql_builders_use_shared_parts(
@@ -162,7 +170,7 @@ def test_bof_connection_lookup_sql_builders_use_shared_parts(
     monkeypatch.setattr(
         bof_module,
         "_bof_connection_lookup_sql_parts",
-        lambda: (
+        lambda alias: (
             "SELECT 'f' AS orgnr, 'b' AS orgnrbed, DATE '2025-10-01' AS bof_period_date",
             "latest_placement AS (SELECT 'f' AS orgnr, 'foretak' AS orgnr_type)",
         ),
@@ -205,7 +213,9 @@ def test_bof_connection_lookup_sql_builders_use_shared_parts(
 def test_bof_connection_lookup_sql_builders_return_none_without_shared_parts(
     monkeypatch: Any,
 ) -> None:
-    monkeypatch.setattr(bof_module, "_bof_connection_lookup_sql_parts", lambda: None)
+    monkeypatch.setattr(
+        bof_module, "_bof_connection_lookup_sql_parts", lambda alias="": None
+    )
 
     assert (
         _bof_dated_orgnr_connections_lookup_sql(

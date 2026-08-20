@@ -9,24 +9,34 @@ from nudb_config import settings
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
-ENV = "daplalab_mounted"
+ENV_DAPLA = "daplalab_mounted"
+ENV_BAKKE = "on_prem"
 
-SHARED_ROOT_EXTERNAL = settings.paths[ENV].get(
+SHARED_ROOT_EXTERNAL = settings.paths[ENV_DAPLA].get(
     "shared_root_external", "/buckets/shared"
 )
-SHARED_UTDANNING_EXTERNAL = settings.paths[ENV].get(
+SHARED_UTDANNING_EXTERNAL = settings.paths[ENV_DAPLA].get(
     "shared_utdanning_external", "/buckets/shared/utd-nudb/utdanning/"
 )
-SHARED_UTDANNING_INTERNAL = settings.paths[ENV].get(
+SHARED_UTDANNING_INTERNAL = settings.paths[ENV_DAPLA].get(
     "shared_utdanning_internal", "/buckets/delt-utdanning/nudb-data"
 )
-PRODUKT = settings.paths[ENV].get("produkt", "/buckets/produkt/nudb-data/")
 
-POSSIBLE_PATHS = [
+PRODUKT = settings.paths[ENV_DAPLA].get("produkt", "/buckets/produkt/nudb-data/")
+NUDBUT = settings.paths[ENV_BAKKE].get(
+    "shared_utdanning_external", "/ssb/stamme03/nudbut"
+)
+
+# all possible paths, might or might not exist
+ALL_POSSIBLE_PATHS = [
     Path(SHARED_UTDANNING_EXTERNAL),
     Path(SHARED_UTDANNING_INTERNAL),
     Path(PRODUKT),
+    Path(NUDBUT),
 ]
+
+# keep only paths that exist at import
+POSSIBLE_PATHS = [path for path in ALL_POSSIBLE_PATHS if path.is_dir()]
 
 
 def _add_delt_path(path: str | Path) -> None:

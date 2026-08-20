@@ -1,5 +1,6 @@
 import duckdb as db
 
+from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.paths.latest import latest_shared_path
 
@@ -15,7 +16,7 @@ def _generate_f_utd_kurs_view(alias: str, connection: db.DuckDBPyConnection) -> 
     SELECT
         *
     FROM
-        read_parquet('{last_path}')
+        {_nudb_read_parquet(last_path, alias)}
     """
 
     connection.sql(query)
@@ -34,7 +35,7 @@ def _generate_f_utd_demografi_view(
     SELECT
         *
     FROM
-        read_parquet('{last_path}')
+        {_nudb_read_parquet(last_path, alias)}
     """
 
     connection.sql(query)
@@ -53,7 +54,7 @@ def _generate_tab_utd_person_view(
     SELECT
         *
     FROM
-        read_parquet('{last_path}')
+        {_nudb_read_parquet(last_path, alias)}
     """
 
     connection.sql(query)
@@ -70,7 +71,7 @@ def _generate_f_utd_person_view(alias: str, connection: db.DuckDBPyConnection) -
     SELECT
         *
     FROM
-        read_parquet('{last_path}')
+        {_nudb_read_parquet(last_path, alias)}
     """
 
     connection.sql(query)
@@ -87,7 +88,7 @@ def _generate_tab_alle_snr_view(alias: str, connection: db.DuckDBPyConnection) -
     SELECT
         *
     FROM
-        read_parquet('{last_path}')
+        {_nudb_read_parquet(last_path, alias)}
     """
 
     connection.sql(query)

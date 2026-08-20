@@ -2,11 +2,19 @@ from nudb_config import settings
 
 VIDEREUTDANNING_UHGRUPPE = tuple(settings.constants.videreutd_uhgrupper)
 VENSTRESENSUR = settings.constants.venstresensur
+FULLF_GRUNNSKOLE_NUS2000 = "201199"
 _MACRO = "CREATE OR REPLACE MACRO"
 _UHNUS = ["6", "7", "8"]
+_DATE_WIDTH = 8
+_MAX_DATE = "9" * _DATE_WIDTH
+_MIN_DATE = "0" * _DATE_WIDTH
 
+# hope we always only have one (allowed) width/length per variable
+_WIDTH_UH_INSTITUSJON_ID = settings.variables.uh_institusjon_id.length[0]  # type: ignore
+_WIDTH_UTD_UTDANNINGSTYPE = settings.variables.utd_utdanningstype.length[0]  # type: ignore
 
 _DUCKDB_MACROS = f"""
+
 {_MACRO} PREP_NUS2000(nus2000) AS
     COALESCE(nus2000, '999999');
 
@@ -19,8 +27,16 @@ _DUCKDB_MACROS = f"""
     LPAD(COALESCE(CAST(uh_gruppering_nus AS VARCHAR), '00'), 2, '0');
 
 
+{_MACRO} PREP_UTD_DATAKILDE(uh_gruppering_nus) AS
+    LPAD(COALESCE(CAST(uh_gruppering_nus AS VARCHAR), '00'), 2, '0');
+
+
 {_MACRO} PREP_UTD_SKOLEAAR_START(utd_skoleaar_start) AS
     COALESCE(CAST(utd_skoleaar_start AS VARCHAR), '{VENSTRESENSUR}');
+
+
+{_MACRO} PREP_AND_INVERT_UTD_STUDIELAND(utd_studieland) AS /* Use substr to avoid underflow in 999 - .... */
+    LPAD(CAST(999 - CAST(SUBSTR(COALESCE(utd_studieland, '999'), 1, 3) AS INTEGER) AS VARCHAR), 3, '0');
 
 
 {_MACRO} YEAR_PLUS_ONE(utd_skoleaar_start) AS
@@ -43,7 +59,8 @@ _DUCKDB_MACROS = f"""
     COALESCE(uh_eksamen_studpoeng, 0);
 
 
-{_MACRO} IS_EKSAMENER_120_STUDP(uh_eksamen_dato, uh_eksamen_studpoeng, uh_gruppering_nus) AS
+{_MACRO} IS_EKSAMENER_120_STUDP(uh_eksamen_dato, uh_eksamen_studpoeng, uh_gruppering_nus, utd_rectype) AS
+    utd_rectype = '3' AND
     uh_eksamen_dato IS NOT NULL AND
     uh_eksamen_studpoeng IS NOT NULL AND
     uh_eksamen_studpoeng > 0 AND
@@ -57,24 +74,25 @@ _DUCKDB_MACROS = f"""
    uh_eksamen_studpoeng,
    utd_aktivitet_slutt,
    is_eksamener_120_studp,
-   utd_klassetrinn
+   utd_klassetrinn,
+   utd_rectype
 ) AS
     CASE
-        WHEN nivaa2000 IN {_UHNUS} AND NOT is_eksamener_120_studp                                                         THEN '4'
-        WHEN nivaa2000 IN {_UHNUS} AND     is_eksamener_120_studp                                                         THEN '3'
+        WHEN nivaa2000 IN {_UHNUS} AND utd_rectype == '4'                                                                 THEN '4'
+        WHEN nivaa2000 IN {_UHNUS} AND utd_rectype == '3'               AND is_eksamener_120_studp                        THEN '3'
         WHEN nivaa2000 == '3'      AND utd_klassetrinn IN ['10', '11']  AND utd_aktivitet_slutt >= make_date(1975, 10, 1) THEN '1'
         WHEN nivaa2000 == '3'                                           AND utd_aktivitet_slutt >= make_date(1995, 10, 1) THEN '1'
-        WHEN nus2000 == '999999'                                                                                          THEN '0'
+        WHEN   nus2000 == '999999'                                                                                        THEN '0'
                                                                                                                           ELSE '2'
     END;
 
 
 {_MACRO} DATE2STR(x) AS
-    strftime(x, '%Y%m');
+    strftime(x, '%Y%m%d');
 
 
 {_MACRO} INVERT_DATE(x) AS
-    lpad(CAST(999999 - CAST(DATE2STR(x) AS INTEGER) AS VARCHAR), 6, '0');
+    LPAD(CAST({_MAX_DATE} - CAST(DATE2STR(x) AS INTEGER) AS VARCHAR), {_DATE_WIDTH}, '0');
 
 
 {_MACRO} UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS
@@ -91,7 +109,10 @@ _DUCKDB_MACROS = f"""
     _uh_gruppering_nus,
     _utd_aktivitet_slutt,
     _utd_klassetrinn,
-    _utd_skoleaar_start
+    _utd_skoleaar_start,
+    _utd_rectype,
+    _utd_studieland,
+    _utd_datakilde
 ) AS (
     /* ======================================================================================================================= */
     /* === Step 0: Handle Missing Values                                                                                   === */
@@ -105,7 +126,10 @@ _DUCKDB_MACROS = f"""
             PREP_UHGRUPPE(_uh_gruppering_nus) AS uh_gruppering_nus,
             PREP_UTD_AKTIVITET_SLUTT(_utd_aktivitet_slutt, _uh_eksamen_dato, _utd_skoleaar_start) AS utd_aktivitet_slutt,
             PREP_UTD_KLASSETRINN(_utd_klassetrinn) AS utd_klassetrinn,
-            PREP_UTD_SKOLEAAR_START(_utd_skoleaar_start) AS utd_skoleaar_start
+            PREP_UTD_SKOLEAAR_START(_utd_skoleaar_start) AS utd_skoleaar_start,
+            PREP_UTD_DATAKILDE(_utd_datakilde) AS utd_datakilde,
+            PREP_AND_INVERT_UTD_STUDIELAND(_utd_studieland) AS utd_inverse_studieland,
+            _utd_rectype AS utd_rectype
     ),
 
     /* ======================================================================================================================= */
@@ -118,7 +142,8 @@ _DUCKDB_MACROS = f"""
             IS_EKSAMENER_120_STUDP(
                 uh_eksamen_dato,
                 uh_eksamen_studpoeng,
-                uh_gruppering_nus
+                uh_gruppering_nus,
+                utd_rectype
             ) AS is_eksamener_120_studp,
             SUBSTR(nus2000, 1, 1) AS nivaa2000
         FROM
@@ -146,7 +171,8 @@ _DUCKDB_MACROS = f"""
                 uh_eksamen_studpoeng,
                 utd_aktivitet_slutt,
                 is_eksamener_120_studp,
-                utd_klassetrinn
+                utd_klassetrinn,
+                utd_rectype
             ) AS trinn_plassering
         FROM
             T1
@@ -167,7 +193,7 @@ _DUCKDB_MACROS = f"""
             *,
             CASE
                 WHEN SUBSTR(trinn_plassering, 1, 1) == '3'        THEN INVERT_DATE(utd_aktivitet_slutt)
-                WHEN SUBSTR(trinn_plassering, 1, 1) IN ('2', '4') THEN '000000'
+                WHEN SUBSTR(trinn_plassering, 1, 1) IN ('2', '4') THEN '{_MIN_DATE}'
                                                                   ELSE DATE2STR(utd_aktivitet_slutt)
             END AS first_date_tiebreak,
             DATE2STR(utd_aktivitet_slutt) AS last_date_tiebreak,
@@ -187,17 +213,70 @@ _DUCKDB_MACROS = f"""
     /* ======================================================================================================================= */
     /* === Step 4: Create Ranking Number                                                                                   === */
     /* ======================================================================================================================= */
+    /*    Kjell (01/06/26): Added utd_datakilde to the end of the ranking number. The main idea here, is that we use the last  */
+    /*    8 digits as tiebreakers, ensuring that we don't get duplicates. They are not 'faglig' sound, but they are            */
+    /*    deterministic. I.e., they don't really decide what record is the best, but they stop us from getting duplicates.     */
+    /* ======================================================================================================================= */
 
     SELECT CONCAT(
         trinn_plassering,           /* [   00] [1] Record Type.                                                                */
-        first_date_tiebreak,        /* [01-06] [6] First Date Tiebreak with Inverted Date for Exam Records.                    */
-        nivaa2000_overflowed,       /* [   07] [1] Nivaa nus2000 overflowed such that 9 is mapped to 0.                        */
-        utd_klassetrinn,            /* [09-10] [2] Klassetrinn (Higher = better).                                              */
-        allmenne_fag,               /* [   11] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
-        ppu_forberedende_proever,   /* [   12] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
-        last_date_tiebreak,         /* [13-18] [6] Last Date Tiebreak. Newer is Better.                                        */
-        nus2000                     /* [19-24] [6] NUS2000 Tiebreak. Higher NUS2000 is Better.                                 */
+        first_date_tiebreak,        /* [01-09] [8] First Date Tiebreak with Inverted Date for Exam Records.                    */
+        nivaa2000_overflowed,       /* [   10] [1] Nivaa nus2000 overflowed such that 9 is mapped to 0.                        */
+        utd_klassetrinn,            /* [11-12] [2] Klassetrinn (Higher = better).                                              */
+        allmenne_fag,               /* [   13] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
+        ppu_forberedende_proever,   /* [   14] [1] Forberedene Prøver is Worst (0) PPU is better (1) Other is best (9).        */
+        last_date_tiebreak,         /* [15-22] [8] Last Date Tiebreak. Newer is Better.                                        */
+        nus2000,                    /* [23-28] [6] NUS2000 Tiebreak. Higher NUS2000 is "Better".                               */
+        utd_inverse_studieland,     /* [29-31] [3] Studieland Tiebreak. Lower Studieland is "Better" (Norway is "Best")        */
+        utd_datakilde               /* [32-33] [2] Kilde Tiebreak. Higher Kilde is "Better."                                   */
     ) FROM T3
 
 );
+
+
+{_MACRO} DOWNGRADE_UTD_HOEYESTE_NUS2000(utd_hoeyeste_nus2000, utd_hoeyeste_nus2000_rangering) AS
+    /* This code is volatile! It depends on how the ranking number is created! */
+    CASE
+        WHEN SUBSTR(utd_hoeyeste_nus2000_rangering, 1, 1) == '1' THEN '{FULLF_GRUNNSKOLE_NUS2000}'
+        ELSE utd_hoeyeste_nus2000
+    END;
+
+
+{_MACRO} VJUST_UTD_HOEYESTE_AAR(utd_hoeyeste_aar, utd_foerste_aar) AS
+    /* utd_hoeyeste_aar is the current year of the BU/UTD_HOEYESTE record, and utd_foreste_aar is the year           */
+    /* in which a person got their first BU/UTD_HOEYESTE record. When deriving SOSBAK/UTD_FORELDRES_UTDNIVAA         */
+    /* We keep the first valid BU record of the parent, if there are no records before the child has turned 16       */
+    /* We achieve this by VJUSTING the first record, to the first possible value of utd_hoeyeste_aar (VENSTRESENSUR) */
+    CASE WHEN utd_hoeyeste_aar <= utd_foerste_aar THEN {VENSTRESENSUR} ELSE utd_hoeyeste_aar END;
+
+
+{_MACRO} BOOL2DUMMY(x) AS
+    COALESCE(CAST(CAST(x AS BOOLEAN) AS INTEGER), 0);
+
+
+{_MACRO} UTD_HOVEDAKTIVITET_PRIO(uh_erhovedaktivitet, fa_erhovedaktivitet, vg_erhovedaktivitet) AS
+    /* Higher is better, if you have missing/False in all you get 0, otherwise we have 1 for vg */
+    /* 2 for fagskole, and 3 for uh                                                             */
+    GREATEST(
+        3 * BOOL2DUMMY(uh_erhovedaktivitet),
+        2 * BOOL2DUMMY(fa_erhovedaktivitet),
+        1 * BOOL2DUMMY(vg_erhovedaktivitet)
+    );
+
+
+{_MACRO} PREP_UH_INSTITUSJON_ID(uh_institusjon_id) AS
+    LPAD(COALESCE(CAST(uh_institusjon_id AS VARCHAR), '0'), {_WIDTH_UH_INSTITUSJON_ID}, '0');
+
+
+{_MACRO} PREP_UTD_UTDANNINGSTYPE(utd_utdanningstype) AS
+    LPAD(COALESCE(CAST(utd_utdanningstype AS VARCHAR), '00'), {_WIDTH_UTD_UTDANNINGSTYPE}, '0');
+
+
+{_MACRO} UTD_KURS_ID(snr, nus2000, uh_institusjon_id, utd_utdanningstype) AS
+    CONCAT(
+        snr,
+        PREP_NUS2000(nus2000),
+        PREP_UH_INSTITUSJON_ID(uh_institusjon_id),
+        PREP_UTD_UTDANNINGSTYPE(utd_utdanningstype)
+    )
 """
