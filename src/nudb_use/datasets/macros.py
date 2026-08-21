@@ -107,9 +107,21 @@ _DUCKDB_MACROS = f"""
 
 {_MACRO} UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS
     CASE
-        WHEN MONTH(utd_hoeyeste_dato) <= 10 THEN YEAR(utd_hoeyeste_dato)
-                                            ELSE YEAR(utd_hoeyeste_dato) + 1
+        WHEN MONTH(utd_hoeyeste_dato) <= 9 THEN YEAR(utd_hoeyeste_dato)
+                                           ELSE YEAR(utd_hoeyeste_dato) + 1
     END;
+
+
+{_MACRO} TRINN3_DATE_TIEBREAK(utd_aktivitet_slutt) AS
+    CONCAT(
+        LPAD(CAST(9999 - UTD_HOEYESTE_AAR(utd_aktivitet_slutt) AS VARCHAR), 4, '0'),
+        LPAD(CAST(
+            CASE WHEN MONTH(utd_aktivitet_slutt) >= 10 THEN MONTH(utd_aktivitet_slutt) - 9
+                                                        ELSE MONTH(utd_aktivitet_slutt) + 3
+            END AS VARCHAR
+        ), 2, '0'),
+        strftime(utd_aktivitet_slutt, '%d')
+    );
 
 
 {_MACRO} UTD_HOEYESTE_RANGERING(
@@ -199,7 +211,7 @@ _DUCKDB_MACROS = f"""
     /* === Step 3: Date Tie Breakers, NUS nivaa, Allmenne Fag and PPU/Forberedende Prøver                                  === */
     /* ======================================================================================================================= */
     /*     For record types 2 and 4 we don't consider the date (yet).                                                          */
-    /*     For record type 3 we prioritize the latest/newest records.                                                          */
+    /*     For record type 3 we prioritize the first valid education year, then the newest record within that education year.   */
     /*     For record type 0 and 1 we prioritize the latest/newest records.                                                    */
     /*     We overflow nivaa2000 such that 9 gets mapped to 0, as 9 should be prioritized last.                                */
     /*     We identify and down prioritize allmenne fag                                                                        */
@@ -209,7 +221,7 @@ _DUCKDB_MACROS = f"""
         SELECT
             *,
             CASE
-                WHEN SUBSTR(trinn_plassering, 1, 1) == '3'        THEN DATE2STR(utd_aktivitet_slutt)
+                WHEN SUBSTR(trinn_plassering, 1, 1) == '3'        THEN TRINN3_DATE_TIEBREAK(utd_aktivitet_slutt)
                 WHEN SUBSTR(trinn_plassering, 1, 1) IN ('2', '4') THEN '{_MIN_DATE}'
                                                                   ELSE DATE2STR(utd_aktivitet_slutt)
             END AS first_date_tiebreak,
@@ -237,7 +249,7 @@ _DUCKDB_MACROS = f"""
 
     SELECT CONCAT(
         trinn_plassering,           /* [   00] [1] Record Type.                                                                */
-        first_date_tiebreak,        /* [01-09] [8] First Date Tiebreak. Newer is Better for Exam Records.                      */
+        first_date_tiebreak,        /* [01-09] [8] Trinn 3: Inverted education year, shifted month/day.                        */
         nivaa2000_overflowed,       /* [   10] [1] Nivaa nus2000 overflowed such that 9 is mapped to 0.                        */
         utd_klassetrinn,            /* [11-12] [2] Klassetrinn (Higher = better).                                              */
         allmenne_fag,               /* [   13] [1] Allmenne Fag (Allmenne fag = 0, other = 1).                                 */
