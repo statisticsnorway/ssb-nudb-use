@@ -67,18 +67,28 @@ _DUCKDB_MACROS = f"""
     uh_gruppering_nus NOT IN {VIDEREUTDANNING_UHGRUPPE};
 
 
+{_MACRO} IS_EKSAMENER_60_STUDP_VIDEREUTDANNING(uh_eksamen_dato, uh_eksamen_studpoeng, uh_gruppering_nus, utd_rectype) AS
+    utd_rectype = '3' AND
+    uh_eksamen_dato IS NOT NULL AND
+    uh_eksamen_studpoeng IS NOT NULL AND
+    uh_eksamen_studpoeng > 0 AND
+    uh_gruppering_nus IN {VIDEREUTDANNING_UHGRUPPE};
+
+
 {_MACRO} TRINN_PLASSERING(
    nus2000,
    nivaa2000,
    uh_eksamen_dato,
    uh_eksamen_studpoeng,
    utd_aktivitet_slutt,
+   is_eksamener_60_studp_videreutdanning,
    is_eksamener_120_studp,
    utd_klassetrinn,
    utd_rectype
 ) AS
     CASE
         WHEN nivaa2000 IN {_UHNUS} AND utd_rectype == '4'                                                                 THEN '4'
+        WHEN nivaa2000 IN {_UHNUS} AND is_eksamener_60_studp_videreutdanning                                               THEN '4'
         WHEN nivaa2000 IN {_UHNUS} AND utd_rectype == '3'               AND is_eksamener_120_studp                        THEN '3'
         WHEN nivaa2000 == '3'      AND utd_klassetrinn IN ['10', '11']  AND utd_aktivitet_slutt >= make_date(1975, 10, 1) THEN '1'
         WHEN nivaa2000 == '3'                                           AND utd_aktivitet_slutt >= make_date(1995, 10, 1) THEN '1'
@@ -133,7 +143,7 @@ _DUCKDB_MACROS = f"""
     ),
 
     /* ======================================================================================================================= */
-    /* === Step 1: Identify 120 Studp Exam Rows and NUS Nivaa                                                              === */
+    /* === Step 1: Identify Exam Rows Crossing Studiepoeng Thresholds and NUS Nivaa                                       === */
     /* ======================================================================================================================= */
 
     T1 AS (
@@ -145,6 +155,12 @@ _DUCKDB_MACROS = f"""
                 uh_gruppering_nus,
                 utd_rectype
             ) AS is_eksamener_120_studp,
+            IS_EKSAMENER_60_STUDP_VIDEREUTDANNING(
+                uh_eksamen_dato,
+                uh_eksamen_studpoeng,
+                uh_gruppering_nus,
+                utd_rectype
+            ) AS is_eksamener_60_studp_videreutdanning,
             SUBSTR(nus2000, 1, 1) AS nivaa2000
         FROM
             T0
@@ -170,6 +186,7 @@ _DUCKDB_MACROS = f"""
                 uh_eksamen_dato,
                 uh_eksamen_studpoeng,
                 utd_aktivitet_slutt,
+                is_eksamener_60_studp_videreutdanning,
                 is_eksamener_120_studp,
                 utd_klassetrinn,
                 utd_rectype
