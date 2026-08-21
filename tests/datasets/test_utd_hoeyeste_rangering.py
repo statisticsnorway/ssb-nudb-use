@@ -26,7 +26,7 @@ def test_60_studiepoeng_videreutdanning_rangeres_som_uh_grad() -> None:
     assert result[0].startswith("400000000")
 
 
-def test_120_studiepoeng_eksamen_bruker_invertert_foerste_dato() -> None:
+def test_120_studiepoeng_eksamen_bruker_foerste_dato() -> None:
     con = duckdb.connect()
     con.execute(_DUCKDB_MACROS)
 
@@ -46,4 +46,4 @@ def test_120_studiepoeng_eksamen_bruker_invertert_foerste_dato() -> None:
     """).fetchone()
 
     assert result is not None
-    assert result[0].startswith("379939898")
+    assert result[0].startswith("320060101")
