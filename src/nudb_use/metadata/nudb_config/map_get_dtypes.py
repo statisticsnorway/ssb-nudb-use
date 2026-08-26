@@ -11,13 +11,16 @@ from nudb_config import settings as SETTINGS
 
 from nudb_use.nudb_logger import logger
 
-DTypeName: TypeAlias = Literal["STRING", "DATETIME", "INTEGER", "FLOAT", "BOOLEAN"]
+DTypeName: TypeAlias = Literal[
+    "STRING", "DATETIME", "INTEGER", "FLOAT", "BOOLEAN", "UINTEGER"
+]
 
 STRING_DTYPE_NAME: Final[DTypeName] = "STRING"
 DATETIME_DTYPE_NAME: Final[DTypeName] = "DATETIME"
 INTEGER_DTYPE_NAME: Final[DTypeName] = "INTEGER"
 FLOAT_DTYPE_NAME: Final[DTypeName] = "FLOAT"
 BOOL_DTYPE_NAME: Final[DTypeName] = "BOOLEAN"
+UINTEGER_DTYPE_NAME: Final[DTypeName] = "UINTEGER"
 
 DATETIME_DTYPES: Final[set[DTypeName]] = {DATETIME_DTYPE_NAME}
 
@@ -27,6 +30,7 @@ PandasDTypeLiteral: TypeAlias = Literal[
     "Int64",
     "Float64",
     "bool[pyarrow]",
+    "UInt64",
 ]
 
 BackendName: TypeAlias = Literal["pandas"]  # add others later when necessary
@@ -41,6 +45,7 @@ DTYPE_MAPPINGS: Final[MappingSpec] = {
         INTEGER_DTYPE_NAME: "Int64",
         FLOAT_DTYPE_NAME: "Float64",
         BOOL_DTYPE_NAME: "bool[pyarrow]",
+        UINTEGER_DTYPE_NAME: "UInt64",
     }
 }
 
