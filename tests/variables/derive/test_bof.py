@@ -5,7 +5,7 @@ import pandas as pd
 from nudb_use.variables.derive import bof as bof_module
 
 
-def test_bof_eierforhold_preserves_index_and_falls_back_on_orgnrbed(
+def test_bof_eierforhold_resets_index_and_falls_back_on_orgnrbed(
     monkeypatch: Any,
 ) -> None:
     catalogue = pd.DataFrame(
@@ -41,9 +41,9 @@ def test_bof_eierforhold_preserves_index_and_falls_back_on_orgnrbed(
 
     result = bof_module.bof_eierforhold(df.copy())
 
-    assert result.index.tolist() == [10, 20, 30]
+    assert result.index.tolist() == [0, 1, 2]
     pd.testing.assert_series_equal(
         result["bof_eierforhold"],
-        pd.Series(["1", "5", pd.NA], index=[10, 20, 30], name="bof_eierforhold"),
+        pd.Series(["1", "5", pd.NA], index=[0, 1, 2], name="bof_eierforhold"),
         check_dtype=False,
     )

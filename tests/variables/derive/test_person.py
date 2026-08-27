@@ -53,7 +53,7 @@ def test_pers_variables(
     assert "pers_foedselsdato" in result.columns
 
 
-def test_pers_variables_preserve_index(
+def test_pers_variables_resets_index(
     igang: pd.DataFrame,
     freg_situttak: pd.DataFrame,
     innvbef: pd.DataFrame,
@@ -66,4 +66,4 @@ def test_pers_variables_preserve_index(
 
     result = df.pipe(derive.pers_invkat).pipe(derive.pers_kjoenn)
 
-    assert result.index.tolist() == [10, 20, 30, 40, 50]
+    assert result.index.tolist() == [0, 1, 2, 3, 4]
