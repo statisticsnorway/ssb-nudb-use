@@ -144,7 +144,8 @@ QUERY:
                 )
 
             logger.warning(f"Overwriting existing dataset: {name}")
-            del nudb_database._datasets[name]
+            if name in nudb_database._datasets:
+                del nudb_database._datasets[name]
 
             if alias in nudb_database._dataset_paths.keys():
                 previous_paths = nudb_database._dataset_paths[alias]
@@ -176,6 +177,13 @@ QUERY:
 
         if self.exists:
             nudb_database._datasets[self.name] = self
+            if self.name in ("igang", "avslutta"):
+                try:
+                    report = self.check_shared_files()
+                    if report is not None:
+                        print(report)
+                except Exception as e:
+                    logger.debug(f"Failed to automatically check shared files: {e}")
         else:
             logger.critical(f"Failed to attach {self.name} to database!")
 
@@ -501,6 +509,160 @@ QUERY:
             return nudb_database._dataset_paths[self.alias]
         else:
             return None
+
+    def check_shared_files(self, year: int | None = None) -> Any:
+        """Check status of shared input files that constitute this dataset."""
+        import re
+        from datetime import datetime
+        from pathlib import Path
+
+        from fagfunksjoner.paths.shared_files import FileState
+        from fagfunksjoner.paths.shared_files import FileStatus
+        from fagfunksjoner.paths.shared_files import FileStatusReport
+        from fagfunksjoner.paths.shared_files import SharedFileSpec
+
+        # 1. Check if column exists
+        if "nudb_dataset_id" not in self.get_available_cols():
+            return None
+
+        # 2. Query distinct nudb_dataset_id values
+        query = f"SELECT DISTINCT nudb_dataset_id FROM ({self._get_query(check_validity=True)})"
+        try:
+            rows = self.execute(query).fetchall()
+            unique_ids = [row[0] for row in rows if row[0] is not None]
+        except Exception as e:
+            logger.debug(f"Failed to fetch nudb_dataset_id column: {e}")
+            return None
+
+        # 3. Extract absolute parquet file paths using regex
+        path_regex = re.compile(r"/[^()>\+,\s\'\"]+\.parquet")
+        loaded_paths = set()
+        for uid in unique_ids:
+            for match in path_regex.findall(uid):
+                loaded_paths.add(Path(match))
+
+        # 4. Helper function to map filenames to the 4 main source categories
+        def get_source_category(filename: str) -> str | None:
+            filename_lower = filename.lower()
+            if "videregaaende" in filename_lower:
+                return "videregående"
+            elif "resultat" in filename_lower or "grunnskole" in filename_lower:
+                return "grunnskole"
+            elif "fagskole" in filename_lower:
+                return "fagskole"
+            elif "hoeyereutdanning" in filename_lower or "uh" in filename_lower:
+                return "høyere utdanning"
+            return None
+
+        # 5. Parse each found path
+        parsed_files = []
+        for path in sorted(loaded_paths):
+            filename = path.name
+            source_cat = get_source_category(filename)
+            if source_cat is None:
+                continue
+
+            years = [int(y) for y in re.findall(r"_p(\d{4})", filename)]
+            file_year = years[-1] if years else None
+
+            version_match = re.search(r"_v(\d+)", filename)
+            version = int(version_match.group(1)) if version_match else None
+
+            parsed_files.append({
+                "path": path,
+                "filename": filename,
+                "year": file_year,
+                "version": version,
+                "source": source_cat,
+            })
+
+        if not parsed_files:
+            return None
+
+        # 6. Determine target year as maximum year found among the matched files
+        target_year = year if year is not None else max((f["year"] for f in parsed_files if f["year"] is not None), default=datetime.now().year)
+
+        expected_sources = ["videregående", "grunnskole", "høyere utdanning", "fagskole"]
+        statuses = []
+
+        # 7. Check each source for target_year and target_year - 1
+        for src in expected_sources:
+            file_for_target = next((f for f in parsed_files if f["source"] == src and f["year"] == target_year), None)
+
+            spec_path = Path("/buckets/shared")
+            modified_at = None
+
+            if file_for_target:
+                spec_path = file_for_target["path"].parent
+                try:
+                    if file_for_target["path"].exists():
+                        modified_at = datetime.fromtimestamp(file_for_target["path"].stat().st_mtime)
+                except Exception:
+                    pass
+
+                spec = SharedFileSpec(
+                    name=src,
+                    path=spec_path,
+                    description=f"Kildedata for {src}",
+                )
+
+                v = file_for_target["version"]
+                state = FileState.DRAFT if v == 0 else FileState.READY
+                statuses.append(FileStatus(
+                    spec=spec,
+                    year=target_year,
+                    state=state,
+                    version=v,
+                    file_path=file_for_target["path"],
+                    modified_at=modified_at,
+                ))
+            else:
+                # Target year file is missing, check the previous year
+                prev_year = target_year - 1
+                file_for_prev = next((f for f in parsed_files if f["source"] == src and f["year"] == prev_year), None)
+
+                if file_for_prev:
+                    spec_path = file_for_prev["path"].parent
+                    v_str = f"v{file_for_prev['version']}" if file_for_prev["version"] is not None else "ukjent versjon"
+                    warnings = (f"Fant ikke kildedata for '{src}' for {target_year}, men fant forrige årgang: {prev_year} ({file_for_prev['filename']} {v_str})",)
+                else:
+                    warnings = (f"Fant ikke kildedata for '{src}' i verken {target_year} eller {prev_year}",)
+
+                spec = SharedFileSpec(
+                    name=src,
+                    path=spec_path,
+                    description=f"Kildedata for {src}",
+                )
+
+                statuses.append(FileStatus(
+                    spec=spec,
+                    year=target_year,
+                    state=FileState.MISSING,
+                    warnings=warnings,
+                ))
+
+        # 8. Check for year mismatches among loaded sources
+        loaded_sources_info = [f for f in parsed_files if f["source"] in expected_sources]
+        loaded_years = {f["year"] for f in loaded_sources_info if f["year"] is not None}
+
+        mismatch_warning = None
+        if len(loaded_years) > 1:
+            mismatch_warning = f"OBS: Kildefilene i denne {self.name}-årgangen kommer fra forskjellige årganger: {', '.join(map(str, sorted(loaded_years)))}!"
+
+        if mismatch_warning and statuses:
+            first_status = statuses[0]
+            new_warnings = (mismatch_warning, *first_status.warnings)
+            statuses[0] = FileStatus(
+                spec=first_status.spec,
+                year=first_status.year,
+                state=first_status.state,
+                version=first_status.version,
+                file_path=first_status.file_path,
+                modified_at=first_status.modified_at,
+                warnings=new_warnings,
+            )
+
+        return FileStatusReport(year=target_year, files=statuses)
 
 
 def _is_view(alias: str) -> bool:

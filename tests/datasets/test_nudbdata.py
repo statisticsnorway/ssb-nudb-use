@@ -177,3 +177,89 @@ def test_microdata(
     )
 
     MicroData("utd_hoeyeste_nus2000")
+
+
+def test_check_shared_files_all_present(tmp_path: Path) -> None:
+    # Test check_shared_files when all 4 sources are present for the target year
+    df = pd.DataFrame({
+        "nudb_dataset_id": [
+            "ssbresultatv>/buckets/shared/utd-vg/vgu/vgu/klargjorte-data/nudb/avslutta-videregaaende_p2024_p2025_v4.parquet>avslutta_p1970_p2025_v20.parquet>avslutta",
+            "/buckets/shared/utd-bhgskole/kargrs/kargrs/klargjorte-data/klargjort-resultat_p2024_p2025_v2.parquet>avslutta_p1970_p2025_v20.parquet>avslutta",
+            "/buckets/shared/utd-uhfagskole/uh/uvh/klargjorte-data/nudb/avslutta-hoeyereutdanning_p2024_p2025_v1.parquet>avslutta_p1970_p2025_v20.parquet>avslutta",
+            "/buckets/shared/utd-uhfagskole/fagskole/fagskoler/klargjorte-data/nudb/avslutta-fagskole_p2024_p2025_v2.parquet>avslutta_p1970_p2025_v20.parquet>avslutta"
+        ]
+    })
+    
+    parquet_path = tmp_path / "test_all_present.parquet"
+    df.to_parquet(parquet_path, index=False)
+    
+    # Reset internal database before test
+    reset_nudb_database()
+    data = NudbData.from_parquet(parquet_path, name="avslutta", force=True)
+    
+    report = data.check_shared_files()
+    assert report is not None
+    assert report.year == 2025
+    
+    # Check that we have exactly 4 statuses, all ready
+    assert len(report.files) == 4
+    for status in report.files:
+        assert status.state.value == "READY"
+        assert status.year == 2025
+        assert not status.warnings
+
+    # Verify each source mapping
+    assert report.files[0].spec.name == "videregående"
+    assert report.files[0].version == 4
+    assert report.files[0].file_path.name == "avslutta-videregaaende_p2024_p2025_v4.parquet"
+
+    assert report.files[1].spec.name == "grunnskole"
+    assert report.files[1].version == 2
+    assert report.files[1].file_path.name == "klargjort-resultat_p2024_p2025_v2.parquet"
+
+    assert report.files[2].spec.name == "høyere utdanning"
+    assert report.files[2].version == 1
+    assert report.files[2].file_path.name == "avslutta-hoeyereutdanning_p2024_p2025_v1.parquet"
+
+    assert report.files[3].spec.name == "fagskole"
+    assert report.files[3].version == 2
+    assert report.files[3].file_path.name == "avslutta-fagskole_p2024_p2025_v2.parquet"
+
+
+def test_check_shared_files_with_deviation_and_mismatch(tmp_path: Path) -> None:
+    # Test check_shared_files when one source (grunnskole) is missing for 2025 but present for 2024
+    df = pd.DataFrame({
+        "nudb_dataset_id": [
+            "ssbresultatv>/buckets/shared/utd-vg/vgu/vgu/klargjorte-data/nudb/avslutta-videregaaende_p2024_p2025_v4.parquet>avslutta_p1970_p2025_v20.parquet>avslutta",
+            "/buckets/shared/utd-bhgskole/kargrs/kargrs/klargjorte-data/klargjort-resultat_p2023_p2024_v3.parquet>avslutta_p1970_p2025_v20.parquet>avslutta",
+            "/buckets/shared/utd-uhfagskole/uh/uvh/klargjorte-data/nudb/avslutta-hoeyereutdanning_p2024_p2025_v1.parquet>avslutta_p1970_p2025_v20.parquet>avslutta",
+            "/buckets/shared/utd-uhfagskole/fagskole/fagskoler/klargjorte-data/nudb/avslutta-fagskole_p2024_p2025_v2.parquet>avslutta_p1970_p2025_v20.parquet>avslutta"
+        ]
+    })
+    
+    parquet_path = tmp_path / "test_deviation.parquet"
+    df.to_parquet(parquet_path, index=False)
+    
+    reset_nudb_database()
+    data = NudbData.from_parquet(parquet_path, name="avslutta", force=True)
+    
+    report = data.check_shared_files()
+    assert report is not None
+    assert report.year == 2025
+    
+    # We should have 3 READY and 1 MISSING
+    assert len(report.ready) == 3
+    assert len(report.missing) == 1
+    
+    # Check the missing source: grunnskole
+    grunnskole_status = next(s for status in report.files if (s := status).spec.name == "grunnskole")
+    assert grunnskole_status.state.value == "MISSING"
+    assert len(grunnskole_status.warnings) == 1
+    assert "forrige årgang: 2024" in grunnskole_status.warnings[0]
+    assert "klargjort-resultat_p2023_p2024_v3.parquet v3" in grunnskole_status.warnings[0]
+    
+    # Verify mismatch warning exists on the first status
+    all_warnings = [w for f in report.files for w in f.warnings]
+    mismatch_warnings = [w for w in all_warnings if "mismatch_warning" in w or "different" in w or "forskjellige årganger" in w]
+    assert len(mismatch_warnings) == 1
+    assert "forskjellige årganger: 2024, 2025" in mismatch_warnings[0]
