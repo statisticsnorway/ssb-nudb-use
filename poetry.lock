@@ -3875,7 +3875,7 @@ description = "C parser in Python"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\" or implementation_name == \"pypy\""
+markers = "(implementation_name == \"pypy\" or platform_python_implementation != \"PyPy\") and implementation_name != \"PyPy\""
 files = [
     {file = "pycparser-3.0-py3-none-any.whl", hash = "sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"},
     {file = "pycparser-3.0.tar.gz", hash = "sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29"},
@@ -4920,14 +4920,14 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.8.3"
+version = "2026.8.4"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "ssb_nudb_config-2026.8.3-py3-none-any.whl", hash = "sha256:99c1980e3ff57ff9ab8c3b43d09d92b0a04cb7a562254a3661c212ac05ab53f6"},
-    {file = "ssb_nudb_config-2026.8.3.tar.gz", hash = "sha256:8177cb33adb9a20ca65f8161917f652d739cd86155d88499c45e5b790a5a2484"},
+    {file = "ssb_nudb_config-2026.8.4-py3-none-any.whl", hash = "sha256:dd3fe21a5069eecd07ca9dfa96e6b97a5768a217667e24fee8a33d2b947858a9"},
+    {file = "ssb_nudb_config-2026.8.4.tar.gz", hash = "sha256:1994826a43f4fa147eacb708ed2704aa36a2b41c7e97779c066869f5e4306a4b"},
 ]
 
 [package.dependencies]
