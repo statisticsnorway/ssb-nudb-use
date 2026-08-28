@@ -1,8 +1,9 @@
 from typing import Any
 
+from nudb_config import settings
+
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.datasets.nudb_database import MICRODATA_PREFIX
-from nudb_use.datasets.nudb_database import show_nudb_datasets
 
 
 def show_available_microdata_variables() -> list[str]:
@@ -11,11 +12,9 @@ def show_available_microdata_variables() -> list[str]:
     Returns:
         list[str]: A list with variable names.
     """
-    datasets = show_nudb_datasets(show_private=True)
-
     return [
         dataset.removeprefix(MICRODATA_PREFIX)
-        for dataset in datasets
+        for dataset in settings.datasets.keys()
         if dataset.startswith(MICRODATA_PREFIX)
     ]
 
