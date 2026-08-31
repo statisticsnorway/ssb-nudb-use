@@ -1,9 +1,8 @@
 """Module to fetch and summarize Microdata variables and metadata."""
 
-from webbrowser import get
-
 import pandas as pd
 from dapla_metadata.variable_definitions import Vardef
+from nudb_config import settings
 
 from nudb_use.nudb_logger import logger
 
@@ -70,29 +69,69 @@ def get_microdata_variables_overview(dataset_name: str) -> pd.DataFrame:
             f"No date or school year column found in dataset '{microdata_name}'."
         )
 
+    # Determine which variables to include based on the datasets config
+    prefixed_name = f"_microdata_{microdata_name}"
+    variables_to_include = []
+
+    if (
+        prefixed_name in settings.datasets
+        and settings.datasets[prefixed_name].variables
+    ):
+        variables_to_include = settings.datasets[prefixed_name].variables
+    else:
+        # If not defined in datasets_microdata.toml variables, fallback to df.columns
+        variables_to_include = [
+            c
+            for c in df.columns
+            if c not in ("snr", "fnr", "nudb_dataset_id", "__index_level_0__")
+        ]
+
     overview_list = []
 
-    for col in df.columns:
+    for col in variables_to_include:
+        # Determine the name to look up in Vardef (check derived_from in settings.variables)
+        lookup_name = col
+        if col in settings.variables:
+            var_config = settings.variables[col]
+            derived_from = getattr(var_config, "derived_from", None)
+            if (
+                derived_from
+                and isinstance(derived_from, list)
+                and len(derived_from) > 0
+            ):
+                lookup_name = derived_from[0]
+
         # Get metadata from Vardef
         try:
-            vardef_info = Vardef.get_variable_definition_by_shortname(short_name=col)
+            vardef_info = Vardef.get_variable_definition_by_shortname(
+                short_name=lookup_name
+            )
             vardef_dict = vardef_info.model_dump()
-            full_name = vardef_dict.get("name", {}).get("nb", col)
+            full_name = vardef_dict.get("name", {}).get("nb", lookup_name)
             description = vardef_dict.get("definition", {}).get(
                 "nb", "Beskrivelse mangler"
             )
         except Exception as e:
-            logger.debug(f"Failed to fetch Vardef metadata for '{col}': {e}")
+            logger.debug(f"Failed to fetch Vardef metadata for '{lookup_name}': {e}")
             full_name = f"{col} (ikke i Vardef)"
             description = "Denne variabelen finnes i NUDB-config, men ikke i Vardef."
+
+        # Determine which column in df to use for computing temporal boundaries (col or lookup_name)
+        data_col = None
+        if col in df.columns:
+            data_col = col
+        elif lookup_name in df.columns:
+            data_col = lookup_name
 
         # Calculate temporal boundaries
         min_year = None
         max_year = None
 
-        if year_col:
-            # Filter rows where the column is not null or empty string
-            not_null_series = df[col].notna() & (df[col].astype(str).str.strip() != "")
+        if year_col and data_col:
+            # Filter rows where the data column is not null or empty string
+            not_null_series = df[data_col].notna() & (
+                df[data_col].astype(str).str.strip() != ""
+            )
             valid_years = df.loc[not_null_series, year_col].dropna()
             valid_years = valid_years[valid_years.astype(str).str.strip() != ""]
 
@@ -111,8 +150,3 @@ def get_microdata_variables_overview(dataset_name: str) -> pd.DataFrame:
         )
 
     return pd.DataFrame(overview_list)
-
-
-
-nasjprov_test = get_microdata_variables_overview("nasjprov")
-print(nasjprov_test)
