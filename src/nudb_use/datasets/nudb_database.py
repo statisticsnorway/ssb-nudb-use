@@ -21,15 +21,15 @@ from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.macros import _DUCKDB_MACROS
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_avslutta_subset_view,
+)
+from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
 
 # Microdata
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
-    _generate_microdata_avslutta_subset_view,
-    _generate_microdata_nasjprov_view,
 )
-
-
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 
 # Old NUDB
@@ -38,8 +38,6 @@ from nudb_use.datasets.old_nudb_data import _generate_f_utd_kurs_view
 from nudb_use.datasets.old_nudb_data import _generate_f_utd_person_view
 from nudb_use.datasets.old_nudb_data import _generate_tab_alle_snr_view
 from nudb_use.datasets.old_nudb_data import _generate_tab_utd_person_view
-
-
 from nudb_use.datasets.person import _generate_bokommune_16aar_snr
 from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
@@ -111,8 +109,7 @@ class _NudbDatabase:
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX
             + "avslutta_subset": _generate_microdata_avslutta_subset_view,
-            MICRODATA_PREFIX
-            + "nasjprov": _generate_microdata_nasjprov_view,
+            MICRODATA_PREFIX + "nasjprov": _generate_microdata_nasjprov_view,
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}
@@ -124,12 +121,19 @@ class _NudbDatabase:
 
         # Dynamically register fallback view loaders for config-defined microdata datasets
         from functools import partial
+
         from nudb_config import settings
+
         from nudb_use.datasets.external import _generate_view
 
         for dataset_name in settings.datasets.keys():
-            if dataset_name.startswith(MICRODATA_PREFIX) and dataset_name not in self._dataset_generators:
-                self._dataset_generators[dataset_name] = partial(_generate_view, dataset_name=dataset_name)
+            if (
+                dataset_name.startswith(MICRODATA_PREFIX)
+                and dataset_name not in self._dataset_generators
+            ):
+                self._dataset_generators[dataset_name] = partial(
+                    _generate_view, dataset_name=dataset_name
+                )
 
         self._dataset_names = list(self._dataset_generators.keys())
         self._datasets: dict[str, NudbData] = {}

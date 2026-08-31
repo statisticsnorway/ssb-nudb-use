@@ -12,11 +12,19 @@ def show_available_microdata_variables() -> list[str]:
     Returns:
         list[str]: A list with variable names.
     """
-    return [
-        dataset.removeprefix(MICRODATA_PREFIX)
-        for dataset in settings.datasets.keys()
-        if dataset.startswith(MICRODATA_PREFIX)
-    ]
+    from nudb_use.datasets.nudb_database import show_nudb_datasets
+
+    all_datasets = set(show_nudb_datasets(show_private=True)) | set(
+        settings.datasets.keys()
+    )
+
+    return sorted(
+        [
+            dataset.removeprefix(MICRODATA_PREFIX)
+            for dataset in all_datasets
+            if dataset.startswith(MICRODATA_PREFIX)
+        ]
+    )
 
 
 class MicroData(NudbData):

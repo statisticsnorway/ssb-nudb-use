@@ -4,11 +4,12 @@ from nudb_use.nudb_logger import logger
 
 
 def _generate_microdata_avslutta_subset_view(
-    alias:str,
+    alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
-    """Generate subset view of avslutta for Microdata"""
-    from nudb_use.datasets import NudbData # Avoids circular import
+    """Generate subset view of avslutta for Microdata."""
+    from nudb_use.datasets import NudbData  # Avoids circular import
+
     logger.info("Deriving 'avslutta_subset' Microdata variable")
 
     avslutta = NudbData("avslutta")
