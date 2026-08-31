@@ -21,12 +21,15 @@ from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.macros import _DUCKDB_MACROS
+
+# Microdata
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_avslutta_subset_view,
 )
 from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
-
-# Microdata
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_personvariabler_view,
+)
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
 )
@@ -110,6 +113,8 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "avslutta_subset": _generate_microdata_avslutta_subset_view,
             MICRODATA_PREFIX + "nasjprov": _generate_microdata_nasjprov_view,
+            MICRODATA_PREFIX
+            + "personvariabler": _generate_microdata_personvariabler_view,
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}

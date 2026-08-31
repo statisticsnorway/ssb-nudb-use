@@ -177,3 +177,9 @@ def test_microdata(
     )
 
     MicroData("utd_hoeyeste_nus2000")
+    pers = MicroData("personvariabler")
+    pers_df = pers.df()
+    assert "sosbak" in pers_df.columns
+    assert "nus2000_far_16" in pers_df.columns
+    assert "komm_16" in pers_df.columns
+    assert "aar_forste_fullf_gs" in pers_df.columns

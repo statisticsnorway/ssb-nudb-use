@@ -63,7 +63,7 @@ The `ssb-nudb-use` library facilitates lazy querying, transformations, and verif
 
 ### `microdata_vars.py` (Local under `nudb_use/metadata/microdata/`)
 * **Role:** Implements `get_microdata_variables_overview(dataset_name)`.
-* **Relation:** Resolves the variables defined in a Microdata dataset (from either hardcoded custom views or configured dynamic fallback views), fetches their metadata (full name and description) via `Vardef`, and dynamically calculates their temporal boundaries (`min_year` and `max_year`) based on identified date or school-year start columns (e.g. `utd_skoleaar_start`, `np_utd_skoleaar_start`). It is exposed at both the `nudb_use.metadata` and root `nudb_use` levels.
+* **Relation:** Resolves the variables defined in a Microdata dataset (from either hardcoded custom views or configured dynamic fallback views), fetches their metadata (full name and description) via `Vardef`, and dynamically calculates their temporal boundaries (`min_year` and `max_year`) based on identified date or school-year start columns (e.g. `utd_skoleaar_start`, `np_utd_skoleaar_start`). It is exposed at both the `nudb_use.metadata` and root `nudb_use` levels. It filters variables exactly to those defined in `settings.datasets` (if present) and maps derived columns to their base variables (using `.derived_from` in `settings.variables`) for accurate Vardef lookup and non-null temporal checks on raw datasets.
 
 ---
 
