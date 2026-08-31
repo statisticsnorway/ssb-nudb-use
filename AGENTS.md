@@ -14,8 +14,9 @@ This document provides a summary of the current project state, active branches, 
     * `avslutta_subset` (subset of the main `avslutta` dataset).
     * `nasjprov` (national test results pivoted from `provekode` into standardized columns like `np_skalapoeng_npeng05`).
   * Registered these custom generators inside `_NudbDatabase` in `nudb_database.py`.
-  * Verified that **all 193 unit tests pass** cleanly and successfully.
+  * Verified that **all 194 unit tests pass** cleanly and successfully.
   * Resolved a critical bug in `show_available_microdata_variables()` where hardcoded microdata datasets were hidden when checking only external `settings` keys. It now correctly checks both hardcoded and config-defined datasets.
+  * Added a new metadata module `nudb_use.metadata.microdata` with a function `get_microdata_variables_overview(dataset_name)` that summarizes all variables in a Microdata dataset, matching each to its full name/description via `Vardef` and calculating min/max start years (e.g. `utd_skoleaar_start`).
 
 ---
 
@@ -59,6 +60,10 @@ The `ssb-nudb-use` library facilitates lazy querying, transformations, and verif
 ### `microdata.py` (Local)
 * **Role:** Implements the `MicroData` class (which inherits from `NudbData`) and provides public APIs like `show_available_microdata_variables()`.
 * **Relation:** Acts as the public interface for statisticians to query or request variables intended for Microdata.no. It automatically prefixes names with `_microdata_` before passing them to `NudbData`.
+
+### `microdata_vars.py` (Local under `nudb_use/metadata/microdata/`)
+* **Role:** Implements `get_microdata_variables_overview(dataset_name)`.
+* **Relation:** Resolves the variables defined in a Microdata dataset (from either hardcoded custom views or configured dynamic fallback views), fetches their metadata (full name and description) via `Vardef`, and dynamically calculates their temporal boundaries (`min_year` and `max_year`) based on identified date or school-year start columns (e.g. `utd_skoleaar_start`, `np_utd_skoleaar_start`). It is exposed at both the `nudb_use.metadata` and root `nudb_use` levels.
 
 ---
 

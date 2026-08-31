@@ -12,6 +12,7 @@ from nudb_use.metadata import find_var_renames_for_dataset
 from nudb_use.metadata import find_vars
 from nudb_use.metadata import get_dtypes
 from nudb_use.metadata import get_list_of_columns_for_dataset
+from nudb_use.metadata import get_microdata_variables_overview
 from nudb_use.metadata import set_option
 from nudb_use.metadata import update_colnames
 from nudb_use.metadata.nudb_config import look_up_dtype_length_for_dataset
@@ -34,6 +35,7 @@ __all__ = [
     "find_vars",
     "get_dtypes",
     "get_list_of_columns_for_dataset",
+    "get_microdata_variables_overview",
     "get_periods_from_path",
     "latest_shared_paths",
     "logger",
