@@ -6,7 +6,7 @@ from nudb_use.datasets.microdata import show_available_microdata_variables
 #%%
 show_available_microdata_variables()
 #%% 
-test = get_microdata_variables_overview("utd_foreldres_utdnivaa_16aar")
+test = get_microdata_variables_overview("pers_fullfoert_foerste")
 test
 
 # %%
@@ -28,7 +28,7 @@ test[test["utd_foreldres_utdnivaa_16aar_nus2000"].notna()]
 nasj_test = pd.read_parquet("/buckets/shared/utd-bhgskole/nasjprov/nasjprov/klargjorte-data/nasjonaleprover_p2007_p2025_v1.parquet")
 nasj_test.head()
 # %%
-
+nudb_database.get_connection().sql("SELECT current_setting('temp_directory')").df()
 
 
 # %%

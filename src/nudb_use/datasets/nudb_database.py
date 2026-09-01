@@ -33,6 +33,9 @@ from nudb_use.datasets.microdata_variables import (
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
 )
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_fullfoert_foerste_view,
+)
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 
 # Old NUDB
@@ -116,6 +119,8 @@ class _NudbDatabase:
             + "nasjprov": _generate_microdata_nasjprov_view,
             MICRODATA_PREFIX
             + "utd_foreldres_utdnivaa_16aar": _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
+            MICRODATA_PREFIX
+            + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}
