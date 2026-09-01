@@ -28,7 +28,7 @@ from nudb_use.datasets.microdata_variables import (
 )
 from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
 from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_personvariabler_view,
+    _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
 )
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
@@ -112,9 +112,10 @@ class _NudbDatabase:
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX
             + "avslutta_subset": _generate_microdata_avslutta_subset_view,
-            MICRODATA_PREFIX + "nasjprov": _generate_microdata_nasjprov_view,
+            MICRODATA_PREFIX 
+            + "nasjprov": _generate_microdata_nasjprov_view,
             MICRODATA_PREFIX
-            + "personvariabler": _generate_microdata_personvariabler_view,
+            + "utd_foreldres_utdnivaa_16aar": _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}

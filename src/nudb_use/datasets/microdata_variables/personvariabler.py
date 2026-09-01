@@ -1,5 +1,3 @@
-"""Module with NudbData generators for Microdata person-level variables."""
-
 from collections import defaultdict
 from collections.abc import Callable
 
