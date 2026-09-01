@@ -2,7 +2,6 @@ import duckdb as db
 import pandas as pd
 
 from nudb_use.nudb_logger import logger
-
 # Maps each "year of first completion" output column to the
 # fullfoert-date column it is extracted from.
 _YEAR_COLUMN_MAP: dict[str, str] = {
@@ -32,6 +31,7 @@ def _generate_microdata_fullfoert_foerste_view(
     Only exposes the `aar_forste_fullf_*` completion-year variables.
     """
     from nudb_use.datasets import NudbData
+    from nudb_use.datasets.nudb_database import STRING_DTYPE
     from nudb_use.variables.derive.fullfoert_foerste import (
         gr_foerste_fullfoert_dato,
         uh_bachelor_foerste_fullfoert_dato,
@@ -46,21 +46,34 @@ def _generate_microdata_fullfoert_foerste_view(
     logger.info("Generating `_microdata_fullfoert_foerste` dataset view.")
 
     cohort = NudbData("utd_person")
-    df = cohort.select("snr").df()
+    base = cohort.select("snr").df()
+    base["snr"] = base["snr"].astype(STRING_DTYPE)
 
-    merge_funcs = [
-        gr_foerste_fullfoert_dato,
-        vg_foerste_fullfoert_dato,
-        vg_studiespess_foerste_fullfoert_dato,
-        vg_yrkesfag_foerste_fullfoert_dato,
-        uh_hoeyskolekandidat_foerste_fullfoert_dato,
-        uh_bachelor_foerste_fullfoert_dato,
-        uh_master_foerste_fullfoert_dato,
-        uh_doktorgrad_foerste_fullfoert_dato,
-    ]
+    df = base.copy()
 
-    for func in merge_funcs:
-        df = df.merge(func(df), on="snr", how="left")
+    # Maps each derive function to the exact output column it produces.
+    # Each function receives a *fresh* snr-only copy of `base` (not the
+    # accumulating `df`), so it can never mistake a prior iteration's
+    # leftover helper columns (e.g. utd_aktivitet_start/_slutt from an
+    # earlier education level) for its own dependencies and skip
+    # re-fetching the correct data from `avslutta`.
+    func_to_col: dict[object, str] = {
+        gr_foerste_fullfoert_dato: "gr_foerste_fullfoert_dato",
+        vg_foerste_fullfoert_dato: "vg_foerste_fullfoert_dato",
+        vg_studiespess_foerste_fullfoert_dato: "vg_studiespess_foerste_fullfoert_dato",
+        vg_yrkesfag_foerste_fullfoert_dato: "vg_yrkesfag_foerste_fullfoert_dato",
+        uh_hoeyskolekandidat_foerste_fullfoert_dato: (
+            "uh_hoeyskolekandidat_foerste_fullfoert_dato"
+        ),
+        uh_bachelor_foerste_fullfoert_dato: "uh_bachelor_foerste_fullfoert_dato",
+        uh_master_foerste_fullfoert_dato: "uh_master_foerste_fullfoert_dato",
+        uh_doktorgrad_foerste_fullfoert_dato: "uh_doktorgrad_foerste_fullfoert_dato",
+    }
+
+    for func, col_name in func_to_col.items():
+        result = func(base.copy())
+        if col_name in result.columns:
+            df = df.merge(result[["snr", col_name]], on="snr", how="left")
 
     for date_col in _REQUIRED_DATE_COLUMNS:
         if date_col not in df.columns:
