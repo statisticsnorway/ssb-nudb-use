@@ -11,12 +11,12 @@ test
 
 # %%
 
-test = MicroData("pers_fullfoert_foerste").df()
+test = MicroData("pers_bokommune_16aar").df()
 test.head()
 
 # %%
 len(test)
-test["aar_forste_fullf_bach"].value_counts(dropna=False)
+# test["komm_16"].value_counts(dropna=False)
 
 # %%
 

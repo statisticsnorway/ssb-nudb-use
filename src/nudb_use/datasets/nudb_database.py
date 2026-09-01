@@ -36,6 +36,9 @@ from nudb_use.datasets.microdata_variables import (
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_fullfoert_foerste_view,
 )
+from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
+    _generate_microdata_pers_bokommune_16aar_view
+)
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 
 # Old NUDB
@@ -120,7 +123,9 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "utd_foreldres_utdnivaa_16aar": _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
             MICRODATA_PREFIX
-            + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view
+            + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view,
+            MICRODATA_PREFIX
+            + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}
