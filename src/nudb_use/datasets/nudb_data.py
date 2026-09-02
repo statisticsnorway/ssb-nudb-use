@@ -1,4 +1,5 @@
 import copy
+import re
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -15,7 +16,18 @@ from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
+from fagfunksjoner.paths.shared_files import check_shared_files
+from fagfunksjoner.paths.shared_files import FileStatusReport
+
 JOIN_TYPES = {"left", "right", "inner", "cross", "full", "outer", "self"}
+
+# Matcher SSBs navnekonvensjon: <navn>_p<år1>[_p<år2>]_v<versjon>.parquet
+# år2 (om den finnes) er perioden check_shared_files forventer som "year",
+# mens år1 (om den finnes) må bli en del av "name" for at glob-mønsteret
+# <name>_p<year>_v*.parquet i check_shared_files skal matche.
+_FILE_PATTERN = re.compile(
+    r"^(?P<base>.+?)_p(?P<year1>\d{4})(?:_p(?P<year2>\d{4}))?_v(?P<version>\d+)\.parquet$"
+)
 
 
 def _indent(
@@ -34,6 +46,64 @@ def _indent(
         return ("\n" + pad).join(prev) + "\n" + last
     else:
         return x.replace("\n", "\n" + pad)
+
+
+def _extract_root_source_path(dataset_id: str) -> str | None:
+    """Find the first (deepest/original) parquet path in a lineage string.
+
+    ``nudb_dataset_id`` values are chains of segments separated by ``>``,
+    optionally prefixed with a tag (e.g. ``ssbresultatv>``). The first
+    segment that looks like a parquet path (contains ``/`` and ends in
+    ``.parquet``) is the original source file; later segments are
+    intermediate/merged files.
+    """
+    for segment in dataset_id.split(">"):
+        segment = segment.strip()
+        if "/" in segment and segment.lower().endswith(".parquet"):
+            return segment
+    return None
+
+
+def _parse_source_file(raw_path: str) -> dict[str, Any] | None:
+    """Parse a source-file path into the pieces needed for grouping and lookup.
+
+    Returns a dict with:
+        base:        source name without any period/version (grouping key,
+                     used to find the currently active vintage among many
+                     historical ones).
+        check_name:  the ``name`` to pass to ``check_shared_files`` (includes
+                     the first period if the file uses a two-period name).
+        check_year:  the ``year`` to pass to ``check_shared_files``.
+        path:        parent directory of the file.
+        sort_key:    (year, version) tuple used to pick the latest vintage.
+    """
+    p = Path(raw_path)
+    match = _FILE_PATTERN.match(p.name)
+    if not match:
+        return None
+
+    base = match.group("base")
+    year1 = int(match.group("year1"))
+    year2 = match.group("year2")
+    version = int(match.group("version"))
+
+    if year2 is not None:
+        year2 = int(year2)
+        check_name = f"{base}_p{year1}"
+        check_year = year2
+        sort_key = (year2, version)
+    else:
+        check_name = base
+        check_year = year1
+        sort_key = (year1, version)
+
+    return {
+        "base": base,
+        "check_name": check_name,
+        "check_year": check_year,
+        "path": str(p.parent),
+        "sort_key": sort_key,
+    }
 
 
 class NudbData:
@@ -90,6 +160,9 @@ class NudbData:
             self._as = ""
             self._on = ""
 
+            # Cache for auto-derived source-file specs (see get_source_files)
+            self._source_files: list[dict[str, Any]] | None = None
+
             if attach_using_init:  # Setting the default to `True` may be a bad idea...
                 logger.info("Initializing dataset!")
                 self._attach()
@@ -144,8 +217,7 @@ QUERY:
                 )
 
             logger.warning(f"Overwriting existing dataset: {name}")
-            if name in nudb_database._datasets:
-                del nudb_database._datasets[name]
+            del nudb_database._datasets[name]
 
             if alias in nudb_database._dataset_paths.keys():
                 previous_paths = nudb_database._dataset_paths[alias]
@@ -177,13 +249,6 @@ QUERY:
 
         if self.exists:
             nudb_database._datasets[self.name] = self
-            if self.name in ("igang", "avslutta"):
-                try:
-                    report = self.check_shared_files()
-                    if report is not None:
-                        print(report)
-                except Exception as e:
-                    logger.debug(f"Failed to automatically check shared files: {e}")
         else:
             logger.critical(f"Failed to attach {self.name} to database!")
 
@@ -202,6 +267,122 @@ QUERY:
             logger.warning(f"{self.name} is not available in duckdb database!")
             return []
 
+    def get_source_files(
+        self, id_col: str = "nudb_dataset_id", refresh: bool = False
+    ) -> list[dict[str, Any]]:
+        """Derive the currently active source-file spec for each underlying source.
+
+        The lineage column (``nudb_dataset_id`` by default) typically holds
+        many historical vintages of the same underlying source (e.g. old
+        panel years mixed in with the current data). This parses out the
+        original source path for every distinct lineage value, groups them
+        by source name (ignoring period/version), and keeps only the entry
+        with the highest (year, version) per source — i.e. the vintage
+        that is actually in use today.
+
+        Args:
+            id_col: Name of the lineage column to inspect.
+            refresh: Force re-derivation instead of using the cached result.
+
+        Returns:
+            A list of dicts with ``name``, ``path`` and ``year`` keys. The
+            ``name``/``path`` pair is ready to pass into ``check_shared_files``
+            (together with the matching ``year``).
+        """
+        if self._source_files is not None and not refresh:
+            return self._source_files
+
+        if not self.exists:
+            logger.warning(f"{self.name} is not attached; cannot inspect source files.")
+            return []
+
+        if id_col not in self.get_available_cols():
+            logger.warning(
+                f"Column '{id_col}' not found in {self.name}; "
+                "cannot derive source files."
+            )
+            return []
+
+        raw_values = _fetch_string_column(
+            f"SELECT DISTINCT {id_col} FROM {self.alias}",
+            id_col,
+        )
+
+        parsed: list[dict[str, Any]] = []
+        for value in raw_values:
+            raw_path = _extract_root_source_path(value)
+            if raw_path is None:
+                continue
+
+            spec = _parse_source_file(raw_path)
+            if spec:
+                parsed.append(spec)
+
+        latest_per_base: dict[str, dict[str, Any]] = {}
+        for spec in parsed:
+            key = spec["base"]
+            current_best = latest_per_base.get(key)
+            if current_best is None or spec["sort_key"] > current_best["sort_key"]:
+                latest_per_base[key] = spec
+
+        self._source_files = [
+            {
+                "name": s["check_name"],
+                "path": s["path"],
+                "year": s["check_year"],
+            }
+            for s in latest_per_base.values()
+        ]
+
+        logger.debug(
+            f"Derived {len(self._source_files)} active source file(s) for "
+            f"'{self.name}' out of {len(raw_values)} distinct '{id_col}' values."
+        )
+
+        return self._source_files
+
+    def check_source_versions(
+        self, id_col: str = "nudb_dataset_id", refresh: bool = False
+    ) -> FileStatusReport:
+        """Check the latest available version for each currently used source file.
+
+        Only the source files actually in use in the loaded data are
+        checked (older vintages found in the lineage column are ignored).
+        Since sources can be at different vintages (e.g. videregående
+        updated before universitet), files are grouped by their own
+        reference year and checked in separate batches, then merged into
+        a single report.
+
+        Args:
+            id_col: Name of the lineage column (default "nudb_dataset_id").
+            refresh: Force re-derivation of source files instead of using the cache.
+
+        Returns:
+            FileStatusReport with status (green/yellow/red) per source file.
+
+        Raises:
+            ValueError: If no source files could be derived for the dataset.
+        """
+        files = self.get_source_files(id_col=id_col, refresh=refresh)
+        if not files:
+            raise ValueError(
+                f"No source files could be derived for dataset '{self.name}'. "
+                f"Check that '{id_col}' exists and follows the SSB naming convention."
+            )
+
+        by_year: dict[int, list[dict[str, str]]] = {}
+        for f in files:
+            by_year.setdefault(f["year"], []).append(
+                {"name": f["name"], "path": f["path"]}
+            )
+
+        all_statuses = []
+        for year in sorted(by_year):
+            sub_report = check_shared_files(by_year[year], year=year)
+            all_statuses.extend(sub_report.files)
+
+        return FileStatusReport(year=max(by_year), files=all_statuses)
+
     def _copy_attributes_from_existing(self, other: "NudbData") -> None:
         self.name = other.name
         self.alias = other.alias
@@ -217,6 +398,7 @@ QUERY:
         self._using = other._using
         self._as = other._as
         self._on = other._on
+        self._source_files = other._source_files
 
     def _check_query_validity(self) -> None:
         if self._join and not self._using and not self._on:
@@ -509,160 +691,6 @@ QUERY:
             return nudb_database._dataset_paths[self.alias]
         else:
             return None
-
-    def check_shared_files(self, year: int | None = None) -> Any:
-        """Check status of shared input files that constitute this dataset."""
-        import re
-        from datetime import datetime
-        from pathlib import Path
-
-        from fagfunksjoner.paths.shared_files import FileState
-        from fagfunksjoner.paths.shared_files import FileStatus
-        from fagfunksjoner.paths.shared_files import FileStatusReport
-        from fagfunksjoner.paths.shared_files import SharedFileSpec
-
-        # 1. Check if column exists
-        if "nudb_dataset_id" not in self.get_available_cols():
-            return None
-
-        # 2. Query distinct nudb_dataset_id values
-        query = f"SELECT DISTINCT nudb_dataset_id FROM ({self._get_query(check_validity=True)})"
-        try:
-            rows = self.execute(query).fetchall()
-            unique_ids = [row[0] for row in rows if row[0] is not None]
-        except Exception as e:
-            logger.debug(f"Failed to fetch nudb_dataset_id column: {e}")
-            return None
-
-        # 3. Extract absolute parquet file paths using regex
-        path_regex = re.compile(r"/[^()>\+,\s\'\"]+\.parquet")
-        loaded_paths = set()
-        for uid in unique_ids:
-            for match in path_regex.findall(uid):
-                loaded_paths.add(Path(match))
-
-        # 4. Helper function to map filenames to the 4 main source categories
-        def get_source_category(filename: str) -> str | None:
-            filename_lower = filename.lower()
-            if "videregaaende" in filename_lower:
-                return "videregående"
-            elif "resultat" in filename_lower or "grunnskole" in filename_lower:
-                return "grunnskole"
-            elif "fagskole" in filename_lower:
-                return "fagskole"
-            elif "hoeyereutdanning" in filename_lower or "uh" in filename_lower:
-                return "høyere utdanning"
-            return None
-
-        # 5. Parse each found path
-        parsed_files = []
-        for path in sorted(loaded_paths):
-            filename = path.name
-            source_cat = get_source_category(filename)
-            if source_cat is None:
-                continue
-
-            years = [int(y) for y in re.findall(r"_p(\d{4})", filename)]
-            file_year = years[-1] if years else None
-
-            version_match = re.search(r"_v(\d+)", filename)
-            version = int(version_match.group(1)) if version_match else None
-
-            parsed_files.append({
-                "path": path,
-                "filename": filename,
-                "year": file_year,
-                "version": version,
-                "source": source_cat,
-            })
-
-        if not parsed_files:
-            return None
-
-        # 6. Determine target year as maximum year found among the matched files
-        target_year = year if year is not None else max((f["year"] for f in parsed_files if f["year"] is not None), default=datetime.now().year)
-
-        expected_sources = ["videregående", "grunnskole", "høyere utdanning", "fagskole"]
-        statuses = []
-
-        # 7. Check each source for target_year and target_year - 1
-        for src in expected_sources:
-            file_for_target = next((f for f in parsed_files if f["source"] == src and f["year"] == target_year), None)
-
-            spec_path = Path("/buckets/shared")
-            modified_at = None
-
-            if file_for_target:
-                spec_path = file_for_target["path"].parent
-                try:
-                    if file_for_target["path"].exists():
-                        modified_at = datetime.fromtimestamp(file_for_target["path"].stat().st_mtime)
-                except Exception:
-                    pass
-
-                spec = SharedFileSpec(
-                    name=src,
-                    path=spec_path,
-                    description=f"Kildedata for {src}",
-                )
-
-                v = file_for_target["version"]
-                state = FileState.DRAFT if v == 0 else FileState.READY
-                statuses.append(FileStatus(
-                    spec=spec,
-                    year=target_year,
-                    state=state,
-                    version=v,
-                    file_path=file_for_target["path"],
-                    modified_at=modified_at,
-                ))
-            else:
-                # Target year file is missing, check the previous year
-                prev_year = target_year - 1
-                file_for_prev = next((f for f in parsed_files if f["source"] == src and f["year"] == prev_year), None)
-
-                if file_for_prev:
-                    spec_path = file_for_prev["path"].parent
-                    v_str = f"v{file_for_prev['version']}" if file_for_prev["version"] is not None else "ukjent versjon"
-                    warnings = (f"Fant ikke kildedata for '{src}' for {target_year}, men fant forrige årgang: {prev_year} ({file_for_prev['filename']} {v_str})",)
-                else:
-                    warnings = (f"Fant ikke kildedata for '{src}' i verken {target_year} eller {prev_year}",)
-
-                spec = SharedFileSpec(
-                    name=src,
-                    path=spec_path,
-                    description=f"Kildedata for {src}",
-                )
-
-                statuses.append(FileStatus(
-                    spec=spec,
-                    year=target_year,
-                    state=FileState.MISSING,
-                    warnings=warnings,
-                ))
-
-        # 8. Check for year mismatches among loaded sources
-        loaded_sources_info = [f for f in parsed_files if f["source"] in expected_sources]
-        loaded_years = {f["year"] for f in loaded_sources_info if f["year"] is not None}
-
-        mismatch_warning = None
-        if len(loaded_years) > 1:
-            mismatch_warning = f"OBS: Kildefilene i denne {self.name}-årgangen kommer fra forskjellige årganger: {', '.join(map(str, sorted(loaded_years)))}!"
-
-        if mismatch_warning and statuses:
-            first_status = statuses[0]
-            new_warnings = (mismatch_warning, *first_status.warnings)
-            statuses[0] = FileStatus(
-                spec=first_status.spec,
-                year=first_status.year,
-                state=first_status.state,
-                version=first_status.version,
-                file_path=first_status.file_path,
-                modified_at=first_status.modified_at,
-                warnings=new_warnings,
-            )
-
-        return FileStatusReport(year=target_year, files=statuses)
 
 
 def _is_view(alias: str) -> bool:
