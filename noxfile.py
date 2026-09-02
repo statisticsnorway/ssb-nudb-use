@@ -24,14 +24,14 @@ except ImportError:
 package = "nudb_use"
 python_versions = ["3.11", "3.12", "3.13"]
 nox.needs_version = ">= 2021.6.6"
-nox.options.sessions = (
+nox.options.sessions = [
     "pre-commit",
     "mypy",
     "tests",
     "typeguard",
     "xdoctest",
     "docs-build",
-)
+]
 
 
 def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
