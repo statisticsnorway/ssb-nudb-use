@@ -16,7 +16,7 @@ test.head()
 
 # %%
 len(test)
-# test["komm_16"].value_counts(dropna=False)
+test["komm_16"].value_counts(dropna=False)
 
 # %%
 

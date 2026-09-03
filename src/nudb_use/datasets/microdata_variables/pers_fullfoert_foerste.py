@@ -2,8 +2,7 @@ import duckdb as db
 import pandas as pd
 
 from nudb_use.nudb_logger import logger
-# Maps each "year of first completion" output column to the
-# fullfoert-date column it is extracted from.
+# Mapper fullføringsår til datokolonne. 
 _YEAR_COLUMN_MAP: dict[str, str] = {
     "aar_forste_fullf_gs": "gr_foerste_fullfoert_dato",
     "aar_forste_fullf_vs": "vg_foerste_fullfoert_dato",
@@ -50,13 +49,11 @@ def _generate_microdata_fullfoert_foerste_view(
     base["snr"] = base["snr"].astype(STRING_DTYPE)
 
     df = base.copy()
-
-    # Maps each derive function to the exact output column it produces.
-    # Each function receives a *fresh* snr-only copy of `base` (not the
-    # accumulating `df`), so it can never mistake a prior iteration's
-    # leftover helper columns (e.g. utd_aktivitet_start/_slutt from an
-    # earlier education level) for its own dependencies and skip
-    # re-fetching the correct data from `avslutta`.
+    
+    # Hver derive-funksjon bruker en *fresh* snr-katalog kopi, slik at ikke
+    # de forrige brukte utd_aktivitet_start/_slutt blir gjenbrukt. 
+    # Forhindrer at koden forventer en "full-hierarchical-structure", og er
+    # åpen for en "sparse-hierarchical-structure. "
     func_to_col: dict[object, str] = {
         gr_foerste_fullfoert_dato: "gr_foerste_fullfoert_dato",
         vg_foerste_fullfoert_dato: "vg_foerste_fullfoert_dato",
