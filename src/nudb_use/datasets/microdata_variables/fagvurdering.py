@@ -15,6 +15,7 @@ VurderingsformKode = Literal[
     "EKSAMEN_SKRIFTLIG",
     "EKSAMEN_MUNTLIG",
     "NASJONAL_PROVE",
+    "EKSAMEN",
 ]
 
 # Kolonner som alle kilde-datasett harmoniseres til (lopenr_kurs er fjernet)
@@ -41,66 +42,83 @@ def _ensure_harmonised_columns(df: pd.DataFrame, kilde: str) -> pd.DataFrame:
 
 
 def _harmonise_standpunkt_vgs(df: pd.DataFrame) -> pd.DataFrame:
-    """Harmoniser standpunktkarakterer VGS til fellesskjema."""
+    """Harmoniser standpunktkarakterer VGS fra `avslutta_videregaaende`."""
     out = df.rename(
         columns={
-            "karakter_standpunkt": "karakter",
-            "skoleaar_start": "start",
-            "skoleaar_stopp": "stop",
+            "nus2000": "fagkode",
+            "vg_karakterpoeng": "karakter",
+            "utd_skoleaar_start": "start",
+            "orgnrbed": "orgnr",
         }
     ).copy()
 
+    # Formater start/stop som standard skoleår-datoer (YYYY-MM-DD)
+    out["start"] = out["start"].astype(str) + "-08-01"
+    out["stop"] = out["start"].astype(str).str[:4] + "-06-30"
     out["vurderingsform"] = "STANDPUNKT_VGS"
+
     return _ensure_harmonised_columns(out, kilde="vgs")
 
 
 def _harmonise_standpunkt_gs(df: pd.DataFrame) -> pd.DataFrame:
-    """Harmoniser standpunktkarakterer grunnskole til fellesskjema."""
+    """Harmoniser standpunktkarakterer grunnskole fra `grunnskolekarakterer`."""
     out = df.rename(
         columns={
-            "karakter_standpunkt": "karakter",
-            "skoleaar_start": "start",
-            "skoleaar_stopp": "stop",
+            "grsk_gro_fagkode_vigo": "fagkode",
+            "grsk_gro_karakter_standpunkt": "karakter",
+            "grsk_utd_skolekom": "orgnr",
         }
     ).copy()
 
+    # Hvis grsk_utd_aktivitet_slutt inneholder en dato som f.eks. '2025-06-20', utleder vi start og stop
+    if "grsk_utd_aktivitet_slutt" in df.columns:
+        out["stop"] = df["grsk_utd_aktivitet_slutt"].astype(str)
+        # Ekstraher årstallet og sett start til august året før
+        out["start"] = df["grsk_utd_aktivitet_slutt"].astype(str).str[:4].apply(
+            lambda y: f"{int(y) - 1}-08-01" if y.isdigit() else pd.NA
+        )
+    else:
+        out["start"] = pd.NA
+        out["stop"] = pd.NA
+
     out["vurderingsform"] = "STANDPUNKT_GS"
+
     return _ensure_harmonised_columns(out, kilde="gs")
 
 
 def _harmonise_nasjonale_proever(df: pd.DataFrame) -> pd.DataFrame:
-    """Harmoniser nasjonale prøver til fellesskjema."""
+    """Harmoniser nasjonale prøver fra `nasjprov`."""
     out = df.rename(
         columns={
-            "karakter_np": "karakter",
-            "gjennomforingsdato": "start",
+            "provekode": "fagkode",
+            "skalapoeng": "karakter",
+            "utd_skoleaar_start": "start",
+            "orgnrbed": "orgnr",
         }
     ).copy()
 
+    # Formater start/stop (siden nasjonale prøver tas på høsten, setter vi faste dager)
+    out["start"] = out["start"].astype(str) + "-09-15"
     out["stop"] = out["start"]
     out["vurderingsform"] = "NASJONAL_PROVE"
+
     return _ensure_harmonised_columns(out, kilde="nasjprov")
 
 
 def _harmonise_eksamen(df: pd.DataFrame) -> pd.DataFrame:
-    """Harmoniser eksamenskarakterer (skriftlig/muntlig) til fellesskjema.
-    
-    Her antar vi at eksamen per nå tilhører videregående (vgs).
-    """
+    """Harmoniser eksamenskarakterer fra `eksamen`."""
     out = df.rename(
         columns={
-            "karakter_eksamen": "karakter",
-            "eksamensdato": "start",
+            "uh_emnekode": "fagkode",
+            "uh_eksamen_karakter": "karakter",
+            "uh_eksamen_dato": "start",
+            "orgnrbed": "orgnr",
         }
     ).copy()
 
     out["stop"] = out["start"]
-    out["vurderingsform"] = out["eksamensform"].map(
-        {
-            "SKRIFTLIG": "EKSAMEN_SKRIFTLIG",
-            "MUNTLIG": "EKSAMEN_MUNTLIG",
-        }
-    )
+    out["vurderingsform"] = "EKSAMEN"
+
     return _ensure_harmonised_columns(out, kilde="vgs")
 
 
@@ -123,12 +141,10 @@ def _build_fagvurdering_long() -> pd.DataFrame:
 
     logger.info("Bygger samlet FAGVURDERING-datasett...")
 
-    standpunkt_vgs = _harmonise_standpunkt_vgs(NudbData("standpunkt_vgs").df())
-    standpunkt_gs = _harmonise_standpunkt_gs(NudbData("standpunkt_gs").df())
-    nasjonale_proever = _harmonise_nasjonale_proever(
-        NudbData("nasjonale_proever").df()
-    )
-    eksamen = _harmonise_eksamen(NudbData("eksamen_karakterer").df())
+    standpunkt_vgs = _harmonise_standpunkt_vgs(NudbData("avslutta_videregaaende").df())
+    standpunkt_gs = _harmonise_standpunkt_gs(NudbData("grunnskolekarakterer").df())
+    nasjonale_proever = _harmonise_nasjonale_proever(NudbData("nasjprov").df())
+    eksamen = _harmonise_eksamen(NudbData("eksamen").df())
 
     long_df = pd.concat(
         [standpunkt_vgs, standpunkt_gs, nasjonale_proever, eksamen],
