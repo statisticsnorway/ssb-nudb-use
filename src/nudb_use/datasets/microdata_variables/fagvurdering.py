@@ -1,22 +1,12 @@
 """Genererer microdata-datasett for enheten FAGVURDERING.
 
-FAGVURDERING samler standpunktkarakterer (grunnskole og VGS), karakterer fra
-nasjonale prover, og eksamenskarakterer (skriftlig/muntlig) i en felles
-statistisk enhet. ID-en er en komposittnokkel av snr + fagkode + vurderingsform
-(+ lopenr_kurs for VGS, der det finnes), slik at hver record blir unik innenfor
-riktig tidsperiode, jf. reglene for STATUS-variabler i microdata.no.
-
-Hver "variabel"-view under (karakter, fagkode, vurderingsform, skole) deler
-samme ID og kan derfor kobles sammen av brukere pa microdata.no.
+Støtter tre separate kilder (vgs, gs, nasjprov) via felles caching i DuckDB.
 """
 
 from typing import Literal
-
 import duckdb as db
 import pandas as pd
 
-from nudb_use.datasets import NudbData
-from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.nudb_logger import logger
 
 VurderingsformKode = Literal[
@@ -27,17 +17,27 @@ VurderingsformKode = Literal[
     "NASJONAL_PROVE",
 ]
 
-# Kolonner som alle kilde-datasett harmoniseres til, for enkel union.
+# Kolonner som alle kilde-datasett harmoniseres til (lopenr_kurs er fjernet)
 _HARMONISED_COLUMNS: list[str] = [
     "snr",
     "fagkode",
     "karakter",
     "vurderingsform",
-    "lopenr_kurs",
     "orgnr",
     "start",
     "stop",
+    "kilde",  # Ny kolonne for å kunne skille filgrunnlagene
 ]
+
+
+def _ensure_harmonised_columns(df: pd.DataFrame, kilde: str) -> pd.DataFrame:
+    """Sikrer at alle påkrevde kolonner eksisterer og setter kilde."""
+    out = df.copy()
+    out["kilde"] = kilde
+    for col in _HARMONISED_COLUMNS:
+        if col not in out.columns:
+            out[col] = pd.NA
+    return out[_HARMONISED_COLUMNS]
 
 
 def _harmonise_standpunkt_vgs(df: pd.DataFrame) -> pd.DataFrame:
@@ -51,11 +51,7 @@ def _harmonise_standpunkt_vgs(df: pd.DataFrame) -> pd.DataFrame:
     ).copy()
 
     out["vurderingsform"] = "STANDPUNKT_VGS"
-
-    if "lopenr_kurs" not in out.columns:
-        out["lopenr_kurs"] = pd.NA
-
-    return out[_HARMONISED_COLUMNS]
+    return _ensure_harmonised_columns(out, kilde="vgs")
 
 
 def _harmonise_standpunkt_gs(df: pd.DataFrame) -> pd.DataFrame:
@@ -69,17 +65,11 @@ def _harmonise_standpunkt_gs(df: pd.DataFrame) -> pd.DataFrame:
     ).copy()
 
     out["vurderingsform"] = "STANDPUNKT_GS"
-    out["lopenr_kurs"] = pd.NA
-
-    return out[_HARMONISED_COLUMNS]
+    return _ensure_harmonised_columns(out, kilde="gs")
 
 
 def _harmonise_nasjonale_proever(df: pd.DataFrame) -> pd.DataFrame:
-    """Harmoniser nasjonale prover til fellesskjema.
-
-    Nasjonale prover gjennomfores pa en gitt dato, sa start == stop
-    (STATUS-variabel).
-    """
+    """Harmoniser nasjonale prøver til fellesskjema."""
     out = df.rename(
         columns={
             "karakter_np": "karakter",
@@ -89,16 +79,13 @@ def _harmonise_nasjonale_proever(df: pd.DataFrame) -> pd.DataFrame:
 
     out["stop"] = out["start"]
     out["vurderingsform"] = "NASJONAL_PROVE"
-    out["lopenr_kurs"] = pd.NA
-
-    return out[_HARMONISED_COLUMNS]
+    return _ensure_harmonised_columns(out, kilde="nasjprov")
 
 
 def _harmonise_eksamen(df: pd.DataFrame) -> pd.DataFrame:
     """Harmoniser eksamenskarakterer (skriftlig/muntlig) til fellesskjema.
-
-    Forventer at kildedatasettet allerede har en kolonne `eksamensform`
-    med verdiene "SKRIFTLIG" eller "MUNTLIG".
+    
+    Her antar vi at eksamen per nå tilhører videregående (vgs).
     """
     out = df.rename(
         columns={
@@ -114,16 +101,12 @@ def _harmonise_eksamen(df: pd.DataFrame) -> pd.DataFrame:
             "MUNTLIG": "EKSAMEN_MUNTLIG",
         }
     )
-
-    if "lopenr_kurs" not in out.columns:
-        out["lopenr_kurs"] = pd.NA
-
-    return out[_HARMONISED_COLUMNS]
+    return _ensure_harmonised_columns(out, kilde="vgs")
 
 
 def _build_fagvurdering_id(df: pd.DataFrame) -> pd.Series:
-    """Konstruer kompositt-ID: snr + fagkode + vurderingsform (+ lopenr_kurs)."""
-    lopenr = df["lopenr_kurs"].astype(STRING_DTYPE).fillna("")
+    """Konstruer forenklet kompositt-ID: snr + fagkode + vurderingsform."""
+    from nudb_use.datasets.nudb_database import STRING_DTYPE
 
     return (
         df["snr"].astype(STRING_DTYPE)
@@ -131,17 +114,13 @@ def _build_fagvurdering_id(df: pd.DataFrame) -> pd.Series:
         + df["fagkode"].astype(STRING_DTYPE)
         + "_"
         + df["vurderingsform"].astype(STRING_DTYPE)
-        + lopenr.where(lopenr == "", "_" + lopenr)
     )
 
 
 def _build_fagvurdering_long() -> pd.DataFrame:
-    """Bygg en samlet, lang dataframe med alle FAGVURDERING-records.
+    """Bygg en samlet, lang dataframe med alle FAGVURDERING-records."""
+    from nudb_use.datasets.nudb_data import NudbData
 
-    Henter fra de fire kildedatasettene, harmoniserer til felles skjema,
-    slar dem sammen, og konstruerer kompositt-ID-en. Dette er det eneste
-    stedet der kildelogikken for de fire vurderingsformene bor endres.
-    """
     logger.info("Bygger samlet FAGVURDERING-datasett...")
 
     standpunkt_vgs = _harmonise_standpunkt_vgs(NudbData("standpunkt_vgs").df())
@@ -157,7 +136,6 @@ def _build_fagvurdering_long() -> pd.DataFrame:
     )
 
     long_df = long_df.dropna(subset=["snr", "fagkode", "karakter", "vurderingsform"])
-
     long_df["fagvurdering_id"] = _build_fagvurdering_id(long_df)
 
     n_dupes = long_df.duplicated(
@@ -172,58 +150,116 @@ def _build_fagvurdering_long() -> pd.DataFrame:
     return long_df
 
 
-def _make_variable_view_generator(value_column: str) -> "db.CFunction":  # type: ignore[name-defined]
-    """Lag en generator-funksjon for en enkelt microdata-variabel.
+def _generate_fagvurdering_base_table_if_needed(connection: db.DuckDBPyConnection) -> None:
+    """Materialiserer den lange dataframen i DuckDB dersom den ikke finnes."""
+    existing_tables = [row[0] for row in connection.execute("SHOW TABLES").fetchall()]
+    if "_fagvurdering_long_cached" not in existing_tables:
+        long_df = _build_fagvurdering_long()
+        connection.register("_temp_fagvurdering_long_df", long_df)
+        connection.execute(
+            "CREATE TABLE _fagvurdering_long_cached AS SELECT * FROM _temp_fagvurdering_long_df"
+        )
+        connection.unregister("_temp_fagvurdering_long_df")
 
-    Args:
-        value_column: Navnet pa kolonnen i den lange dataframen som skal
-            brukes som "Verdi" i microdata-leveransen.
 
-    Returns:
-        En funksjon som kan registreres i `nudb_database._dataset_generators`.
-    """
+def _make_variable_view_generator(value_column: str, kilde_filter: str):
+    """Lag en generator-funksjon for en enkelt microdata-variabel filtrert på kilde."""
 
     def _generator(alias: str, connection: db.DuckDBPyConnection) -> None:
-        long_df = _build_fagvurdering_long()
+        _generate_fagvurdering_base_table_if_needed(connection)
 
-        out = long_df.rename(
-            columns={
-                "fagvurdering_id": "id",
-                value_column: "verdi",
-            }
-        )[["id", "verdi", "start", "stop"]]
-
-        connection.register("_temp_fagvurdering_df", out)
+        # Genererer det tynne viewet direkte i DuckDB filtrert på kilde
         connection.execute(
-            f"CREATE OR REPLACE VIEW {alias} AS SELECT * FROM _temp_fagvurdering_df"
+            f"""
+            CREATE OR REPLACE VIEW {alias} AS
+            SELECT
+                fagvurdering_id AS id,
+                {value_column} AS verdi,
+                start,
+                stop
+            FROM
+                _fagvurdering_long_cached
+            WHERE
+                kilde = '{kilde_filter}'
+            """
         )
 
     return _generator
 
 
-def _generate_microdata_fagvurdering_karakter_view(
+# === Genererte views for VIDEREGÅENDE (VGS) ===
+
+def _generate_microdata_fagvurdering_vgs_karakter_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    """Generer microdata-view for karakterverdien i FAGVURDERING."""
-    _make_variable_view_generator("karakter")(alias, connection)
+    _make_variable_view_generator("karakter", "vgs")(alias, connection)
 
 
-def _generate_microdata_fagvurdering_fagkode_view(
+def _generate_microdata_fagvurdering_vgs_fagkode_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    """Generer microdata-view for fagkoden i FAGVURDERING."""
-    _make_variable_view_generator("fagkode")(alias, connection)
+    _make_variable_view_generator("fagkode", "vgs")(alias, connection)
 
 
-def _generate_microdata_fagvurdering_vurderingsform_view(
+def _generate_microdata_fagvurdering_vgs_vurderingsform_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    """Generer microdata-view for vurderingsformen i FAGVURDERING."""
-    _make_variable_view_generator("vurderingsform")(alias, connection)
+    _make_variable_view_generator("vurderingsform", "vgs")(alias, connection)
 
 
-def _generate_microdata_fagvurdering_skole_view(
+def _generate_microdata_fagvurdering_vgs_skole_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    """Generer microdata-view for skole (orgnr) i FAGVURDERING."""
-    _make_variable_view_generator("orgnr")(alias, connection)
+    _make_variable_view_generator("orgnr", "vgs")(alias, connection)
+
+
+# === Genererte views for GRUNNSKOLE (GS) ===
+
+def _generate_microdata_fagvurdering_gs_karakter_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("karakter", "gs")(alias, connection)
+
+
+def _generate_microdata_fagvurdering_gs_fagkode_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("fagkode", "gs")(alias, connection)
+
+
+def _generate_microdata_fagvurdering_gs_vurderingsform_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("vurderingsform", "gs")(alias, connection)
+
+
+def _generate_microdata_fagvurdering_gs_skole_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("orgnr", "gs")(alias, connection)
+
+
+# === Genererte views for NASJONALE PRØVER (nasjprov) ===
+
+def _generate_microdata_fagvurdering_nasjprov_karakter_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("karakter", "nasjprov")(alias, connection)
+
+
+def _generate_microdata_fagvurdering_nasjprov_fagkode_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("fagkode", "nasjprov")(alias, connection)
+
+
+def _generate_microdata_fagvurdering_nasjprov_vurderingsform_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("vurderingsform", "nasjprov")(alias, connection)
+
+
+def _generate_microdata_fagvurdering_nasjprov_skole_view(
+    alias: str, connection: db.DuckDBPyConnection
+) -> None:
+    _make_variable_view_generator("orgnr", "nasjprov")(alias, connection)

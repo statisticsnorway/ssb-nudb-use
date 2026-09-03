@@ -39,6 +39,20 @@ from nudb_use.datasets.microdata_variables import (
 from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
     _generate_microdata_pers_bokommune_16aar_view
 )
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_fagvurdering_vgs_karakter_view,
+    _generate_microdata_fagvurdering_vgs_fagkode_view,
+    _generate_microdata_fagvurdering_vgs_vurderingsform_view,
+    _generate_microdata_fagvurdering_vgs_skole_view,
+    _generate_microdata_fagvurdering_gs_karakter_view,
+    _generate_microdata_fagvurdering_gs_fagkode_view,
+    _generate_microdata_fagvurdering_gs_vurderingsform_view,
+    _generate_microdata_fagvurdering_gs_skole_view,
+    _generate_microdata_fagvurdering_nasjprov_karakter_view,
+    _generate_microdata_fagvurdering_nasjprov_fagkode_view,
+    _generate_microdata_fagvurdering_nasjprov_vurderingsform_view,
+    _generate_microdata_fagvurdering_nasjprov_skole_view,
+)
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 
 # Old NUDB
@@ -125,7 +139,31 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view,
             MICRODATA_PREFIX
-            + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view
+            + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_vgs_karakter": _generate_microdata_fagvurdering_vgs_karakter_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_vgs_fagkode": _generate_microdata_fagvurdering_vgs_fagkode_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_vgs_vurderingsform": _generate_microdata_fagvurdering_vgs_vurderingsform_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_vgs_skole": _generate_microdata_fagvurdering_vgs_skole_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_gs_karakter": _generate_microdata_fagvurdering_gs_karakter_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_gs_fagkode": _generate_microdata_fagvurdering_gs_fagkode_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_gs_vurderingsform": _generate_microdata_fagvurdering_gs_vurderingsform_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_gs_skole": _generate_microdata_fagvurdering_gs_skole_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_nasjprov_karakter": _generate_microdata_fagvurdering_nasjprov_karakter_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_nasjprov_fagkode": _generate_microdata_fagvurdering_nasjprov_fagkode_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_nasjprov_vurderingsform": _generate_microdata_fagvurdering_nasjprov_vurderingsform_view,
+            MICRODATA_PREFIX
+            + "fagvurdering_nasjprov_skole": _generate_microdata_fagvurdering_nasjprov_skole_view
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}
