@@ -97,6 +97,34 @@ def test_nudbdata(
     ).on("t1.snr=t3.snr")
 
 
+def test_from_parquet_force_overwrites_unattached_dataset_generator(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    reset_nudb_database()
+    database = nudb_database_module.nudb_database
+    dataset_name = "local_existing_generator"
+    alias = _default_alias_from_name(dataset_name)
+    parquet_path = tmp_path / "local_existing_generator.parquet"
+    pd.DataFrame({"snr": ["1"], "komm_nr": ["0301"]}).to_parquet(
+        parquet_path, index=False
+    )
+
+    def existing_generator(alias: str, connection: Any) -> None:
+        connection.execute(f"CREATE OR REPLACE VIEW {alias} AS SELECT 1 AS stale")
+
+    monkeypatch.setitem(database._dataset_generators, dataset_name, existing_generator)
+    monkeypatch.setattr(
+        database, "_dataset_names", [*database._dataset_names, dataset_name]
+    )
+
+    assert dataset_name not in database._datasets
+
+    data = NudbData.from_parquet(parquet_path, name=dataset_name, force=True)
+
+    assert data.df().to_dict("list") == {"snr": ["1"], "komm_nr": ["0301"]}
+    assert database._dataset_paths[alias] == [parquet_path]
+
+
 def test_fetch_string_column_and_tables() -> None:
     database = nudb_database_module.nudb_database
     connection = database.get_connection()
