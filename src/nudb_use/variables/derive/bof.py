@@ -5,7 +5,8 @@ from nudb_use.datasets import NudbData
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
-__all__ = ["bof_eierforhold"]
+__all__ = ["bof_eierforhold", 
+          "bof_primaernaering_sn25"]
 
 
 def _percent_notna(s: pd.Series) -> float:
