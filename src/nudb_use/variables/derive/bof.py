@@ -5,11 +5,27 @@ from nudb_use.datasets import NudbData
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
-__all__ = ["bof_eierforhold"]
+__all__ = ["bof_eierforhold", 
+          "bof_primaernaering_sn25"]
 
 
 def _percent_notna(s: pd.Series) -> float:
     return 0.0 if not len(s) else float(round(s.notna().sum() / len(s) * 100, 2))
+
+
+@wrap_derive
+def bof_primaernaering_sn25(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive bof_primaernaering_sn25."""
+    bof: pd.DataFrame = (
+        NudbData("bof_situttak")
+        .select("orgnrbed, sn2025_1 as bof_primaernaering_sn25")
+        .where("sn2025_1 is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
+        .df()
+    )
+    # vi kobler bare på orgnrbed?
+    return df.merge(bof, on="orgnrbed", how="left")
 
 
 @wrap_derive
