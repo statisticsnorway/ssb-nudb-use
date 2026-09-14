@@ -11,6 +11,7 @@ __all__ = ["bof_eierforhold"]
 def _percent_notna(s: pd.Series) -> float:
     return 0.0 if not len(s) else float(round(s.notna().sum() / len(s) * 100, 2))
 
+
 @wrap_derive
 def bof_primaernaering_sn25(  # noqa:DOC201
     df: pd.DataFrame,
@@ -20,9 +21,11 @@ def bof_primaernaering_sn25(  # noqa:DOC201
         NudbData("bof_situttak")
         .select("orgnrbed, sn2025_1 as bof_primaernaering_sn25")
         .where("sn2025_1 is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
-        .df())
+        .df()
+    )
     # vi kobler bare på orgnrbed?
     return df.merge(bof, on="orgnrbed", how="left")
+
 
 @wrap_derive
 def bof_eierforhold(df: pd.DataFrame) -> pd.Series:
