@@ -3,15 +3,29 @@ import pandas as pd
 from nudb_use import MicroData, NudbData
 from nudb_use import get_microdata_variables_overview
 from nudb_use.datasets.microdata import show_available_microdata_variables
+pd.set_option("display.max_colwidth", None)
+
 #%%
 show_available_microdata_variables()
 #%% 
-test = get_microdata_variables_overview("pers_fullfoert_foerste")
+test = get_microdata_variables_overview("eksamen_microdata")
 test
 
 # %%
+NudbData("avslutta").get_available_cols()
+# %%
 
-test = MicroData("pers_bokommune_16aar").df()
+test = MicroData("avslutta_subset").df()
+test.head()
+
+# %%
+test.columns
+
+# %%
+print(test["aar_forste_fullf_cmg"].min())
+print(test["aar_forste_fullf_cmg"].max())
+
+# %%
 test.head()
 
 # %%
@@ -37,10 +51,14 @@ nudb_database.get_connection().sql("SELECT current_setting('temp_directory')").d
 
 # %%
 test = NudbData("avslutta").select("""
-    snr, nus2000, utd_skoleaar_start
+    snr, nus2000, utd_skoleaar_start, utd_hendelse_id
 """).where("""
     utd_skoleaar_start > '2023'
 """).df()
+
+# %%
+test.head()
+
 # %%
 
 from nudb_use.variables.derive import utd_foreldres_utdnivaa_16aar

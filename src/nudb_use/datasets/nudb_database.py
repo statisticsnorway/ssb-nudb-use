@@ -26,6 +26,12 @@ from nudb_use.datasets.macros import _DUCKDB_MACROS
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_avslutta_subset_view,
 )
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_igang_subset_view,
+)
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_eksamen_subset_view,
+)
 from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
@@ -131,10 +137,6 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX
-            + "avslutta_subset": _generate_microdata_avslutta_subset_view,
-            MICRODATA_PREFIX 
-            + "nasjprov": _generate_microdata_nasjprov_view,
-            MICRODATA_PREFIX
             + "utd_foreldres_utdnivaa_16aar": _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
             MICRODATA_PREFIX
             + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view,
@@ -163,7 +165,15 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "fagvurdering_nasjprov_vurderingsform": _generate_microdata_fagvurdering_nasjprov_vurderingsform_view,
             MICRODATA_PREFIX
-            + "fagvurdering_nasjprov_skole": _generate_microdata_fagvurdering_nasjprov_skole_view
+            + "fagvurdering_nasjprov_skole": _generate_microdata_fagvurdering_nasjprov_skole_view,
+            MICRODATA_PREFIX
+            + "avslutta_microdata": _generate_microdata_avslutta_subset_view,
+            MICRODATA_PREFIX
+            + "igang_microdata": _generate_microdata_igang_subset_view,
+            MICRODATA_PREFIX
+            + "eksamen_microdata": _generate_microdata_eksamen_subset_view,
+            MICRODATA_PREFIX 
+            + "nasjprov": _generate_microdata_nasjprov_view,
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}
