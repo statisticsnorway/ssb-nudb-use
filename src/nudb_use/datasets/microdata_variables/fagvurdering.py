@@ -142,7 +142,7 @@ def _build_fagvurdering_long() -> pd.DataFrame:
     logger.info("Bygger samlet FAGVURDERING-datasett...")
 
     standpunkt_vgs = _harmonise_standpunkt_vgs(NudbData("avslutta_videregaaende").df())
-    standpunkt_gs = _harmonise_standpunkt_gs(NudbData("grunnskolekarakterer").df())
+    standpunkt_gs = _harmonise_standpunkt_gs(NudbData("_microdata_gs_fagvurdering").df())
     nasjonale_proever = _harmonise_nasjonale_proever(NudbData("nasjprov").df())
     eksamen = _harmonise_eksamen(NudbData("eksamen").df())
 
@@ -178,104 +178,75 @@ def _generate_fagvurdering_base_table_if_needed(connection: db.DuckDBPyConnectio
         connection.unregister("_temp_fagvurdering_long_df")
 
 
-def _make_variable_view_generator(value_column: str, kilde_filter: str):
-    """Lag en generator-funksjon for en enkelt microdata-variabel filtrert på kilde."""
-
-    def _generator(alias: str, connection: db.DuckDBPyConnection) -> None:
-        _generate_fagvurdering_base_table_if_needed(connection)
-
-        # Genererer det tynne viewet direkte i DuckDB filtrert på kilde
-        connection.execute(
-            f"""
-            CREATE OR REPLACE VIEW {alias} AS
-            SELECT
-                fagvurdering_id AS id,
-                {value_column} AS verdi,
-                start,
-                stop
-            FROM
-                _fagvurdering_long_cached
-            WHERE
-                kilde = '{kilde_filter}'
-            """
-        )
-
-    return _generator
-
-
-# === Genererte views for VIDEREGÅENDE (VGS) ===
-
-def _generate_microdata_fagvurdering_vgs_karakter_view(
+def _generate_microdata_vgs_fagvurdering_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    _make_variable_view_generator("karakter", "vgs")(alias, connection)
+    """Genererer samlet microdata-datasett for videregående skole (vgs)."""
+    _generate_fagvurdering_base_table_if_needed(connection)
+    connection.execute(
+        f"""
+        CREATE OR REPLACE VIEW {alias} AS
+        SELECT
+            fagvurdering_id AS id,
+            fagkode AS fagvurdering_vgs_fagkode,
+            karakter AS fagvurdering_vgs_karakter,
+            orgnr AS fagvurdering_vgs_skole,
+            vurderingsform AS fagvurdering_vgs_vurderingsform,
+            start,
+            stop
+        FROM
+            _fagvurdering_long_cached
+        WHERE
+            kilde = 'vgs'
+        """
+    )
 
-
-def _generate_microdata_fagvurdering_vgs_fagkode_view(
+# Trenger å legges i riktig format, dette henter bare variablene direkte for øyeblikket. 
+# Kompositt-id må lages f.eks, istedet for å hente snr som ID
+def _generate_microdata_gs_fagvurdering_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    _make_variable_view_generator("fagkode", "vgs")(alias, connection)
+    """Genererer samlet microdata-datasett for grunnskole (gs)."""
+    _generate_fagvurdering_base_table_if_needed(connection)
+    connection.execute(
+        f"""
+        CREATE OR REPLACE VIEW {alias} AS
+        SELECT
+            fnr AS fnr,
+            snr AS snr,  
+            gro_fagkode_vigo AS fagvurdering_gs_fagkode,
+            gro_karakter_standpunkt AS fagvurdering_gs_karakter_stp,
+            gro_karakter_skriftlig AS fagvurdering_gs_vurderingsform_skriftlig,
+            gro_karakter_muntlig AS fagvurdering_gs_vurderingsform_muntlig,
+            utd_orgnr AS fagvurdering_gs_orgnr,
+            utd_skoleaar_start
+        FROM
+            _fagvurdering_long_cached
+        WHERE
+            kilde = 'gs'
+        """
+    )
 
 
-def _generate_microdata_fagvurdering_vgs_vurderingsform_view(
+def _generate_microdata_nasjprov_fagvurdering_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    _make_variable_view_generator("vurderingsform", "vgs")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_vgs_skole_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("orgnr", "vgs")(alias, connection)
-
-
-# === Genererte views for GRUNNSKOLE (GS) ===
-
-def _generate_microdata_fagvurdering_gs_karakter_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("karakter", "gs")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_gs_fagkode_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("fagkode", "gs")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_gs_vurderingsform_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("vurderingsform", "gs")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_gs_skole_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("orgnr", "gs")(alias, connection)
-
-
-# === Genererte views for NASJONALE PRØVER (nasjprov) ===
-
-def _generate_microdata_fagvurdering_nasjprov_karakter_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("karakter", "nasjprov")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_nasjprov_fagkode_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("fagkode", "nasjprov")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_nasjprov_vurderingsform_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("vurderingsform", "nasjprov")(alias, connection)
-
-
-def _generate_microdata_fagvurdering_nasjprov_skole_view(
-    alias: str, connection: db.DuckDBPyConnection
-) -> None:
-    _make_variable_view_generator("orgnr", "nasjprov")(alias, connection)
+    """Genererer samlet microdata-datasett for nasjonale prøver (nasjprov)."""
+    _generate_fagvurdering_base_table_if_needed(connection)
+    connection.execute(
+        f"""
+        CREATE OR REPLACE VIEW {alias} AS
+        SELECT
+            fagvurdering_id AS id,
+            fagkode AS fagvurdering_nasjprov_fagkode,
+            karakter AS fagvurdering_nasjprov_karakter,
+            orgnr AS fagvurdering_nasjprov_skole,
+            vurderingsform AS fagvurdering_nasjprov_vurderingsform,
+            start,
+            stop
+        FROM
+            _fagvurdering_long_cached
+        WHERE
+            kilde = 'nasjprov'
+        """
+    )

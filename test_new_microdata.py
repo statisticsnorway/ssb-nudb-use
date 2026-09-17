@@ -8,14 +8,14 @@ pd.set_option("display.max_colwidth", None)
 #%%
 show_available_microdata_variables()
 #%% 
-test = get_microdata_variables_overview("eksamen_microdata")
+test = get_microdata_variables_overview("gs_fagvurdering")
 test
 
 # %%
 NudbData("avslutta").get_available_cols()
 # %%
 
-test = MicroData("avslutta_subset").df()
+test = MicroData("gs_fagvurdering").df()
 test.head()
 
 # %%

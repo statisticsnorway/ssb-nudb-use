@@ -26,12 +26,6 @@ from nudb_use.datasets.macros import _DUCKDB_MACROS
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_avslutta_subset_view,
 )
-from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_igang_subset_view,
-)
-from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_eksamen_subset_view,
-)
 from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
@@ -46,18 +40,12 @@ from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
     _generate_microdata_pers_bokommune_16aar_view
 )
 from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_fagvurdering_vgs_karakter_view,
-    _generate_microdata_fagvurdering_vgs_fagkode_view,
-    _generate_microdata_fagvurdering_vgs_vurderingsform_view,
-    _generate_microdata_fagvurdering_vgs_skole_view,
-    _generate_microdata_fagvurdering_gs_karakter_view,
-    _generate_microdata_fagvurdering_gs_fagkode_view,
-    _generate_microdata_fagvurdering_gs_vurderingsform_view,
-    _generate_microdata_fagvurdering_gs_skole_view,
-    _generate_microdata_fagvurdering_nasjprov_karakter_view,
-    _generate_microdata_fagvurdering_nasjprov_fagkode_view,
-    _generate_microdata_fagvurdering_nasjprov_vurderingsform_view,
-    _generate_microdata_fagvurdering_nasjprov_skole_view,
+    _generate_microdata_vgs_fagvurdering_view,
+    _generate_microdata_gs_fagvurdering_view,
+    _generate_microdata_nasjprov_fagvurdering_view,
+)
+from nudb_use.datasets.microdata_variables.personvariabler import (
+    _generate_microdata_personvariabler_view,
 )
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 
@@ -137,43 +125,23 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX
+            + "avslutta_subset": _generate_microdata_avslutta_subset_view,
+            MICRODATA_PREFIX 
+            + "nasjprov": _generate_microdata_nasjprov_view,
+            MICRODATA_PREFIX
             + "utd_foreldres_utdnivaa_16aar": _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
             MICRODATA_PREFIX
             + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view,
             MICRODATA_PREFIX
             + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view,
             MICRODATA_PREFIX
-            + "fagvurdering_vgs_karakter": _generate_microdata_fagvurdering_vgs_karakter_view,
+            + "gs_fagvurdering": _generate_microdata_gs_fagvurdering_view,
             MICRODATA_PREFIX
-            + "fagvurdering_vgs_fagkode": _generate_microdata_fagvurdering_vgs_fagkode_view,
+            + "vgs_fagvurdering": _generate_microdata_vgs_fagvurdering_view,
             MICRODATA_PREFIX
-            + "fagvurdering_vgs_vurderingsform": _generate_microdata_fagvurdering_vgs_vurderingsform_view,
+            + "nasjprov_fagvurdering": _generate_microdata_nasjprov_fagvurdering_view,
             MICRODATA_PREFIX
-            + "fagvurdering_vgs_skole": _generate_microdata_fagvurdering_vgs_skole_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_gs_karakter": _generate_microdata_fagvurdering_gs_karakter_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_gs_fagkode": _generate_microdata_fagvurdering_gs_fagkode_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_gs_vurderingsform": _generate_microdata_fagvurdering_gs_vurderingsform_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_gs_skole": _generate_microdata_fagvurdering_gs_skole_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_nasjprov_karakter": _generate_microdata_fagvurdering_nasjprov_karakter_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_nasjprov_fagkode": _generate_microdata_fagvurdering_nasjprov_fagkode_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_nasjprov_vurderingsform": _generate_microdata_fagvurdering_nasjprov_vurderingsform_view,
-            MICRODATA_PREFIX
-            + "fagvurdering_nasjprov_skole": _generate_microdata_fagvurdering_nasjprov_skole_view,
-            MICRODATA_PREFIX
-            + "avslutta_microdata": _generate_microdata_avslutta_subset_view,
-            MICRODATA_PREFIX
-            + "igang_microdata": _generate_microdata_igang_subset_view,
-            MICRODATA_PREFIX
-            + "eksamen_microdata": _generate_microdata_eksamen_subset_view,
-            MICRODATA_PREFIX 
-            + "nasjprov": _generate_microdata_nasjprov_view,
+            + "personvariabler": _generate_microdata_personvariabler_view
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}
