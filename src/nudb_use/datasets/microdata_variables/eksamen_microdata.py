@@ -3,7 +3,7 @@ import duckdb as db
 from nudb_use.nudb_logger import logger
 
 
-def _generate_microdata_eksamen_subset_view(
+def _generate_microdata_eksamen_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:

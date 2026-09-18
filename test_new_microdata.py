@@ -7,19 +7,24 @@ pd.set_option("display.max_colwidth", None)
 
 #%%
 show_available_microdata_variables()
+
+#%%
+vg = pd.read_parquet("/buckets/produkt/nudb-data/klargjorte-data/videregaendekarakterer/videregaendekarakterer_p2003_p2021_v1.parquet")
+vg.head()
 #%% 
-test = get_microdata_variables_overview("gs_fagvurdering")
+test = get_microdata_variables_overview("microdata_eksamen")
 test
 
 # %%
 NudbData("avslutta").get_available_cols()
 # %%
 
-test = MicroData("gs_fagvurdering").df()
+test = MicroData("vgs_fagvurdering").df()
 test.head()
 
 # %%
 test.columns
+test["fagvurdering_grsk_vurderingsform"].value_counts()
 
 # %%
 print(test["aar_forste_fullf_cmg"].min())

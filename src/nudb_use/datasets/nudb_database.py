@@ -23,8 +23,14 @@ from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.macros import _DUCKDB_MACROS
 
 # Microdata
-from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_avslutta_subset_view,
+from nudb_use.datasets.microdata_variables.avslutta_microdata import (
+    _generate_microdata_avslutta_view,
+)
+from nudb_use.datasets.microdata_variables.igang_microdata import (
+    _generate_microdata_igang_view,
+)
+from nudb_use.datasets.microdata_variables.eksamen_microdata import (
+    _generate_microdata_eksamen_view,
 )
 from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
 from nudb_use.datasets.microdata_variables import (
@@ -123,9 +129,13 @@ class _NudbDatabase:
             "_bof_eierforhold": _generate_bof_eierforhold_view,
             # MicroData()
             MICRODATA_PREFIX
-            + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
+            + "microdata_avslutta": _generate_microdata_avslutta_view,
             MICRODATA_PREFIX
-            + "avslutta_subset": _generate_microdata_avslutta_subset_view,
+            + "microdata_igang": _generate_microdata_igang_view,
+            MICRODATA_PREFIX
+            + "microdata_eksamen": _generate_microdata_eksamen_view,
+            MICRODATA_PREFIX
+            + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX 
             + "nasjprov": _generate_microdata_nasjprov_view,
             MICRODATA_PREFIX
