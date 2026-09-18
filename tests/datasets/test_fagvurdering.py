@@ -58,7 +58,7 @@ def test_fagvurdering_pipeline(monkeypatch) -> None:
 
     # Register the mock source generators with production names
     nudb_database._dataset_generators["avslutta_videregaaende"] = _gen_avslutta_videregaaende
-    nudb_database._dataset_generators["_microdata_grunnskolekarakterer"] = _gen_grunnskolekarakterer
+    nudb_database._dataset_generators["_microdata_grunnskole_karakterer"] = _gen_grunnskolekarakterer
     nudb_database._dataset_generators["nasjprov"] = _gen_nasjprov
     nudb_database._dataset_generators["eksamen"] = _gen_eksamen
 

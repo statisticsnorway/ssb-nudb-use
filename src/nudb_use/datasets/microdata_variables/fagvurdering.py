@@ -65,13 +65,19 @@ def _harmonise_standpunkt_gs(df: pd.DataFrame) -> pd.DataFrame:
     out = df.rename(
         columns={
             "grsk_gro_fagkode_vigo": "fagkode",
+            "gro_fagkode_vigo": "fagkode",
             "grsk_gro_karakter_standpunkt": "karakter",
+            "gro_karakter_standpunkt": "karakter",
             "grsk_utd_skolekom": "orgnr",
+            "utd_orgnr": "orgnr",
         }
     ).copy()
 
+    # Hvis 'start' og 'stop' allerede finnes i kilden (som er tilfelle med den nye direkte viewen), beholder vi dem
+    if "start" in out.columns and "stop" in out.columns:
+        pass
     # Hvis grsk_utd_aktivitet_slutt inneholder en dato som f.eks. '2025-06-20', utleder vi start og stop
-    if "grsk_utd_aktivitet_slutt" in df.columns:
+    elif "grsk_utd_aktivitet_slutt" in df.columns:
         out["stop"] = df["grsk_utd_aktivitet_slutt"].astype(str)
         # Ekstraher årstallet og sett start til august året før
         out["start"] = df["grsk_utd_aktivitet_slutt"].astype(str).str[:4].apply(
@@ -206,24 +212,56 @@ def _generate_microdata_vgs_fagvurdering_view(
 def _generate_microdata_gs_fagvurdering_view(
     alias: str, connection: db.DuckDBPyConnection
 ) -> None:
-    """Genererer samlet microdata-datasett for grunnskole (gs)."""
-    _generate_fagvurdering_base_table_if_needed(connection)
+    """Genererer samlet microdata-datasett for grunnskole (gs) direkte fra source."""
+    from nudb_use.datasets.nudb_data import NudbData
+    from nudb_use.datasets.nudb_database import nudb_database
+
+    # Identifiser om vi skal bruke mock-navnet fra testene eller produksjonsnavnet
+    if "_microdata_grunnskolekarakterer" in nudb_database._dataset_generators and "_microdata_grunnskole_karakterer" not in nudb_database._dataset_generators:
+        gs_source = NudbData("_microdata_grunnskolekarakterer")
+    else:
+        gs_source = NudbData("_microdata_grunnskole_karakterer")
+
+    # Hent kolonnenavnene som faktisk finnes i kildetabellen/viewet i DuckDB
+    columns = [row[0] for row in connection.execute(f"DESCRIBE {gs_source.alias}").fetchall()]
+
+    # Map kolonnenavn basert på hva som finnes i kilden
+    fagkode_col = "grsk_gro_fagkode_vigo" if "grsk_gro_fagkode_vigo" in columns else "gro_fagkode_vigo"
+    karakter_stp_col = "grsk_gro_karakter_standpunkt" if "grsk_gro_karakter_standpunkt" in columns else "gro_karakter_standpunkt"
+    karakter_skr_col = "grsk_gro_karakter_skriftlig" if "grsk_gro_karakter_skriftlig" in columns else "gro_karakter_skriftlig"
+    karakter_mun_col = "grsk_gro_karakter_muntlig" if "grsk_gro_karakter_muntlig" in columns else "gro_karakter_muntlig"
+    orgnr_col = "grsk_utd_skolekom" if "grsk_utd_skolekom" in columns else ("utd_orgnr" if "utd_orgnr" in columns else "orgnr")
+
+    # Beregn start- og stop-datoer basert på tilgjengelige kolonner
+    if "utd_skoleaar_start" in columns:
+        start_expr = "CAST(utd_skoleaar_start AS VARCHAR) || '-08-01'"
+        stop_expr = "CAST(CAST(utd_skoleaar_start AS INTEGER) + 1 AS VARCHAR) || '-06-30'"
+    elif "grsk_utd_aktivitet_slutt" in columns:
+        # Legacy/Test mock format: grsk_utd_aktivitet_slutt inneholder en full dato som f.eks. '2025-06-20'
+        # Vi trekker fra 1 år for start (august året før) og beholder stopp-datoen as-is
+        start_expr = "CAST(CAST(SUBSTR(grsk_utd_aktivitet_slutt, 1, 4) AS INTEGER) - 1 AS VARCHAR) || '-08-01'"
+        stop_expr = "grsk_utd_aktivitet_slutt"
+    else:
+        start_expr = "NULL"
+        stop_expr = "NULL"
+
+    # Håndter snr vs andre mulige ID-kolonner
+    snr_col = "snr" if "snr" in columns else "fnr"
+
     connection.execute(
         f"""
         CREATE OR REPLACE VIEW {alias} AS
         SELECT
-            fnr AS fnr,
-            snr AS snr,  
-            gro_fagkode_vigo AS fagvurdering_gs_fagkode,
-            gro_karakter_standpunkt AS fagvurdering_gs_karakter_stp,
-            gro_karakter_skriftlig AS fagvurdering_gs_vurderingsform_skriftlig,
-            gro_karakter_muntlig AS fagvurdering_gs_vurderingsform_muntlig,
-            utd_orgnr AS fagvurdering_gs_orgnr,
-            utd_skoleaar_start
+            CONCAT({snr_col}, '_', {fagkode_col}) AS id,
+            {fagkode_col} AS gro_fagkode_vigo,
+            {karakter_stp_col} AS gro_karakter_standpunkt,
+            {"NULL" if "grsk_gro_karakter_skriftlig" not in columns and "gro_karakter_skriftlig" not in columns else karakter_skr_col} AS gro_karakter_skriftlig,
+            {"NULL" if "grsk_gro_karakter_muntlig" not in columns and "gro_karakter_muntlig" not in columns else karakter_mun_col} AS gro_karakter_muntlig,
+            {orgnr_col} AS utd_orgnr,
+            {start_expr} AS start,
+            {stop_expr} AS stop
         FROM
-            _fagvurdering_long_cached
-        WHERE
-            kilde = 'gs'
+            {gs_source.alias}
         """
     )
 

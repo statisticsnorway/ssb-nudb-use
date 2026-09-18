@@ -516,7 +516,7 @@ description = "Foreign Function Interface for Python calling C code."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "implementation_name == \"pypy\" or platform_python_implementation != \"PyPy\""
+markers = "platform_python_implementation != \"PyPy\" or implementation_name == \"pypy\""
 files = [
     {file = "cffi-2.1.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:baed1e86cc735622097354b9d1281406caf42ff42a886d29faa8e8d1630333be"},
     {file = "cffi-2.1.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ca82be1a1d406ecfe1d25dc16cb33488e5a16bf4438c9fb590484ea29d92478b"},
@@ -5529,20 +5529,22 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.9.1"
+version = "2026.8.4"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
-files = [
-    {file = "ssb_nudb_config-2026.9.1-py3-none-any.whl", hash = "sha256:e25961042f02dd491ae90a9412feb31669774053d72db8cf000970113db56dbd"},
-    {file = "ssb_nudb_config-2026.9.1.tar.gz", hash = "sha256:6555e29283c0119627612e35c76c7d95fc42da45c752e071853b973f2fd8d0b5"},
-]
+files = []
+develop = true
 
 [package.dependencies]
 ipykernel = ">=7.0.0"
 pydantic = ">=2.5"
 ssb-klass-python = ">=1.0.4"
+
+[package.source]
+type = "directory"
+url = "../ssb-nudb-config"
 
 [[package]]
 name = "stack-data"
@@ -6491,4 +6493,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "11aa94cc3ca4bc9afc97728e9dd93fbf467aabb688cfb83ded3633cb2e9913fc"
+content-hash = "89792d85d56742bb7a6461e67e63cafae8fbc486545add5531512bfbae677486"

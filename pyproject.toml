@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dynamic = ["classifiers"]
 dependencies = [
-    "ssb-nudb-config >=2026.4.5",
+    "ssb-nudb-config @ file:///home/onyxia/work/ssb-nudb-config",
     "ssb-klass-python >=1.0.4",
     "ssb-fagfunksjoner >=1.1.4",
     "dapla-toolbelt-metadata >=0.13.0",
@@ -59,6 +59,8 @@ types-python-dateutil = ">=2.8.19.14"
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"
 
+[tool.poetry.dependencies]
+ssb-nudb-config = {develop = true}
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 
