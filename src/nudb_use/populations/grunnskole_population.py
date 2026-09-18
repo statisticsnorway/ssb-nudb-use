@@ -2,7 +2,8 @@ import pandas as pd
 from typing import Literal
 
 from nudb_use.metadata.nudb_config.variable_names import get_cols_in_config
-from nudb_use import NudbData
+from nudb_use.datasets import NudbData
+from nudb_use.nudb_logger import logger
 
 
 def assign_preferred_naering(
@@ -217,8 +218,8 @@ def create_boolean_variables_for_exclusion(
         )
         exclusion_vars.append("har_ikke_grunnskolepoeng")
 
-    print(
-        "Created exclusion variables:",
+    logger.info(
+        "Created exclusion variables: %s",
         ", ".join(exclusion_vars),
     )
 
@@ -270,7 +271,7 @@ def exclude_population(
 
     skal_ekskluderes = df[exclusion_cols].any(axis=1)
 
-    print(
+    logger.info(
         f"Ekskluderer {skal_ekskluderes.sum():,} personer "
         f"({skal_ekskluderes.mean():.1%})."
     )
@@ -320,11 +321,11 @@ def create_grunnskole_population(
     df = create_boolean_variables_for_exclusion(df)
 
     if population == "without_null_points":
-        print("Create population without null grunnskolepoeng:")
+        logger.info("Create population without null grunnskolepoeng:")
         df_out = exclude_population(df)
 
     if population == "with_null_points":
-        print("Create population with null grunnskolepoeng:")
+        logger.info("Create population with null grunnskolepoeng:")
         df_out = exclude_population(df, ignore_cols=["har_ikke_grunnskolepoeng"])
 
     return df_out
