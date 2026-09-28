@@ -1,5 +1,7 @@
+import io
 import json
 import logging
+import sys
 from pathlib import Path
 
 import pytest
@@ -48,22 +50,33 @@ def test_formatter_validates_stack_level(monkeypatch: pytest.MonkeyPatch) -> Non
         nudb_logger.formatter.format(record)
 
 
-def test_formatter_uses_ascii_box_chars_in_jupyter(
+def test_formatter_preserves_unicode_box_chars(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(nudb_logger, "INDENT_WIDTH", 4)
     monkeypatch.setattr(nudb_logger, "STACK_LEVEL", 1)
     monkeypatch.setattr(nudb_logger, "ENTERING_STACK", True)
     monkeypatch.setattr(nudb_logger, "EXITING_STACK", False)
-    monkeypatch.setattr(nudb_logger, "_running_in_jupyter", lambda: True)
-
     record = logging.LogRecord("n", logging.INFO, __file__, 1, "msg", None, None)
 
     formatted = nudb_logger.formatter.format(record)
 
-    assert "+---------------------------------+" in formatted
-    assert "┌" not in formatted
-    assert "─" not in formatted
+    assert "┌" in formatted
+    assert "─" in formatted
+
+
+def test_handler_uses_current_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
+    stale_stream = io.StringIO()
+    current_stream = io.StringIO()
+    handler = nudb_logger.CurrentStdoutHandler(stale_stream)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    monkeypatch.setattr(sys, "stdout", current_stream)
+
+    record = logging.LogRecord("n", logging.INFO, __file__, 1, "├───", None, None)
+    handler.emit(record)
+
+    assert current_stream.getvalue() == "├───\n"
+    assert stale_stream.getvalue() == ""
 
 
 def test_loggerstack_default_label_uses_stack_level(

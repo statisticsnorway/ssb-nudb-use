@@ -28,24 +28,6 @@ INDENT_WIDTH: int = 4
 ENTERING_STACK: bool = False
 EXITING_STACK: bool = False
 WIDTH_LEVEL_NAME: int = 8
-UNICODE_BOX_CHARS: dict[str, str] = {
-    "vertical": "\u2502",
-    "horizontal": "\u2500",
-    "top_left": "\u250c",
-    "top_right": "\u2510",
-    "mid_left": "\u251c",
-    "bottom_left": "\u2514",
-    "bottom_right": "\u2518",
-}
-ASCII_BOX_CHARS: dict[str, str] = {
-    "vertical": "|",
-    "horizontal": "-",
-    "top_left": "+",
-    "top_right": "+",
-    "mid_left": "+",
-    "bottom_left": "+",
-    "bottom_right": "+",
-}
 
 
 T = TypeVar("T")
@@ -105,22 +87,6 @@ def _truncate_message(msg: str, max_width: int = 140) -> str:
     )
 
 
-def _running_in_jupyter() -> bool:
-    try:
-        from IPython import get_ipython  # type: ignore[import-not-found]
-    except ImportError:
-        return False
-
-    shell = get_ipython()
-    return shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell"
-
-
-def _box_chars() -> dict[str, str]:
-    if _running_in_jupyter():
-        return ASCII_BOX_CHARS
-    return UNICODE_BOX_CHARS
-
-
 class ColoredFormatter(logging.Formatter):
     """Colored log formatter."""
 
@@ -152,34 +118,30 @@ class ColoredFormatter(logging.Formatter):
         if STACK_LEVEL < 0:
             raise ValueError(f"STACK_LEVEL is negative! ({STACK_LEVEL})")
 
-        box = _box_chars()
-        vertical = box["vertical"]
-        horizontal = box["horizontal"]
-
         if ENTERING_STACK:
             nlpad = 11
             lpad = " " * nlpad
             width = nlpad * 2 + len(record.msg)
-            prepad = (vertical + " " * (INDENT_WIDTH - 1)) * (STACK_LEVEL)
+            prepad = ("│" + " " * (INDENT_WIDTH - 1)) * (STACK_LEVEL)
 
-            line1 = prepad + box["top_left"] + horizontal * width + box["top_right"]
-            line2 = prepad + vertical + lpad + record.msg + lpad + vertical
-            line3 = prepad + box["mid_left"] + horizontal * width + box["bottom_right"]
-            line4 = prepad + vertical
+            line1 = prepad + "┌" + "─" * width + "┐"
+            line2 = prepad + "│" + lpad + record.msg + lpad + "│"
+            line3 = prepad + "├" + "─" * width + "┘"
+            line4 = prepad + "│"
 
             return prepad + "\n" + line1 + "\n" + line2 + "\n" + line3 + "\n" + line4
 
         if STACK_LEVEL:
-            prepad = (vertical + " " * (INDENT_WIDTH - 1)) * (STACK_LEVEL - 1)
+            prepad = ("│" + " " * (INDENT_WIDTH - 1)) * (STACK_LEVEL - 1)
 
             if EXITING_STACK:
-                pad_l1 = prepad + box["bottom_left"] + horizontal * (INDENT_WIDTH - 1)
+                pad_l1 = prepad + "└" + "─" * (INDENT_WIDTH - 1)
                 pad_l2 = prepad + " " * INDENT_WIDTH + " " * WIDTH_LEVEL_NAME + "   "
             else:
-                pad_l1 = prepad + box["mid_left"] + horizontal * (INDENT_WIDTH - 1)
+                pad_l1 = prepad + "├" + "─" * (INDENT_WIDTH - 1)
                 pad_l2 = (
                     prepad
-                    + vertical
+                    + "│"
                     + " " * (INDENT_WIDTH - 1)
                     + " " * WIDTH_LEVEL_NAME
                     + "   "
@@ -207,7 +169,15 @@ formatter = ColoredFormatter(
 )
 
 
-handler = logging.StreamHandler(sys.stdout)
+class CurrentStdoutHandler(logging.StreamHandler):
+    """Write each record to the stdout currently installed by the runtime."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.stream = sys.stdout
+        super().emit(record)
+
+
+handler = CurrentStdoutHandler(sys.stdout)
 handler.setFormatter(formatter)
 logger = logging.getLogger(__name__)
 logger.handlers[:] = []
