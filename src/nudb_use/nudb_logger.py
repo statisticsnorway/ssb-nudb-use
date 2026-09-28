@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any
+from typing import TextIO
 from typing import TypeVar
 
 from colorama import Back
@@ -169,7 +170,7 @@ formatter = ColoredFormatter(
 )
 
 
-class CurrentStdoutHandler(logging.StreamHandler):
+class CurrentStdoutHandler(logging.StreamHandler[TextIO]):
     """Write each record to the stdout currently installed by the runtime."""
 
     def emit(self, record: logging.LogRecord) -> None:
