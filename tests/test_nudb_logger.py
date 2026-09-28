@@ -48,6 +48,24 @@ def test_formatter_validates_stack_level(monkeypatch: pytest.MonkeyPatch) -> Non
         nudb_logger.formatter.format(record)
 
 
+def test_formatter_uses_ascii_box_chars_in_jupyter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(nudb_logger, "INDENT_WIDTH", 4)
+    monkeypatch.setattr(nudb_logger, "STACK_LEVEL", 1)
+    monkeypatch.setattr(nudb_logger, "ENTERING_STACK", True)
+    monkeypatch.setattr(nudb_logger, "EXITING_STACK", False)
+    monkeypatch.setattr(nudb_logger, "_running_in_jupyter", lambda: True)
+
+    record = logging.LogRecord("n", logging.INFO, __file__, 1, "msg", None, None)
+
+    formatted = nudb_logger.formatter.format(record)
+
+    assert "+---------------------------------+" in formatted
+    assert "┌" not in formatted
+    assert "─" not in formatted
+
+
 def test_loggerstack_default_label_uses_stack_level(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
