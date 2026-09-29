@@ -18,7 +18,7 @@ VurderingsformKode = Literal[
     "EKSAMEN",
 ]
 
-# Kolonner som alle kilde-datasett harmoniseres til (lopenr_kurs er fjernet)
+# Kolonner som alle kilde-datasett harmoniseres til
 _HARMONISED_COLUMNS: list[str] = [
     "snr",
     "fagkode",
@@ -27,7 +27,7 @@ _HARMONISED_COLUMNS: list[str] = [
     "orgnr",
     "start",
     "stop",
-    "kilde",  # Ny kolonne for å kunne skille filgrunnlagene
+    "kilde",  # For å kunne skille filgrunnlagene
 ]
 
 

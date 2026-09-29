@@ -5,23 +5,31 @@ from nudb_use import get_microdata_variables_overview
 from nudb_use.datasets.microdata import show_available_microdata_variables
 pd.set_option("display.max_colwidth", None)
 
-#%%
-show_available_microdata_variables()
 
 #%%
-vg = pd.read_parquet("/buckets/produkt/nudb-data/klargjorte-data/videregaendekarakterer/videregaendekarakterer_p2003_p2021_v1.parquet")
-vg.head()
+# Viser hvilke datasett som er tilgjengelige
+show_available_microdata_variables()
+
 #%% 
-test = get_microdata_variables_overview("microdata_eksamen")
+# Gir oversikt over:
+#   - Variabler på datasettet
+#   - Kortnavn og Fullt Navn til variabelen
+#   - Start og Sluttår til Variabelen
+#   - Kort beskrivelse av variabelen (Hentet fra Vardef)
+test = get_microdata_variables_overview("pers_registrert_foerste")
 test
 
 # %%
-NudbData("avslutta").get_available_cols()
-# %%
 
-test = MicroData("vgs_fagvurdering").df()
-test.head()
+# Last inn et MicroData variabel-sett
+test = MicroData("pers_registrert_foerste").df()
+test[:20]
 
+#%%
+test[test["aar_uh_foerste_registrert_dato"].notna()]
+
+#%%
+test[test["aar_foerste_reg_gr"] == "1900"]
 # %%
 test.columns
 test["fagvurdering_grsk_vurderingsform"].value_counts()
@@ -78,5 +86,4 @@ test = utd_hoeyeste_far_nus2000(test)
 # %%
 test.head()
 # %%
-# TEST UTD_FORELDRES_UTDNIVAA
 

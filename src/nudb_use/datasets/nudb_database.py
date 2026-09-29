@@ -32,7 +32,6 @@ from nudb_use.datasets.microdata_variables.igang_microdata import (
 from nudb_use.datasets.microdata_variables.eksamen_microdata import (
     _generate_microdata_eksamen_view,
 )
-from nudb_use.datasets.microdata_variables import _generate_microdata_nasjprov_view
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
 )
@@ -41,6 +40,9 @@ from nudb_use.datasets.microdata_variables import (
 )
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_fullfoert_foerste_view,
+)
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_registrert_foerste_view,
 )
 from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
     _generate_microdata_pers_bokommune_16aar_view
@@ -136,12 +138,12 @@ class _NudbDatabase:
             + "microdata_eksamen": _generate_microdata_eksamen_view,
             MICRODATA_PREFIX
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
-            MICRODATA_PREFIX 
-            + "nasjprov": _generate_microdata_nasjprov_view,
             MICRODATA_PREFIX
             + "utd_foreldres_utdnivaa_16aar": _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
             MICRODATA_PREFIX
             + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view,
+            MICRODATA_PREFIX
+            + "pers_registrert_foerste": _generate_microdata_registrert_foerste_view,
             MICRODATA_PREFIX
             + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view,
             MICRODATA_PREFIX
