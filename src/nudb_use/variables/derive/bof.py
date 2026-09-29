@@ -5,7 +5,7 @@ from nudb_use.datasets import NudbData
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.derive.derive_decorator import wrap_derive
 
-__all__ = ["bof_eierforhold", "bof_primaernaering_sn25"]
+__all__ = ["bof_eierforhold", "bof_naering1_sn2025", "bof_naering2_sn2025", "bof_naering3_sn2025"]
 
 
 def _percent_notna(s: pd.Series) -> float:
@@ -13,14 +13,42 @@ def _percent_notna(s: pd.Series) -> float:
 
 
 @wrap_derive
-def bof_primaernaering_sn25(  # noqa:DOC201
+def bof_naering1_sn2025(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive bof_primaernaering_sn25."""
+    """Derive bof_naering1_sn2025."""
     bof: pd.DataFrame = (
         NudbData("bof_situttak")
-        .select("orgnrbed, sn2025_1 as bof_primaernaering_sn25")
+        .select("orgnrbed, sn2025_1 as bof_naering1_sn2025")
         .where("sn2025_1 is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
+        .df()
+    )
+    # vi kobler bare på orgnrbed?
+    return df.merge(bof, on="orgnrbed", how="left")
+
+@wrap_derive
+def bof_naering2_sn2025(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive bof_naering2_sn2025."""
+    bof: pd.DataFrame = (
+        NudbData("bof_situttak")
+        .select("orgnrbed, sn2025_2 as bof_naering2_sn2025")
+        .where("sn2025_2 is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
+        .df()
+    )
+    # vi kobler bare på orgnrbed?
+    return df.merge(bof, on="orgnrbed", how="left")
+
+@wrap_derive
+def bof_naering3_sn2025(  # noqa:DOC201
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Derive bof_naering3_sn2025."""
+    bof: pd.DataFrame = (
+        NudbData("bof_situttak")
+        .select("orgnrbed, sn2025_3 as bof_naering3_sn2025")
+        .where("sn2025_3 is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
         .df()
     )
     # vi kobler bare på orgnrbed?
