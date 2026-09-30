@@ -6,14 +6,15 @@ from nudb_use.datasets import NudbData
 from nudb_use.nudb_logger import logger
 
 
-def assign_preferred_naering(
+def assign_preferred_industrycode(
     df: pd.DataFrame,
     nace_columns: list[str] | None = None,
     naering_prefixes: list[str] | None = None,
     preferred_codes: list[str] | None = None,
 ) -> pd.DataFrame:
     """
-    Creates the 'naering' column based on a prioritized set of NACE columns.
+    Creates the column 'naering' based on a prioritized set of industry code columns.
+    This priority is based on grunnskole-industry codes. 
 
     Priority:
     1. Search for industry codes starting with the specified prefixes.
@@ -21,34 +22,23 @@ def assign_preferred_naering(
     2. Search for preferred industry codes.
        Later codes overwrite earlier codes.
     3. Fill remaining missing values with the value from the highest-priority
-       NACE column.
+       industry code column.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input dataframe.
-    nace_columns : list[str], optional
-        NACE columns ordered from lowest to highest priority.
-        Default is ["sn2025_3", "sn2025_2", "sn2025_1"].
-    naering_prefixes : list[str], optional
-        Industry code prefixes ordered from lowest to highest priority.
-        Default is ["85", "85.4", "85.3"].
-    preferred_codes : list[str], optional
-        Industry codes ordered from lowest to highest priority.
-        Later codes overwrite earlier codes when multiple preferred codes are found in the same row.
-        Default is ["85.601", "85.203", "85.202", "85.201"].
+    Args:
+        df: pd.DataFrame. Input dataframe.
+        nace_columns: list[str], optional. Industry codes columns ordered from lowest to highest priority. Default is ["bof_naering3_sn25", "bof_naering2_sn25", "bof_naering1_sn25"].
+        naering_prefixes: list[str], optional. Industry code prefixes ordered from lowest to highest priority. Default is ["85", "85.4", "85.3"].
+        preferred_codes: list[str], optional. Industry codes ordered from lowest to highest priority. Default is ["85.601", "85.203", "85.202", "85.201"].
 
-    Returns
-    -------
-    pd.DataFrame
-        Copy of the input dataframe with a new column 'naering'.
+    Returns:
+        pd.DataFrame. Copy of the input dataframe with a new column 'naering'.
     """
     
     if nace_columns is None:
-        nace_columns = ["sn2025_3", "sn2025_2", "sn2025_1"]
+        nace_columns = ["bof_naering3_sn25", "bof_naering2_sn25", "bof_naering1_sn25"]
 
     if naering_prefixes is None:
-        naering_prefixes = ["85", "85.4", "85.3"]
+        naering_prefixes = ["85", "85.4", "85.3"] 
 
     if preferred_codes is None:
         preferred_codes = ["85.601", "85.203", "85.202", "85.201"]
@@ -70,6 +60,41 @@ def assign_preferred_naering(
     df["naering"] = df["naering"].fillna(df[nace_columns[-1]])
 
     return df
+
+
+def derive_har_grunnskolenaering(
+    df: pd.DataFrame,
+    nace_columns: list[str] | None = None,
+) -> pd.Series:
+    """
+    Derive a boolean indicator for organisations with a grunnskole
+    industry code.
+
+    Returns True if at least one of the specified NACE columns contains
+    a grunnskole industry code (85.201, 85.202), regardless of column priority.
+
+    Args:
+        df: Input dataframe.
+        nace_columns: Industry code columns to search. Defaults to
+            ["bof_naering1_sn25", "bof_naering2_sn25", "bof_naering3_sn25"].
+
+    Returns:
+        Boolean Series indicating whether the organisation has a
+        grunnskole industry code.
+    """
+    if nace_columns is None:
+        nace_columns = [
+            "bof_naering1_sn25",
+            "bof_naering2_sn25",
+            "bof_naering3_sn25",
+        ]
+
+    grunnskole_codes = {
+            "85.201",
+            "85.202",
+        }
+
+    return df[nace_columns].isin(grunnskole_codes).any(axis=1)
 
     
 def get_required_cols_for_exclusion(
@@ -107,19 +132,15 @@ def get_required_cols_for_exclusion(
         return df
 
     if "naering" in missing_cols:
-        orgnr = "', '".join(
-            df["orgnrbed"].dropna().astype(str).unique()
-        )
 
-        bof = (
-            NudbData("bof_situttak")
-            .select("orgnrbed, sn2025_1, sn2025_2, sn2025_3")
-            .where(f"orgnrbed in ('{orgnr}')")
-            .df()
-        )
+        df = (
+            df
+            .pipe(derive.bof_naering1_sn25)
+            .pipe(derive.bof_naering2_sn25)
+            .pipe(derive.bof_naering3_sn25)
 
-        df = df.merge(bof, on="orgnrbed", how="left")
-        df = assign_preferred_naering(df)
+        df = assign_preferred_industrycode(df)
+        df = derive_har_grunnskolenaering(df)
 
     if "pers_alder" in missing_cols:
         df["pers_alder"] = (
