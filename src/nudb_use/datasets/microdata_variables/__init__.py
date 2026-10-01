@@ -21,6 +21,9 @@ from nudb_use.datasets.microdata_variables.pers_fullfoert_foerste import (
 from nudb_use.datasets.microdata_variables.pers_registrert_foerste import (
     _generate_microdata_registrert_foerste_view
 )
+from nudb_use.datasets.microdata_variables.pers_semester import (
+    _generate_microdata_pers_semester_view
+)
 from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
     _generate_microdata_pers_bokommune_16aar_view
 )
@@ -36,6 +39,7 @@ __all__ = [
     "_generate_microdata_utd_foreldres_utdnivaa_16aar_view",
     "_generate_microdata_utd_hoeyeste_nus2000_view",
     "_generate_microdata_fullfoert_foerste_view",
+    "_generate_microdata_pers_semester_view"
     "_generate_microdata_registrert_foerste_view"
     "_generate_microdata_pers_bokommune_16aar_view", 
     "_generate_microdata_vgs_fagvurdering_view",

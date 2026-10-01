@@ -1,5 +1,8 @@
 """Module to fetch and summarize Microdata variables and metadata."""
 
+from pathlib import Path
+from typing import Literal
+
 import pandas as pd
 from dapla_metadata.variable_definitions import Vardef
 from nudb_config import settings
@@ -150,3 +153,117 @@ def get_microdata_variables_overview(dataset_name: str) -> pd.DataFrame:
         )
 
     return pd.DataFrame(overview_list)
+
+
+def split_microdata_dataset(
+    dataset_or_name: str | pd.DataFrame,
+    id_col: Literal["fnr", "snr"] = "fnr",
+    keys: list[str] | None = None,
+    auto_detect_start_stop: bool = True,
+    output_dir: str | Path | None = None,
+    file_format: Literal["parquet", "csv", "feather"] = "parquet",
+) -> dict[str, pd.DataFrame]:
+    """Splits a full derived dataset into individual variable datasets.
+
+    Ensures that the requested ID column ('fnr' or 'snr') is present, automatically
+    maps it using '_snrkat_fnr2snr' if necessary, drops any rows where the resolved ID
+    is missing (with a logger warning), and splits every other variable into its own
+    thin, non-null DataFrame (e.g., [ID, Variable] or [ID, Keys, Variable]).
+
+    Args:
+        dataset_or_name: Either a MicroData dataset name (str) or an already loaded pd.DataFrame.
+        id_col: The primary ID column to keep ('fnr' or 'snr'). Defaults to 'fnr'.
+        keys: Optional list of additional key/timestamp columns to keep in each split
+              file (e.g. ['utd_skoleaar_start'] for longitudinal data).
+        auto_detect_start_stop: If True, automatically detects and retains columns whose names
+                                contain 'start', 'stopp', or 'slutt' (case-insensitive) as keys.
+                                Defaults to True.
+        output_dir: If provided, saves each variable dataset as a separate file in this folder.
+        file_format: File format to use when saving ('parquet', 'csv', 'feather').
+
+    Returns:
+        dict[str, pd.DataFrame]: A dictionary mapping variable names to their split DataFrames.
+    """
+    from nudb_use.datasets.microdata import MicroData
+    from nudb_use.datasets.nudb_data import NudbData
+
+    # 1. Resolve source to a Pandas DataFrame
+    if isinstance(dataset_or_name, pd.DataFrame):
+        df = dataset_or_name.copy()
+    elif isinstance(dataset_or_name, str):
+        df = MicroData(dataset_or_name).df()
+    else:
+        raise TypeError("dataset_or_name must be a string or a pandas DataFrame.")
+
+    if id_col not in ("fnr", "snr"):
+        raise ValueError("id_col must be either 'fnr' or 'snr'.")
+
+    # 2. Map ID column if missing but the alternative is present
+    if id_col == "fnr" and "fnr" not in df.columns:
+        if "snr" not in df.columns:
+            raise KeyError("Neither 'fnr' nor 'snr' is present in the dataset.")
+        fnr2snr = NudbData("_snrkat_fnr2snr").df()
+        df = df.merge(fnr2snr, on="snr", how="left")
+
+    elif id_col == "snr" and "snr" not in df.columns:
+        if "fnr" not in df.columns:
+            raise KeyError("Neither 'fnr' nor 'snr' is present in the dataset.")
+        fnr2snr = NudbData("_snrkat_fnr2snr").df()
+        df = df.merge(fnr2snr, on="fnr", how="left")
+
+    # 3. Handle Dropping of Rows with Missing Primary IDs
+    if df[id_col].isna().any():
+        null_count = df[id_col].isna().sum()
+        logger.warning(
+            f"Dropped {null_count} rows from the dataset because the mapped ID '{id_col}' was missing."
+        )
+        df = df.dropna(subset=[id_col])
+
+    # 4. Resolve Context/Sequence Keys
+    keys_to_keep = [k for k in (keys or []) if k in df.columns]
+
+    if auto_detect_start_stop:
+        # Detect any column whose name contains 'start', 'stop', 'stopp', or 'slutt' (ignoring casing)
+        detected_keys = []
+        for col in df.columns:
+            col_lower = col.lower()
+            if col != id_col and any(term in col_lower for term in ("start", "stop", "stopp", "slutt")):
+                detected_keys.append(col)
+
+        if detected_keys:
+            logger.info(f"Automatically detected start/stop columns to use as keys: {detected_keys}")
+            for dk in detected_keys:
+                if dk not in keys_to_keep:
+                    keys_to_keep.append(dk)
+
+    # Filter keys to only those that exist
+    keys_to_keep = [k for k in keys_to_keep if k in df.columns]
+
+    ignore_cols = {"fnr", "snr", "nudb_dataset_id", "__index_level_0__"} | set(keys_to_keep)
+    variable_cols = [col for col in df.columns if col not in ignore_cols]
+
+    # 5. Split variables into thin DataFrames
+    split_dfs = {}
+    for var in variable_cols:
+        target_cols = [id_col] + [var] + keys_to_keep
+        # Keep only rows where the actual variable is not null
+        subset_df = df[target_cols].dropna(subset=[var]).copy().reset_index(drop=True)
+        split_dfs[var] = subset_df
+
+    # 6. Optionally save to disk
+    if output_dir:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+
+        for var, var_df in split_dfs.items():
+            file_name = f"{var}.{file_format}"
+            file_path = out_path / file_name
+
+            if file_format == "parquet":
+                var_df.to_parquet(file_path, index=False)
+            elif file_format == "csv":
+                var_df.to_csv(file_path, index=False)
+            elif file_format == "feather":
+                var_df.to_feather(file_path)
+
+    return split_dfs

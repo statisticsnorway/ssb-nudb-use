@@ -53,8 +53,8 @@ def _harmonise_standpunkt_vgs(df: pd.DataFrame) -> pd.DataFrame:
     ).copy()
 
     # Formater start/stop som standard skoleår-datoer (YYYY-MM-DD)
-    out["start"] = out["start"].astype(str) + "-08-01"
-    out["stop"] = out["start"].astype(str).str[:4] + "-06-30"
+    out["start"] = out["start"].astype(str) + "-10-01"
+    out["stop"] = out["start"].astype(str).str[:4] + "-09-31"
     out["vurderingsform"] = "STANDPUNKT_VGS"
 
     return _ensure_harmonised_columns(out, kilde="vgs")

@@ -52,8 +52,8 @@ from nudb_use.datasets.microdata_variables import (
     _generate_microdata_gs_fagvurdering_view,
     _generate_microdata_nasjprov_fagvurdering_view,
 )
-from nudb_use.datasets.microdata_variables.personvariabler import (
-    _generate_microdata_personvariabler_view,
+from nudb_use.datasets.microdata_variables.pers_semester import (
+    _generate_microdata_pers_semester_view,
 )
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 
@@ -145,6 +145,8 @@ class _NudbDatabase:
             MICRODATA_PREFIX
             + "pers_registrert_foerste": _generate_microdata_registrert_foerste_view,
             MICRODATA_PREFIX
+            + "pers_semester": _generate_microdata_pers_semester_view,
+            MICRODATA_PREFIX
             + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view,
             MICRODATA_PREFIX
             + "gs_fagvurdering": _generate_microdata_gs_fagvurdering_view,
@@ -152,8 +154,6 @@ class _NudbDatabase:
             + "vgs_fagvurdering": _generate_microdata_vgs_fagvurdering_view,
             MICRODATA_PREFIX
             + "nasjprov_fagvurdering": _generate_microdata_nasjprov_fagvurdering_view,
-            MICRODATA_PREFIX
-            + "personvariabler": _generate_microdata_personvariabler_view
         }
 
         self._dataset_paths: dict[str, list[Path]] = {}

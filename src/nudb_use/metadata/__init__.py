@@ -1,6 +1,7 @@
 """Expose NUDB metadata helpers for convenient imports."""
 
 from nudb_use.metadata.microdata import get_microdata_variables_overview
+from nudb_use.metadata.microdata import split_microdata_dataset
 from nudb_use.metadata.nudb_config import find_var
 from nudb_use.metadata.nudb_config import find_var_renames
 from nudb_use.metadata.nudb_config import find_var_renames_for_dataset
@@ -29,5 +30,6 @@ __all__ = [
     "look_up_dtype_length_for_dataset",
     "set_option",
     "sort_cols_by_unit",
+    "split_microdata_dataset",
     "update_colnames",
 ]
