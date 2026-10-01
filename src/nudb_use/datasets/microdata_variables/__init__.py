@@ -27,9 +27,13 @@ from nudb_use.datasets.microdata_variables.pers_semester import (
 from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
     _generate_microdata_pers_bokommune_16aar_view
 )
-from nudb_use.datasets.microdata_variables.fagvurdering import (
+from nudb_use.datasets.microdata_variables.vgs_fagvurdering import (
     _generate_microdata_vgs_fagvurdering_view,
+)
+from nudb_use.datasets.microdata_variables.gs_fagvurdering import (
     _generate_microdata_gs_fagvurdering_view,
+)
+from nudb_use.datasets.microdata_variables.nasjprov_fagvurdering import (
     _generate_microdata_nasjprov_fagvurdering_view,
 )
 __all__ = [

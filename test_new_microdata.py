@@ -26,7 +26,7 @@ test
 # %%
 
 # Last inn et MicroData variabel-sett
-test = MicroData("microdata_avslutta").df()
+test = MicroData("gs_fagvurdering").df()
 test
 
 
