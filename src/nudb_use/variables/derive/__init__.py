@@ -36,6 +36,9 @@ derive_all_submodules = (
 )
 
 from .bof import bof_eierforhold
+from .bof import bof_naering1_sn2025
+from .bof import bof_naering2_sn2025
+from .bof import bof_naering3_sn2025
 from .nus_variants import utd_erforeldet_kode_nus
 from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
@@ -48,6 +51,9 @@ from .utd_skoleaar import utd_skoleaar_slutt
 
 __all__ = [
     "bof_eierforhold",
+    "bof_naering1_sn2025",
+    "bof_naering2_sn2025",
+    "bof_naering3_sn2025",
     "pers_foedselsdato",
     "pers_invkat",
     "pers_kjoenn",

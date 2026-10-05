@@ -144,14 +144,14 @@ QUERY:
                 )
 
             logger.warning(f"Overwriting existing dataset: {name}")
-            del nudb_database._datasets[name]
+            nudb_database._datasets.pop(name, None)
 
             if alias in nudb_database._dataset_paths.keys():
                 previous_paths = nudb_database._dataset_paths[alias]
                 logger.warning(
                     f"Overwriting existing dataset input paths:\n{previous_paths}"
                 )
-                del nudb_database._dataset_paths[alias]
+                nudb_database._dataset_paths.pop(alias, None)
 
         def generator(alias: str, connection: db.DuckDBPyConnection) -> None:
             query = f"""
