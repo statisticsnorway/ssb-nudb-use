@@ -18,6 +18,7 @@ def _generate_microdata_avslutta_view(
     query = f"""
         CREATE OR REPLACE VIEW  {alias} AS (
             SELECT
+                utd_hendelse_id,
                 fnr AS fnr,
                 snr AS snr, 
                 nus2000 AS nus2000,

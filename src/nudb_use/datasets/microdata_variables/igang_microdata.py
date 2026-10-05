@@ -17,8 +17,9 @@ def _generate_microdata_igang_view(
     query = f"""
         CREATE OR REPLACE VIEW  {alias} AS (
             SELECT
-                fnr, 
-                snr, 
+                utd_hendelse_id,
+                fnr AS fnr, 
+                snr AS snr, 
                 nus2000, 
                 utd_aktivitet_start AS IGANG_utd_aktivitet_start,
                 utd_skoleaar_start AS IGANG_utd_skoleaar_start, 
@@ -49,7 +50,7 @@ def _generate_microdata_igang_view(
                 uh_studierett AS IGANG_uh_studierett,
                 uh_utvekslingsavtale AS IGANG_uh_utvekslingsavtale,
                 uh_studieprogresjon_hoest AS IGANG_uh_studieprogresjon_hoest, 
-                uh_studgrunnlagsland AS IGANG_uh_studgrunnlagsland, 
+                uh_studgrunnlagsland AS IGANG_uh_studgrunnlagsland
 
             FROM
                 {igang_microdata.alias}

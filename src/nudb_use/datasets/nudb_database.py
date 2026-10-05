@@ -131,11 +131,11 @@ class _NudbDatabase:
             "_bof_eierforhold": _generate_bof_eierforhold_view,
             # MicroData()
             MICRODATA_PREFIX
-            + "microdata_avslutta": _generate_microdata_avslutta_view,
+            + "avslutta": _generate_microdata_avslutta_view,
             MICRODATA_PREFIX
-            + "microdata_igang": _generate_microdata_igang_view,
+            + "igang": _generate_microdata_igang_view,
             MICRODATA_PREFIX
-            + "microdata_eksamen": _generate_microdata_eksamen_view,
+            + "eksamen": _generate_microdata_eksamen_view,
             MICRODATA_PREFIX
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX

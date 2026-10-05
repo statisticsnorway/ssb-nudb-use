@@ -18,11 +18,20 @@ def _generate_microdata_eksamen_view(
     query = f"""
         CREATE OR REPLACE VIEW  {alias} AS (
             SELECT
-                fnr, snr, nus2000, utd_skoleaar_start,
-                utd_skolekom, utd_utdanningstype, utd_viderutd_nettbasert,
-                uh_eksamen_studpoeng, uh_eksamen_ergjentak,
-                uh_eksamen_dato, uh_ereksamenrett, uh_studieprogram
-                fuh_nett_eller_stedbasert, 
+                utd_hendelse_id,
+                fnr AS fnr, 
+                snr AS snr, 
+                nus2000, 
+                utd_skoleaar_start AS EKS_utd_skoleaar_start,
+                utd_skolekom AS EKS_utd_skolekom,
+                utd_utdanningstype AS EKS_utd_utdanningstype,
+                utd_viderutd_nettbasert AS EKS_utd_viderutd_nettbasert,
+                uh_eksamen_studpoeng AS EKS_uh_eksamen_studpoeng,
+                uh_eksamen_ergjentak AS EKS_uh_eksamen_ergjentak,
+                uh_eksamen_dato AS EKS_uh_eksamen_dato,
+                uh_ereksamenrett AS EKS_uh_ereksamenrett,
+                uh_studieprogram AS EKS_uh_studieprogram,
+                fuh_nett_eller_stedbasert AS EKS_fuh_nett_eller_stedbasert, 
 
             FROM
                 {eksamen_microdata.alias}
