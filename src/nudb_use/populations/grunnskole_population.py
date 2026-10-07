@@ -3,100 +3,49 @@ from typing import Literal
 
 from nudb_use.metadata.nudb_config.variable_names import get_cols_in_config
 from nudb_use.datasets import NudbData
+from nudb_use import derive
 from nudb_use.nudb_logger import logger
-
-
-def assign_preferred_industrycode(
-    df: pd.DataFrame,
-    nace_columns: list[str] | None = None,
-    naering_prefixes: list[str] | None = None,
-    preferred_codes: list[str] | None = None,
-) -> pd.DataFrame:
-    """
-    Creates the column 'naering' based on a prioritized set of industry code columns.
-    This priority is based on grunnskole-industry codes. 
-
-    Priority:
-    1. Search for industry codes starting with the specified prefixes.
-       Later prefixes overwrite earlier ones.
-    2. Search for preferred industry codes.
-       Later codes overwrite earlier codes.
-    3. Fill remaining missing values with the value from the highest-priority
-       industry code column.
-
-    Args:
-        df: pd.DataFrame. Input dataframe.
-        nace_columns: list[str], optional. Industry codes columns ordered from lowest to highest priority. Default is ["bof_naering3_sn25", "bof_naering2_sn25", "bof_naering1_sn25"].
-        naering_prefixes: list[str], optional. Industry code prefixes ordered from lowest to highest priority. Default is ["85", "85.4", "85.3"].
-        preferred_codes: list[str], optional. Industry codes ordered from lowest to highest priority. Default is ["85.601", "85.203", "85.202", "85.201"].
-
-    Returns:
-        pd.DataFrame. Copy of the input dataframe with a new column 'naering'.
-    """
-    
-    if nace_columns is None:
-        nace_columns = ["bof_naering3_sn25", "bof_naering2_sn25", "bof_naering1_sn25"]
-
-    if naering_prefixes is None:
-        naering_prefixes = ["85", "85.4", "85.3"] 
-
-    if preferred_codes is None:
-        preferred_codes = ["85.601", "85.203", "85.202", "85.201"]
-
-    df = df.copy()
-    df["naering"] = None
-
-    for prefix in naering_prefixes:
-        for nace in nace_columns:
-            mask = df[nace].astype(str).str.startswith(prefix, na=False)
-            df.loc[mask, "naering"] = df.loc[mask, nace]
-
-    for code in preferred_codes:
-        for nace in nace_columns:
-            mask = df[nace] == code
-            df.loc[mask, "naering"] = code
-
-    # Fall back to the highest-priority NACE column
-    df["naering"] = df["naering"].fillna(df[nace_columns[-1]])
-
-    return df
 
 
 def derive_har_grunnskolenaering(
     df: pd.DataFrame,
     nace_columns: list[str] | None = None,
-) -> pd.Series:
+) -> pd.DataFrame:
     """
-    Derive a boolean indicator for organisations with a grunnskole
-    industry code.
+    Derive a boolean indicating whether the organisation has
+    grunnskole industry code (85.201 or 85.202) in any NACE column.
 
-    Returns True if at least one of the specified NACE columns contains
-    a grunnskole industry code (85.201, 85.202), regardless of column priority.
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input dataframe.
+    nace_columns : list[str] | None, default None
+        NACE columns to search.
 
-    Args:
-        df: Input dataframe.
-        nace_columns: Industry code columns to search. Defaults to
-            ["bof_naering1_sn25", "bof_naering2_sn25", "bof_naering3_sn25"].
-
-    Returns:
-        Boolean Series indicating whether the organisation has a
-        grunnskole industry code.
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with column 'har_grunnskolenaering'.
     """
+
+    df = df.copy()
+
     if nace_columns is None:
         nace_columns = [
-            "bof_naering1_sn25",
-            "bof_naering2_sn25",
-            "bof_naering3_sn25",
+            "bof_naering1_sn2025",
+            "bof_naering2_sn2025",
+            "bof_naering3_sn2025",
         ]
 
-    grunnskole_codes = {
-            "85.201",
-            "85.202",
-        }
+    df["har_grunnskolenaering"] = (
+        df[nace_columns]
+        .isin(["85.201", "85.202"])
+        .any(axis=1)
+    )
 
-    return df[nace_columns].isin(grunnskole_codes).any(axis=1)
+    return df
 
-    
+
 def get_required_cols_for_exclusion(
     df: pd.DataFrame,
     start_year: int,
@@ -133,14 +82,32 @@ def get_required_cols_for_exclusion(
 
     if "naering" in missing_cols:
 
-        df = (
-            df
-            .pipe(derive.bof_naering1_sn25)
-            .pipe(derive.bof_naering2_sn25)
-            .pipe(derive.bof_naering3_sn25)
+        if start_year >= 2025:
+            df = (
+                df
+                .pipe(derive.bof_naering1_sn2025)
+                .pipe(derive.bof_naering2_sn2025)
+                .pipe(derive.bof_naering3_sn2025)
+            )
 
-        df = assign_preferred_industrycode(df)
-        df = derive_har_grunnskolenaering(df)
+            df = derive_har_grunnskolenaering(df)
+            logger.info("Derived har_grunnskolenaering from industry codes from 2025")
+
+        else:
+            orgnr = "', '".join(
+            df["orgnrbed"].dropna().astype(str).unique()
+            )
+
+            bof = (
+                NudbData("bof_situttak")
+                .select("orgnrbed, nace1_sn07, nace2_sn07, nace3_sn07")
+                .where(f"orgnrbed in ('{orgnr}')")
+                .df()
+            )
+    
+            df = df.merge(bof, on="orgnrbed", how="left")
+            df = derive_har_grunnskolenaering(df, nace_columns=["nace1_sn07", "nace2_sn07", "nace3_sn07"])
+            logger.info("Derived har_grunnskolenaering from industry codes from 2007")
 
     if "pers_alder" in missing_cols:
         df["pers_alder"] = (
@@ -149,6 +116,7 @@ def get_required_cols_for_exclusion(
 
     return df
 
+    
 def create_boolean_variables_for_exclusion(
     df: pd.DataFrame,
     res: bool = True,
@@ -179,7 +147,7 @@ def create_boolean_variables_for_exclusion(
     """
 
     required_cols = [
-        "naering",
+        "har_grunnskolenaering",
         "gro_skolenavn_inn",
         "utd_skolekom",
         "orgnrbed",
@@ -207,8 +175,8 @@ def create_boolean_variables_for_exclusion(
         "er_ikke_elevstatus_es",
     ]
 
-    df["er_ikke_grunnskolenaering"] = ~df["naering"].isin(
-        ["85.201", "85.202"]
+    df["er_ikke_grunnskolenaering"] = (
+        ~df["har_grunnskolenaering"]
     )
 
     df["er_steinerskole"] = df["gro_skolenavn_inn"].str.contains(
@@ -229,9 +197,12 @@ def create_boolean_variables_for_exclusion(
 
     df["er_over16aar"] = df["pers_alder"] > 16
 
-    df["er_ikke_elevstatus_es"] = ~df["gro_elevstatus"].isin(
-        ["E", "S"]
-    )
+    if df["gro_elevstatus"].notna().any():
+        df["er_ikke_elevstatus_es"] = ~df["gro_elevstatus"].isin(
+            ["E", "S"]
+        )
+    else:
+        df["er_ikke_elevstatus_es"] = False
 
     if res:
         df["har_ikke_grunnskolepoeng"] = (
@@ -240,8 +211,8 @@ def create_boolean_variables_for_exclusion(
         exclusion_vars.append("har_ikke_grunnskolepoeng")
 
     logger.info(
-        "Created exclusion variables: %s",
-        ", ".join(exclusion_vars),
+        f"Created exclusion variables: %s",
+        f", ".join(exclusion_vars),
     )
 
     return df
