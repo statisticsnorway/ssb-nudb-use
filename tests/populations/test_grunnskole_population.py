@@ -10,7 +10,7 @@ from nudb_use.populations.grunnskole_population import exclude_population
 from nudb_use.populations.grunnskole_population import validate_required_columns
 
 
-def test_validate_required_columns_passes():
+def test_validate_required_columns_passes() -> None:
     df = pd.DataFrame(
         {
             "a": [1],
@@ -21,7 +21,7 @@ def test_validate_required_columns_passes():
     validate_required_columns(df, ["a", "b"])
 
 
-def test_validate_required_columns_raises():
+def test_validate_required_columns_raises() -> None:
     df = pd.DataFrame({"a": [1]})
 
     with pytest.raises(
@@ -31,7 +31,7 @@ def test_validate_required_columns_raises():
         validate_required_columns(df, ["a", "b"])
 
 
-def test_derive_har_grunnskolenaering():
+def test_derive_har_grunnskolenaering() -> None:
     df = pd.DataFrame(
         {
             "bof_naering1_sn2025": [
@@ -61,7 +61,7 @@ def test_derive_har_grunnskolenaering():
     ]
 
 
-def test_derive_har_grunnskolenaering_missing_columns():
+def test_derive_har_grunnskolenaering_missing_columns() -> None:
     df = pd.DataFrame(
         {
             "bof_naering1_sn2025": ["85.201"],
@@ -75,7 +75,7 @@ def test_derive_har_grunnskolenaering_missing_columns():
         derive_har_grunnskolenaering(df)
 
 
-def test_add_pers_alder():
+def test_add_pers_alder() -> None:
     df = pd.DataFrame(
         {
             "pers_foedselsdato": pd.to_datetime(
@@ -98,7 +98,7 @@ def test_add_pers_alder():
     ]
 
 
-def test_add_pers_alder_keeps_existing_column():
+def test_add_pers_alder_keeps_existing_column() -> None:
     df = pd.DataFrame(
         {
             "pers_alder": [15],
@@ -113,7 +113,7 @@ def test_add_pers_alder_keeps_existing_column():
     assert result["pers_alder"].tolist() == [15]
 
 
-def test_add_pers_alder_missing_birthdate():
+def test_add_pers_alder_missing_birthdate() -> None:
     df = pd.DataFrame(
         {
             "person_id": [1],
@@ -130,7 +130,7 @@ def test_add_pers_alder_missing_birthdate():
         )
 
 
-def test_create_boolean_variables_for_exclusion():
+def test_create_boolean_variables_for_exclusion() -> None:
     df = pd.DataFrame(
         {
             "har_grunnskolenaering": [True, False],
@@ -199,7 +199,7 @@ def test_create_boolean_variables_for_exclusion():
     ]
 
 
-def test_create_boolean_variables_without_res():
+def test_create_boolean_variables_without_res() -> None:
     df = pd.DataFrame(
         {
             "har_grunnskolenaering": [True],
@@ -218,7 +218,7 @@ def test_create_boolean_variables_without_res():
     assert "har_ikke_grunnskolepoeng" not in result.columns
 
 
-def test_create_boolean_variables_missing_elevstatus():
+def test_create_boolean_variables_missing_elevstatus() -> None:
     df = pd.DataFrame(
         {
             "har_grunnskolenaering": [True],
@@ -235,7 +235,7 @@ def test_create_boolean_variables_missing_elevstatus():
     assert result["er_ikke_elevstatus_es"].iloc[0] is False
 
 
-def test_exclude_population():
+def test_exclude_population() -> None:
     df = pd.DataFrame(
         {
             "er_ikke_grunnskolenaering": [
@@ -274,7 +274,7 @@ def test_exclude_population():
     assert len(result) == 1
 
 
-def test_exclude_population_ignore_grunnskolepoeng():
+def test_exclude_population_ignore_grunnskolepoeng() -> None:
     df = pd.DataFrame(
         {
             "er_ikke_grunnskolenaering": [False],
@@ -297,7 +297,7 @@ def test_exclude_population_ignore_grunnskolepoeng():
     assert len(result) == 1
 
 
-def test_exclude_population_returns_copy():
+def test_exclude_population_returns_copy() -> None:
     df = pd.DataFrame(
         {
             "er_ikke_grunnskolenaering": [False],
