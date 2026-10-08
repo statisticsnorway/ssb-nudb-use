@@ -66,7 +66,7 @@ def join_variables_on_hendelse_id(
         """)
 
     query = "\nUNION ALL BY NAME\n".join(queries)
-    logger.debug(f"SQL query:\n{query}")  # type: ignore[attr-defined]
+    logger.debug(f"SQL query:\n{query}")
     connection = nudb_database.get_connection()
 
     logger.info("Getting data from NUDB...")
