@@ -30,7 +30,7 @@ def join_variables_on_hendelse_id(
     if "utd_hendelse_id" not in df.columns:
         raise KeyError("`df` must contain `utd_hendelse_id`!")
 
-    if not isinstance(variables, "list") or not variables:
+    if not isinstance(variables, list) or not variables:
         raise ValueError("`variables` must be a non-empty list!")
 
     utd_hendelse_id = (
