@@ -207,6 +207,7 @@ def test_create_boolean_variables_without_res() -> None:
             "utd_skolekom": ["0301"],
             "orgnrbed": ["123"],
             "pers_alder": [15],
+            "gro_elevstatus": [None],
         }
     )
 
@@ -226,6 +227,7 @@ def test_create_boolean_variables_missing_elevstatus() -> None:
             "utd_skolekom": ["0301"],
             "orgnrbed": ["123"],
             "pers_alder": [15],
+            "gro_elevstatus": [None],
             "gr_grunnskolepoeng": [40],
         }
     )
