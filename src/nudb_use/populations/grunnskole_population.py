@@ -226,7 +226,7 @@ def create_boolean_variables_for_exclusion(
     if res:
         validate_required_columns(df, REQUIRED_COLS_FOR_RES_EXCLUSION)
 
-        df["har_ikke_grunnskolepoeng"] = df["gr_grunnskolepoeng"] == 0.0
+        df["har_ikke_grunnskolepoeng"] = df["gr_grunnskolepoeng"].eq(0)
 
         exclusion_vars.append("har_ikke_grunnskolepoeng")
 
