@@ -234,7 +234,7 @@ def test_create_boolean_variables_missing_elevstatus() -> None:
 
     result = create_boolean_variables_for_exclusion(df)
 
-    assert result["er_ikke_elevstatus_es"].iloc[0] is False
+    assert not result["er_ikke_elevstatus_es"].iloc[0]
 
 
 def test_exclude_population() -> None:
