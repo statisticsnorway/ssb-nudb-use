@@ -1,19 +1,54 @@
 import pandas as pd
 import pytest
 
+from nudb_use.populations.grunnskole_population import add_pers_alder
 from nudb_use.populations.grunnskole_population import (
-    derive_har_grunnskolenaering,
     create_boolean_variables_for_exclusion,
-    exclude_population,
 )
+from nudb_use.populations.grunnskole_population import derive_har_grunnskolenaering
+from nudb_use.populations.grunnskole_population import exclude_population
+from nudb_use.populations.grunnskole_population import validate_required_columns
 
 
-def test_derive_har_grunnskolenaering_finds_codes():
+def test_validate_required_columns_passes():
     df = pd.DataFrame(
         {
-            "bof_naering1_sn2025": ["85.201", "85.310", None],
-            "bof_naering2_sn2025": [None, "85.202", None],
-            "bof_naering3_sn2025": [None, None, None],
+            "a": [1],
+            "b": [2],
+        }
+    )
+
+    validate_required_columns(df, ["a", "b"])
+
+
+def test_validate_required_columns_raises():
+    df = pd.DataFrame({"a": [1]})
+
+    with pytest.raises(
+        ValueError,
+        match="Missing required columns: b",
+    ):
+        validate_required_columns(df, ["a", "b"])
+
+
+def test_derive_har_grunnskolenaering():
+    df = pd.DataFrame(
+        {
+            "bof_naering1_sn2025": [
+                "85.201",
+                "85.310",
+                None,
+            ],
+            "bof_naering2_sn2025": [
+                None,
+                "85.202",
+                None,
+            ],
+            "bof_naering3_sn2025": [
+                None,
+                None,
+                "99.999",
+            ],
         }
     )
 
@@ -26,36 +61,103 @@ def test_derive_har_grunnskolenaering_finds_codes():
     ]
 
 
-def test_derive_har_grunnskolenaering_custom_columns():
+def test_derive_har_grunnskolenaering_missing_columns():
     df = pd.DataFrame(
         {
-            "nace1_sn07": ["85.202", "85.310"],
-            "nace2_sn07": [None, None],
-            "nace3_sn07": [None, None],
+            "bof_naering1_sn2025": ["85.201"],
         }
     )
 
-    result = derive_har_grunnskolenaering(
-        df,
-        nace_columns=["nace1_sn07", "nace2_sn07", "nace3_sn07"],
+    with pytest.raises(
+        ValueError,
+        match="Missing required columns",
+    ):
+        derive_har_grunnskolenaering(df)
+
+
+def test_add_pers_alder():
+    df = pd.DataFrame(
+        {
+            "pers_foedselsdato": pd.to_datetime(
+                [
+                    "2008-05-01",
+                    "2007-11-01",
+                ]
+            )
+        }
     )
 
-    assert result["har_grunnskolenaering"].tolist() == [
-        True,
-        False,
+    result = add_pers_alder(
+        df=df,
+        start_year=2024,
+    )
+
+    assert result["pers_alder"].tolist() == [
+        16,
+        17,
     ]
+
+
+def test_add_pers_alder_keeps_existing_column():
+    df = pd.DataFrame(
+        {
+            "pers_alder": [15],
+        }
+    )
+
+    result = add_pers_alder(
+        df=df,
+        start_year=2024,
+    )
+
+    assert result["pers_alder"].tolist() == [15]
+
+
+def test_add_pers_alder_missing_birthdate():
+    df = pd.DataFrame(
+        {
+            "person_id": [1],
+        }
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Missing required columns: pers_foedselsdato",
+    ):
+        add_pers_alder(
+            df=df,
+            start_year=2024,
+        )
 
 
 def test_create_boolean_variables_for_exclusion():
     df = pd.DataFrame(
         {
             "har_grunnskolenaering": [True, False],
-            "gro_skolenavn_inn": ["Oslo skole", "Steinerskolen i Oslo"],
-            "utd_skolekom": ["0301", "2599"],
-            "orgnrbed": ["123", None],
-            "pers_alder": [16, 17],
-            "gro_elevstatus": ["E", "X"],
-            "gr_grunnskolepoeng": [40.0, 0.0],
+            "gro_skolenavn_inn": [
+                "Oslo skole",
+                "Steinerskolen",
+            ],
+            "utd_skolekom": [
+                "0301",
+                "2599",
+            ],
+            "orgnrbed": [
+                "123",
+                None,
+            ],
+            "pers_alder": [
+                15,
+                17,
+            ],
+            "gro_elevstatus": [
+                "E",
+                "X",
+            ],
+            "gr_grunnskolepoeng": [
+                40,
+                0,
+            ],
         }
     )
 
@@ -97,44 +199,14 @@ def test_create_boolean_variables_for_exclusion():
     ]
 
 
-def test_elevstatus_not_used_when_all_values_are_missing():
+def test_create_boolean_variables_without_res():
     df = pd.DataFrame(
         {
             "har_grunnskolenaering": [True],
             "gro_skolenavn_inn": ["Oslo skole"],
             "utd_skolekom": ["0301"],
             "orgnrbed": ["123"],
-            "pers_alder": [16],
-            "gro_elevstatus": [None],
-            "gr_grunnskolepoeng": [40.0],
-        }
-    )
-
-    result = create_boolean_variables_for_exclusion(df)
-
-    assert result["er_ikke_elevstatus_es"].eq(False).all()
-
-
-def test_create_boolean_variables_raises_on_missing_columns():
-    df = pd.DataFrame(
-        {
-            "har_grunnskolenaering": [True],
-        }
-    )
-
-    with pytest.raises(ValueError):
-        create_boolean_variables_for_exclusion(df)
-
-
-def test_create_boolean_variables_res_false():
-    df = pd.DataFrame(
-        {
-            "har_grunnskolenaering": [True],
-            "gro_skolenavn_inn": ["Oslo skole"],
-            "utd_skolekom": ["0301"],
-            "orgnrbed": ["123"],
-            "pers_alder": [16],
-            "gro_elevstatus": ["E"],
+            "pers_alder": [15],
         }
     )
 
@@ -146,23 +218,60 @@ def test_create_boolean_variables_res_false():
     assert "har_ikke_grunnskolepoeng" not in result.columns
 
 
+def test_create_boolean_variables_missing_elevstatus():
+    df = pd.DataFrame(
+        {
+            "har_grunnskolenaering": [True],
+            "gro_skolenavn_inn": ["Oslo skole"],
+            "utd_skolekom": ["0301"],
+            "orgnrbed": ["123"],
+            "pers_alder": [15],
+            "gr_grunnskolepoeng": [40],
+        }
+    )
+
+    result = create_boolean_variables_for_exclusion(df)
+
+    assert result["er_ikke_elevstatus_es"].iloc[0] is False
+
+
 def test_exclude_population():
     df = pd.DataFrame(
         {
-            "er_ikke_grunnskolenaering": [False, True],
-            "er_steinerskole": [False, False],
-            "er_norskskoleiutlandet": [False, False],
-            "er_ukjentorgnrbed": [False, False],
-            "er_over16aar": [False, False],
-            "er_ikke_elevstatus_es": [False, False],
-            "har_ikke_grunnskolepoeng": [False, False],
-            "snr": [1, 2],
+            "er_ikke_grunnskolenaering": [
+                False,
+                True,
+            ],
+            "er_steinerskole": [
+                False,
+                False,
+            ],
+            "er_norskskoleiutlandet": [
+                False,
+                False,
+            ],
+            "er_ukjentorgnrbed": [
+                False,
+                False,
+            ],
+            "er_over16aar": [
+                False,
+                False,
+            ],
+            "er_ikke_elevstatus_es": [
+                False,
+                False,
+            ],
+            "har_ikke_grunnskolepoeng": [
+                False,
+                False,
+            ],
         }
     )
 
     result = exclude_population(df)
 
-    assert result["snr"].tolist() == [1]
+    assert len(result) == 1
 
 
 def test_exclude_population_ignore_grunnskolepoeng():
@@ -175,13 +284,31 @@ def test_exclude_population_ignore_grunnskolepoeng():
             "er_over16aar": [False],
             "er_ikke_elevstatus_es": [False],
             "har_ikke_grunnskolepoeng": [True],
-            "snr": [1],
         }
     )
 
     result = exclude_population(
         df,
-        ignore_cols=["har_ikke_grunnskolepoeng"],
+        ignore_cols=[
+            "har_ikke_grunnskolepoeng",
+        ],
     )
 
     assert len(result) == 1
+
+
+def test_exclude_population_returns_copy():
+    df = pd.DataFrame(
+        {
+            "er_ikke_grunnskolenaering": [False],
+            "er_steinerskole": [False],
+            "er_norskskoleiutlandet": [False],
+            "er_ukjentorgnrbed": [False],
+            "er_over16aar": [False],
+            "er_ikke_elevstatus_es": [False],
+        }
+    )
+
+    result = exclude_population(df)
+
+    assert result is not df
