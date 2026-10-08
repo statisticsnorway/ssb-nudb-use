@@ -19,7 +19,7 @@ def test_validate_required_columns_passes() -> None:
     )
 
     validate_required_columns(df, ["a", "b"])
-
+assert result is None
 
 def test_validate_required_columns_raises() -> None:
     df = pd.DataFrame({"a": [1]})
