@@ -1,5 +1,3 @@
-from typing import Literal
-
 import pandas as pd
 
 from nudb_use import NudbData
@@ -266,7 +264,17 @@ def _exclude_to_grunnskole_population(
         exclusion_cols.append("har_ikke_grunnskolepoeng")
 
     if ignore_cols:
+        logger.info(
+            "Ignoring exclusion variables: %s",
+            ", ".join(sorted(ignore_cols)),
+        )
+
         exclusion_cols = [col for col in exclusion_cols if col not in ignore_cols]
+
+    logger.info(
+        "Applying exclusion variables: %s",
+        ", ".join(sorted(exclusion_cols)),
+    )
 
     _validate_required_cols_for_exclusion(df, exclusion_cols)
 
@@ -283,10 +291,7 @@ def _exclude_to_grunnskole_population(
 
 def create_grunnskole_population_from_nudb(
     start_year: int,
-    population: Literal[
-        "without_null_points",
-        "with_null_points",
-    ],
+    ignore_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """Creates a grunnskole population based on the NUDB dataset 'avslutta', filtered similarly to kargrs.
 
@@ -294,23 +299,16 @@ def create_grunnskole_population_from_nudb(
         start_year:
             int.
             Start year of the school year to retrieve. For example, 2024 represents school year 2024/2025.
-        population:
-            Literal.
-            Determines how pupils with missing grunnskolepoeng are handled.
-            Supported values:
-                - 'without_null_points': Exclude pupils with missing grunnskolepoeng.
-                - 'with_null_points': Include pupils with missing grunnskolepoeng.
+        ignore_cols:
+            list[str] | None, optional.
+            List of exclusion columns to ignore when filtering.
 
     Returns:
         pd.DataFrame:
             Grunnskole population after exclusion rules have been applied.
 
-    Raises:
-        ValueError:
-            If the population is not defined correctly.
-
     Examples:
-        df = create_grunnskole_population(start_year=2024, population="without_null_points")
+        df = create_grunnskole_population_from_nudb(start_year=2024, ignore_cols=["har_ikke_grunnskolepoeng"])
     """
     keep_cols = get_cols_in_config(name="avslutta_grunnskole")
 
@@ -325,23 +323,7 @@ def create_grunnskole_population_from_nudb(
 
     df = _create_boolean_vars_for_exclusion(df=df, res=True)
 
-    match population:
-
-        case "without_null_points":
-            logger.info("Creating grunnskole population without null grunnskolepoeng.")
-
-            return _exclude_to_grunnskole_population(df)
-
-        case "with_null_points":
-            logger.info("Creating grunnskole population with null grunnskolepoeng.")
-
-            return _exclude_to_grunnskole_population(
-                df, ignore_cols=["har_ikke_grunnskolepoeng"]
-            )
-
-        case _:
-            raise ValueError(
-                "population must be one of: "
-                "'without_null_points', "
-                "'with_null_points'"
-            )
+    return _exclude_to_grunnskole_population(
+        df,
+        ignore_cols=ignore_cols,
+    )
