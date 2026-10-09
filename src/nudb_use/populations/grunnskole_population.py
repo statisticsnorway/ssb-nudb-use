@@ -33,7 +33,7 @@ REQUIRED_COLS_FOR_EXCLUSION = [
 REQUIRED_COLS_FOR_RES_EXCLUSION = ["gr_grunnskolepoeng"]
 
 
-def validate_required_columns(
+def _validate_required_cols_for_exclusion(
     df: pd.DataFrame,
     required_cols: list[str],
 ) -> None:
@@ -55,21 +55,21 @@ def validate_required_columns(
         raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
 
 
-def derive_har_grunnskolenaering(
+def _derive_har_grunnskolenaering(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Derive wheter an organisation has a grunnskole industry code.
+    """Derive 'har_grunnskolenaering' from existing SN2025 industry codes.
 
     Args:
         df:
             pd.DataFrame.
-            Input dataframe.
+            Input dataframe containing the SN2025 industry code columns.
 
     Returns:
         pd.DataFrame:
-            Dataframe with column 'har_grunnskolenaering'.
+            Dataframe with derived column 'har_grunnskolenaering'.
     """
-    validate_required_columns(df, NACE_COLUMNS)
+    _validate_required_cols_for_exclusion(df, NACE_COLUMNS)
 
     df = df.copy()
 
@@ -80,7 +80,7 @@ def derive_har_grunnskolenaering(
     return df
 
 
-def add_har_grunnskolenaering(
+def _add_har_grunnskolenaering(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
     """Add a boolean column indicating whether the organisation has grunnskole industry code.
@@ -101,15 +101,15 @@ def add_har_grunnskolenaering(
         df.pipe(derive.bof_naering1_sn2025)
         .pipe(derive.bof_naering2_sn2025)
         .pipe(derive.bof_naering3_sn2025)
-        .pipe(derive_har_grunnskolenaering)
+        .pipe(_derive_har_grunnskolenaering)
     )
 
-    logger.info("Derived har_grunnskolenaering from SN2025 industry codes.")
+    logger.info("Derived 'har_grunnskolenaering' from SN2025 industry codes.")
 
     return df
 
 
-def add_pers_alder(
+def _add_age_at_school_start(
     df: pd.DataFrame,
     start_year: int,
 ) -> pd.DataFrame:
@@ -130,7 +130,7 @@ def add_pers_alder(
     if "pers_alder" in df.columns:
         return df
 
-    validate_required_columns(
+    _validate_required_cols_for_exclusion(
         df,
         ["pers_foedselsdato"],
     )
@@ -142,7 +142,7 @@ def add_pers_alder(
     return df
 
 
-def get_required_cols_for_exclusion(
+def _get_required_cols_for_exclusion(
     df: pd.DataFrame,
     start_year: int,
 ) -> pd.DataFrame:
@@ -158,11 +158,11 @@ def get_required_cols_for_exclusion(
 
     Returns:
         pd.DataFrame:
-            Dataframe with required columns added for use in create_boolean_variables_for_exclusion().
+            Dataframe with required columns added for use in _create_boolean_vars_for_exclusion().
     """
-    df = add_har_grunnskolenaering(df)
+    df = _add_har_grunnskolenaering(df)
 
-    df = add_pers_alder(
+    df = _add_age_at_school_start(
         df=df,
         start_year=start_year,
     )
@@ -170,7 +170,7 @@ def get_required_cols_for_exclusion(
     return df
 
 
-def create_boolean_variables_for_exclusion(
+def _create_boolean_vars_for_exclusion(
     df: pd.DataFrame,
     res: bool = True,
 ) -> pd.DataFrame:
@@ -191,11 +191,11 @@ def create_boolean_variables_for_exclusion(
 
     Examples:
         karakterer:
-            df = create_boolean_variables_for_exclusion(df, res=False)
+            df = _create_boolean_variables_for_exclusion(df, res=False)
         resultat:
-            df = create_boolean_variables_for_exclusion(df)
+            df = _create_boolean_variables_for_exclusion(df)
     """
-    validate_required_columns(df, REQUIRED_COLS_FOR_EXCLUSION)
+    _validate_required_cols_for_exclusion(df, REQUIRED_COLS_FOR_EXCLUSION)
 
     df = df.copy()
 
@@ -224,7 +224,7 @@ def create_boolean_variables_for_exclusion(
     exclusion_vars = EXCLUSION_VARS.copy()
 
     if res:
-        validate_required_columns(df, REQUIRED_COLS_FOR_RES_EXCLUSION)
+        _validate_required_cols_for_exclusion(df, REQUIRED_COLS_FOR_RES_EXCLUSION)
 
         df["har_ikke_grunnskolepoeng"] = df["gr_grunnskolepoeng"].eq(0)
 
@@ -238,7 +238,7 @@ def create_boolean_variables_for_exclusion(
     return df
 
 
-def exclude_population(
+def _exclude_to_grunnskole_population(
     df: pd.DataFrame,
     ignore_cols: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -257,8 +257,8 @@ def exclude_population(
             DataFrame that is filtered based on exclusion flags.
 
     Examples:
-        df = exclude_population(df)
-        df = exclude_population(df, ignore_cols=["har_ikke_grunnskolepoeng"])
+        df = _exclude_to_grunnskole_population(df)
+        df = _exclude_to_grunnskole_population(df, ignore_cols=["har_ikke_grunnskolepoeng"])
     """
     exclusion_cols = EXCLUSION_VARS.copy()
 
@@ -268,7 +268,7 @@ def exclude_population(
     if ignore_cols:
         exclusion_cols = [col for col in exclusion_cols if col not in ignore_cols]
 
-    validate_required_columns(df, exclusion_cols)
+    _validate_required_cols_for_exclusion(df, exclusion_cols)
 
     skal_ekskluderes = df[exclusion_cols].fillna(False).any(axis=1)
 
@@ -281,7 +281,7 @@ def exclude_population(
     return df.loc[~skal_ekskluderes].copy()
 
 
-def create_grunnskole_population(
+def create_grunnskole_population_from_nudb(
     start_year: int,
     population: Literal[
         "without_null_points",
@@ -321,21 +321,23 @@ def create_grunnskole_population(
         .df()
     )
 
-    df = get_required_cols_for_exclusion(df=df, start_year=start_year)
+    df = _get_required_cols_for_exclusion(df=df, start_year=start_year)
 
-    df = create_boolean_variables_for_exclusion(df=df, res=True)
+    df = _create_boolean_vars_for_exclusion(df=df, res=True)
 
     match population:
 
         case "without_null_points":
             logger.info("Creating grunnskole population without null grunnskolepoeng.")
 
-            return exclude_population(df)
+            return _exclude_to_grunnskole_population(df)
 
         case "with_null_points":
             logger.info("Creating grunnskole population with null grunnskolepoeng.")
 
-            return exclude_population(df, ignore_cols=["har_ikke_grunnskolepoeng"])
+            return _exclude_to_grunnskole_population(
+                df, ignore_cols=["har_ikke_grunnskolepoeng"]
+            )
 
         case _:
             raise ValueError(
