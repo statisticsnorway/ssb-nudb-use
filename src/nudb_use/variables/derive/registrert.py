@@ -35,6 +35,9 @@ PRG_RANGES_RANGES: dict[str, list[range]] = {
     "yrkesfag": [
         parse_range_string(r) for r in settings.constants.vg_utdprogram_ranges_yrkesfag
     ],
+    "annet": [
+        parse_range_string(r) for r in settings.constants.vg_utdprogram_ranges_annet
+    ],
 }
 PRG_RANGES: dict[str, list[str]] = {}
 for k, v in PRG_RANGES_RANGES.items():

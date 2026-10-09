@@ -50,7 +50,7 @@ def identify_cols_not_in_keep_drop_in_paths(
 def check_column_presence(
     df: pd.DataFrame,
     dataset_name: str | None = None,
-    check_for: None | list[str] = None,
+    check_for: list[str] | None = None,
     raise_errors: bool = True,
 ) -> list[Exception]:
     """Validate columns against config or a supplied list."""

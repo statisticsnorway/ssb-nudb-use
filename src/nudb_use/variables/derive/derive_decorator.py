@@ -98,6 +98,19 @@ def wrap_derive(
         with LoggerStack(f"Deriving {name} from {', '.join(derived_from)}..."):
             logger.debug(f"Source code for {name}:\n{inspect.getsource(basefunc)}")
 
+            has_standard_index = (
+                isinstance(df.index, pd.RangeIndex)
+                and df.index.step == 1
+                and df.index.start == 0
+            )
+
+            if not has_standard_index:
+                logger.warning(
+                    "Resetting the index of `df`, we hope you don't need it..."
+                )
+
+            df = df.reset_index(drop=True)
+
             df, rename_state = swap_temp_colnames_to_temp(
                 df, derived_from, temp_col_renames
             )
@@ -166,12 +179,12 @@ def wrap_derive(
                         )
 
                         # clean up
-                        df = result
+                        df = result.reset_index(drop=True)
                         newvals = df[name]
                         exists = False
 
                     elif isinstance(result, pd.Series):
-                        newvals = result
+                        newvals = result.reset_index(drop=True)
 
                     else:
                         raise TypeError(

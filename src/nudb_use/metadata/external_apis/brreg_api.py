@@ -81,14 +81,14 @@ def orgnr_is_underenhet(orgnr: str) -> bool:
         )
 
 
-def get_enhet(orgnr: str) -> None | dict[str, str]:
+def get_enhet(orgnr: str) -> dict[str, str] | None:
     """Check if a given organisation is either a main unit (enhet, foretak) or sub-unit (underenhet, bedrift).
 
     Args:
         orgnr: The organisation number to look up.
 
     Returns:
-        None | dict[str, str]: Information about the main unit or sub-unit, or
+        dict[str, str] | None: Information about the main unit or sub-unit, or
         None if not found.
     """
     orgnr_clean = "".join([c for c in orgnr if c.isdigit()])

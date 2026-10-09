@@ -5343,27 +5343,6 @@ sphinx = ">=4.0"
 docs = ["furo", "ipython", "myst-parser", "sphinx-copybutton", "sphinx-inline-tabs"]
 
 [[package]]
-name = "sphinx-click"
-version = "6.2.0"
-description = "Sphinx extension that automatically documents click applications"
-optional = false
-python-versions = ">=3.10"
-groups = ["dev"]
-files = [
-    {file = "sphinx_click-6.2.0-py3-none-any.whl", hash = "sha256:1fb1851cb4f2c286d43cbcd57f55db6ef5a8d208bfc3370f19adde232e5803d7"},
-    {file = "sphinx_click-6.2.0.tar.gz", hash = "sha256:fc78b4154a4e5159462e36de55b8643747da6cda86b3b52a8bb62289e603776c"},
-]
-
-[package.dependencies]
-click = ">=8.0"
-docutils = "*"
-sphinx = ">=4.0"
-
-[package.extras]
-docs = ["reno"]
-test = ["pytest", "pytest-cov"]
-
-[[package]]
 name = "sphinxcontrib-applehelp"
 version = "2.0.0"
 description = "sphinxcontrib-applehelp is a Sphinx extension which outputs Apple help books"
@@ -5551,13 +5530,15 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.8.4"
+version = "2026.9.5"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
-files = []
-develop = true
+files = [
+    {file = "ssb_nudb_config-2026.9.5-py3-none-any.whl", hash = "sha256:1fa883aac173ee87305977bbcaf8a1dde2869a098a87e0f5b95987c789cae420"},
+    {file = "ssb_nudb_config-2026.9.5.tar.gz", hash = "sha256:c1412d26612e9d3fd88e5e9b3e9c4d29bbbc409cacb79e901de569b861b444e3"},
+]
 
 [package.dependencies]
 ipykernel = ">=7.0.0"

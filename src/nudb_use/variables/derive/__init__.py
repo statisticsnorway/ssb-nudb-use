@@ -17,7 +17,6 @@ from . import person_idents
 from . import registrert
 from . import registrert_foerste
 from . import utd_foreldres_utdnivaa
-from . import utd_hendelse
 from . import utd_hoeyeste
 from .derive_decorator import get_derive_function
 
@@ -34,10 +33,12 @@ derive_all_submodules = (
     person_idents,
     person,
     bof,
-    utd_hendelse,
 )
 
 from .bof import bof_eierforhold
+from .bof import bof_naering1_sn2025
+from .bof import bof_naering2_sn2025
+from .bof import bof_naering3_sn2025
 from .nus_variants import utd_erforeldet_kode_nus
 from .nus_variants import utd_klassetrinn_hoey_nus
 from .nus_variants import utd_klassetrinn_lav_nus
@@ -45,18 +46,19 @@ from .person import pers_foedselsdato
 from .person import pers_invkat
 from .person import pers_kjoenn
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
-from .utd_hendelse import utd_hendelse_id
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
 
 __all__ = [
     "bof_eierforhold",
+    "bof_naering1_sn2025",
+    "bof_naering2_sn2025",
+    "bof_naering3_sn2025",
     "pers_foedselsdato",
     "pers_invkat",
     "pers_kjoenn",
     "uh_univ_eller_hoegskole",
     "utd_erforeldet_kode_nus",
-    "utd_hendelse_id",
     "utd_hoeyeste_rangering",
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",

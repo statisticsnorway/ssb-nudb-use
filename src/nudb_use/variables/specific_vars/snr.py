@@ -292,7 +292,7 @@ def _apply_merged_columns(
 
 
 def _maybe_derive_snr_mrk(
-    df: pd.DataFrame, create_snr_mrk: None | bool
+    df: pd.DataFrame, create_snr_mrk: bool | None
 ) -> pd.DataFrame:
     """Conditionally re-derive snr_mrk.
 
@@ -316,7 +316,7 @@ def _maybe_derive_snr_mrk(
 def update_snr_with_snrkat(
     df: pd.DataFrame,
     update_fnr: bool = False,
-    create_snr_mrk: None | bool = None,
+    create_snr_mrk: bool | None = None,
     return_dupes: bool = False,
     snr_col_name: str = "snr",
     fnr_col_name: str = "fnr",

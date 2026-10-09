@@ -8,7 +8,7 @@ from dapla_metadata.datasets.dapla_dataset_path_info import DaplaDatasetPathInfo
 
 def get_periods_from_path(
     path: str | Path,
-) -> None | datetime.date | tuple[datetime.date, datetime.date]:
+) -> datetime.date | tuple[datetime.date, datetime.date] | None:
     """Get start- and end- dates from path-string.
 
     This function analyzes the filename portion of the given path, extracting up to
@@ -18,7 +18,7 @@ def get_periods_from_path(
         path: File path as a string or Path object from which to extract period info.
 
     Returns:
-        None | datetime.date | tuple[datetime.date, datetime.date]:
+        datetime.date | tuple[datetime.date, datetime.date] | None:
         A single period (as string or datetime) or a tuple of two periods,
         depending on how many fragments are found and whether datetime
         conversion is requested.

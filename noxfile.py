@@ -24,14 +24,14 @@ except ImportError:
 package = "nudb_use"
 python_versions = ["3.11", "3.12", "3.13"]
 nox.needs_version = ">= 2021.6.6"
-nox.options.sessions = (
+nox.options.sessions = [
     "pre-commit",
     "mypy",
     "tests",
     "typeguard",
     "xdoctest",
     "docs-build",
-)
+]
 
 
 def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
@@ -168,8 +168,6 @@ def tests(session: Session) -> None:
             "--parallel",
             "-m",
             "pytest",
-            "-o",
-            "pythonpath=",
             *session.posargs,
         )
     finally:
@@ -221,9 +219,7 @@ def docs_build(session: Session) -> None:
         args.insert(0, "--color")
 
     session.install(".")
-    session.install(
-        "sphinx", "sphinx-autodoc-typehints", "sphinx-click", "furo", "myst-parser"
-    )
+    session.install("sphinx", "sphinx-autodoc-typehints", "furo", "myst-parser")
 
     build_dir = Path("docs", "_build")
     if build_dir.exists():
@@ -241,7 +237,6 @@ def docs(session: Session) -> None:
         "sphinx",
         "sphinx-autobuild",
         "sphinx-autodoc-typehints",
-        "sphinx-click",
         "furo",
         "myst-parser",
     )
