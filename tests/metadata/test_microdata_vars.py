@@ -74,9 +74,14 @@ def test_split_microdata_dataset(tmp_path: Any) -> None:
         {
             "snr": ["1", "2", "3", "4"],
             "fnr": ["111", "222", "333", pd.NA],  # 4 has a missing FNR
-            "var1": [10.0, 20.0, pd.NA, 40.0],    # 3 has a null var1
-            "var2": ["A", pd.NA, "C", "D"],       # 2 has a null var2
-            "utd_aktivitet_start": ["2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01"],
+            "var1": [10.0, 20.0, pd.NA, 40.0],  # 3 has a null var1
+            "var2": ["A", pd.NA, "C", "D"],  # 2 has a null var2
+            "utd_aktivitet_start": [
+                "2020-01-01",
+                "2021-01-01",
+                "2022-01-01",
+                "2023-01-01",
+            ],
         }
     )
 
@@ -129,4 +134,3 @@ def test_split_microdata_dataset(tmp_path: Any) -> None:
     # Load back and verify
     loaded_var1 = pd.read_parquet(tmp_path / "var1.parquet")
     assert len(loaded_var1) == 2
-

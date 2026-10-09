@@ -3,7 +3,7 @@ import pandas as pd
 
 from nudb_use.nudb_logger import logger
 
-# Mapper fullføringsår til datokolonne. 
+# Mapper fullføringsår til datokolonne.
 _YEAR_COLUMN_MAP: dict[str, str] = {
     "aar_forste_fullf_gs": "gr_foerste_fullfoert_dato",
     "aar_forste_fullf_vs": "vg_foerste_fullfoert_dato",
@@ -32,14 +32,24 @@ def _generate_microdata_fullfoert_foerste_view(
     """
     from nudb_use.datasets import NudbData
     from nudb_use.datasets.nudb_database import STRING_DTYPE
+    from nudb_use.variables.derive.fullfoert_foerste import gr_foerste_fullfoert_dato
     from nudb_use.variables.derive.fullfoert_foerste import (
-        gr_foerste_fullfoert_dato,
         uh_bachelor_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
         uh_doktorgrad_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
         uh_hoeyskolekandidat_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
         uh_master_foerste_fullfoert_dato,
-        vg_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import vg_foerste_fullfoert_dato
+    from nudb_use.variables.derive.fullfoert_foerste import (
         vg_studiespess_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
         vg_yrkesfag_foerste_fullfoert_dato,
     )
 
@@ -51,11 +61,11 @@ def _generate_microdata_fullfoert_foerste_view(
     base["snr"] = base["snr"].astype(STRING_DTYPE)
 
     df = base.copy()
-    
+
     # Hver derive-funksjon bruker en *fresh* snr-katalog kopi, slik at ikke
-    # de forrige brukte utd_aktivitet_start/_slutt blir gjenbrukt. 
+    # de forrige brukte utd_aktivitet_start/_slutt blir gjenbrukt.
     # Forhindrer at koden forventer at en person fyller hele hierarkiet med utdanninger,
-    # og tillater at en person kan ha gjort noen aktiviteter, men ikke alle. 
+    # og tillater at en person kan ha gjort noen aktiviteter, men ikke alle.
     func_to_col: dict[object, str] = {
         gr_foerste_fullfoert_dato: "gr_foerste_fullfoert_dato",
         vg_foerste_fullfoert_dato: "vg_foerste_fullfoert_dato",

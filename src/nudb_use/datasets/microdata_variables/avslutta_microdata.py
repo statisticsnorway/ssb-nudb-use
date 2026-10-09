@@ -12,7 +12,6 @@ def _generate_microdata_avslutta_view(
 
     logger.info("Deriving 'avslutta_microdata' Microdata variables")
 
-
     # Burde defineres bedre i f.eks nudb-config en her
     avslutta_microdata = NudbData("avslutta")
     query = f"""
@@ -20,7 +19,7 @@ def _generate_microdata_avslutta_view(
             SELECT
                 utd_hendelse_id,
                 fnr AS fnr,
-                snr AS snr, 
+                snr AS snr,
                 nus2000 AS nus2000,
                 -- utd-variabl
                 utd_aktivitet_start AS AVSL_utd_aktivitet_start,
@@ -29,8 +28,8 @@ def _generate_microdata_avslutta_view(
                 utd_skolekom AS AVSL_utd_skolekom,
                 utd_utdanningstype AS AVSL_utd_utdanningstype,
                 utd_fullfoertkode AS AVSL_utd_fullfoertkode,
-                utd_aktivitetsnivaa_heltid_deltid AS AVSL_utd_aktivitetsnivaa_heltid_deltid,                
-                utd_klassetrinn AS AVSL_utd_klassetrinn, 
+                utd_aktivitetsnivaa_heltid_deltid AS AVSL_utd_aktivitetsnivaa_heltid_deltid,
+                utd_klassetrinn AS AVSL_utd_klassetrinn,
                 utd_viderutd_nettbasert AS AVSL_utd_viderutd_nettbasert,
                 -- bof_eierforhold, -- Er utledbar variabel
                 -- gr- og gro-variabler
@@ -45,9 +44,9 @@ def _generate_microdata_avslutta_view(
                 vg_yrkes_og_studiekompetanse AS AVSL_vg_yrkes_og_studiekompetanse,
                 vg_kursprosent AS AVSL_vg_kursprosent,
                 -- fuh-variabler
-                fuh_nett_eller_stedbasert AS AVSL_fuh_nett_eller_stedbasert, 
+                fuh_nett_eller_stedbasert AS AVSL_fuh_nett_eller_stedbasert,
                 -- uh-variabler
-                uh_studieprogram AS AVSL_uh_studieprogram, 
+                uh_studieprogram AS AVSL_uh_studieprogram,
                 uh_studiepoeng_grad AS AVSL_uh_studiepoeng_grad
 
             FROM

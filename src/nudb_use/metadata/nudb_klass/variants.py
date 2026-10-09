@@ -118,7 +118,7 @@ def _check_klass_variant_column_search_term(
     }
     date_keyed_sorted_reversed = {k: date_keyed[k] for k in sorted(date_keyed)[::-1]}
 
-    ver_final: None | VersionPartType = None
+    ver_final: VersionPartType | None = None
     ver_date: datetime.datetime
     for ver_date, ver in date_keyed_sorted_reversed.items():
         if ver_date <= refdate_datetime:

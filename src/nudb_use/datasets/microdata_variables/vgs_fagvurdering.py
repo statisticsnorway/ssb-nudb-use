@@ -1,4 +1,5 @@
 import duckdb as db
+
 from nudb_use.nudb_logger import logger
 
 
@@ -21,8 +22,7 @@ def _generate_microdata_vgs_fagvurdering_view(
         vgs_source = NudbData("_microdata_videregaaende_karakterer")
 
     columns = [
-        row[0]
-        for row in connection.execute(f"DESCRIBE {vgs_source.alias}").fetchall()
+        row[0] for row in connection.execute(f"DESCRIBE {vgs_source.alias}").fetchall()
     ]
 
     fagkode_col = "fagkode" if "fagkode" in columns else "vgs_fagkode"
@@ -84,8 +84,7 @@ def _generate_microdata_vgs_fagvurdering_view(
         """)
 
     if not parts:
-        connection.execute(
-            f"""
+        connection.execute(f"""
             CREATE OR REPLACE VIEW {alias} AS
             SELECT
                 CAST(NULL AS VARCHAR) AS id,
@@ -96,8 +95,7 @@ def _generate_microdata_vgs_fagvurdering_view(
                 CAST(NULL AS VARCHAR) AS start,
                 CAST(NULL AS VARCHAR) AS stop
             WHERE FALSE
-            """
-        )
+            """)
     else:
         union_query = "\n".join(parts)
         connection.execute(f"CREATE OR REPLACE VIEW {alias} AS {union_query}")

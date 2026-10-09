@@ -21,16 +21,17 @@ from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.macros import _DUCKDB_MACROS
-
-# Microdata
-from nudb_use.datasets.microdata_variables.avslutta_microdata import (
-    _generate_microdata_avslutta_view,
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_fullfoert_foerste_view,
 )
-from nudb_use.datasets.microdata_variables.igang_microdata import (
-    _generate_microdata_igang_view,
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_gs_fagvurdering_view,
 )
-from nudb_use.datasets.microdata_variables.eksamen_microdata import (
-    _generate_microdata_eksamen_view,
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_nasjprov_fagvurdering_view,
+)
+from nudb_use.datasets.microdata_variables import (
+    _generate_microdata_registrert_foerste_view,
 )
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_foreldres_utdnivaa_16aar_view,
@@ -39,18 +40,21 @@ from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
 )
 from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_fullfoert_foerste_view,
+    _generate_microdata_vgs_fagvurdering_view,
 )
-from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_registrert_foerste_view,
+
+# Microdata
+from nudb_use.datasets.microdata_variables.avslutta_microdata import (
+    _generate_microdata_avslutta_view,
+)
+from nudb_use.datasets.microdata_variables.eksamen_microdata import (
+    _generate_microdata_eksamen_view,
+)
+from nudb_use.datasets.microdata_variables.igang_microdata import (
+    _generate_microdata_igang_view,
 )
 from nudb_use.datasets.microdata_variables.pers_bokommune_16aar import (
-    _generate_microdata_pers_bokommune_16aar_view
-)
-from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_vgs_fagvurdering_view,
-    _generate_microdata_gs_fagvurdering_view,
-    _generate_microdata_nasjprov_fagvurdering_view,
+    _generate_microdata_pers_bokommune_16aar_view,
 )
 from nudb_use.datasets.microdata_variables.pers_semester import (
     _generate_microdata_pers_semester_view,
@@ -130,12 +134,9 @@ class _NudbDatabase:
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,
             # MicroData()
-            MICRODATA_PREFIX
-            + "avslutta": _generate_microdata_avslutta_view,
-            MICRODATA_PREFIX
-            + "igang": _generate_microdata_igang_view,
-            MICRODATA_PREFIX
-            + "eksamen": _generate_microdata_eksamen_view,
+            MICRODATA_PREFIX + "avslutta": _generate_microdata_avslutta_view,
+            MICRODATA_PREFIX + "igang": _generate_microdata_igang_view,
+            MICRODATA_PREFIX + "eksamen": _generate_microdata_eksamen_view,
             MICRODATA_PREFIX
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX
@@ -144,8 +145,7 @@ class _NudbDatabase:
             + "pers_fullfoert_foerste": _generate_microdata_fullfoert_foerste_view,
             MICRODATA_PREFIX
             + "pers_registrert_foerste": _generate_microdata_registrert_foerste_view,
-            MICRODATA_PREFIX
-            + "pers_semester": _generate_microdata_pers_semester_view,
+            MICRODATA_PREFIX + "pers_semester": _generate_microdata_pers_semester_view,
             MICRODATA_PREFIX
             + "pers_bokommune_16aar": _generate_microdata_pers_bokommune_16aar_view,
             MICRODATA_PREFIX
@@ -159,9 +159,10 @@ class _NudbDatabase:
         self._dataset_paths: dict[str, list[Path]] = {}
 
         for dataset_name in external_datasets.EXTERNAL_DATASETS:
-            self._dataset_generators[dataset_name] = getattr(
-                external_datasets, f"_generate_{dataset_name}_view"
-            )
+            if dataset_name not in self._dataset_generators:
+                self._dataset_generators[dataset_name] = getattr(
+                    external_datasets, f"_generate_{dataset_name}_view"
+                )
 
         # Dynamically register fallback view loaders for config-defined microdata datasets
         from functools import partial

@@ -1,6 +1,8 @@
 import duckdb as db
 import pandas as pd
+
 from nudb_use.nudb_logger import logger
+
 
 def _generate_microdata_pers_bokommune_16aar_view(
     alias: str,

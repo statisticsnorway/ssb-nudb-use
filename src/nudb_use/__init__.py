@@ -13,8 +13,8 @@ from nudb_use.metadata import find_vars
 from nudb_use.metadata import get_dtypes
 from nudb_use.metadata import get_list_of_columns_for_dataset
 from nudb_use.metadata import get_microdata_variables_overview
-from nudb_use.metadata import split_microdata_dataset
 from nudb_use.metadata import set_option
+from nudb_use.metadata import split_microdata_dataset
 from nudb_use.metadata import update_colnames
 from nudb_use.metadata.nudb_config import look_up_dtype_length_for_dataset
 from nudb_use.nudb_logger import LoggerStack

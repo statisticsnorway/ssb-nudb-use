@@ -157,11 +157,12 @@ def get_microdata_variables_overview(dataset_name: str) -> pd.DataFrame:
 
 def split_microdata_dataset(
     dataset_or_name: str | pd.DataFrame,
-    id_col: Literal["fnr", "snr"] = "fnr",
+    id_col: str = "fnr",
     keys: list[str] | None = None,
     auto_detect_start_stop: bool = True,
     output_dir: str | Path | None = None,
     file_format: Literal["parquet", "csv", "feather"] = "parquet",
+    ignore_variables: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """Splits a full derived dataset into individual variable datasets.
 
@@ -195,10 +196,7 @@ def split_microdata_dataset(
     else:
         raise TypeError("dataset_or_name must be a string or a pandas DataFrame.")
 
-    if id_col not in ("fnr", "snr"):
-        raise ValueError("id_col must be either 'fnr' or 'snr'.")
-
-    # 2. Map ID column if missing but the alternative is present
+    # 2. Map ID column if missing but the alternative is present, or map missing fnr/snr when using a custom ID
     if id_col == "fnr" and "fnr" not in df.columns:
         if "snr" not in df.columns:
             raise KeyError("Neither 'fnr' nor 'snr' is present in the dataset.")
@@ -210,6 +208,20 @@ def split_microdata_dataset(
             raise KeyError("Neither 'fnr' nor 'snr' is present in the dataset.")
         fnr2snr = NudbData("_snrkat_fnr2snr").df()
         df = df.merge(fnr2snr, on="fnr", how="left")
+
+    elif id_col not in ("fnr", "snr"):
+        if id_col not in df.columns:
+            raise KeyError(
+                f"The selected ID column '{id_col}' is not present in the dataset."
+            )
+
+        # If either 'fnr' or 'snr' is present but the other is missing, map it!
+        if "fnr" in df.columns and "snr" not in df.columns:
+            fnr2snr = NudbData("_snrkat_fnr2snr").df()
+            df = df.merge(fnr2snr, on="fnr", how="left")
+        elif "snr" in df.columns and "fnr" not in df.columns:
+            fnr2snr = NudbData("_snrkat_fnr2snr").df()
+            df = df.merge(fnr2snr, on="snr", how="left")
 
     # 3. Handle Dropping of Rows with Missing Primary IDs
     if df[id_col].isna().any():
@@ -227,11 +239,15 @@ def split_microdata_dataset(
         detected_keys = []
         for col in df.columns:
             col_lower = col.lower()
-            if col != id_col and any(term in col_lower for term in ("start", "stop", "stopp", "slutt")):
+            if col != id_col and any(
+                term in col_lower for term in ("start", "stop", "stopp", "slutt")
+            ):
                 detected_keys.append(col)
 
         if detected_keys:
-            logger.info(f"Automatically detected start/stop columns to use as keys: {detected_keys}")
+            logger.info(
+                f"Automatically detected start/stop columns to use as keys: {detected_keys}"
+            )
             for dk in detected_keys:
                 if dk not in keys_to_keep:
                     keys_to_keep.append(dk)
@@ -239,13 +255,19 @@ def split_microdata_dataset(
     # Filter keys to only those that exist
     keys_to_keep = [k for k in keys_to_keep if k in df.columns]
 
-    ignore_cols = {"fnr", "snr", "nudb_dataset_id", "__index_level_0__"} | set(keys_to_keep)
+    extra_ignore = set(ignore_variables or [])
+    ignore_cols = (
+        {"nudb_dataset_id", "__index_level_0__"} | set(keys_to_keep) | extra_ignore
+    )
     variable_cols = [col for col in df.columns if col not in ignore_cols]
 
     # 5. Split variables into thin DataFrames
     split_dfs = {}
     for var in variable_cols:
-        target_cols = [id_col] + [var] + keys_to_keep
+        if var == id_col:
+            target_cols = [id_col] + keys_to_keep
+        else:
+            target_cols = [id_col] + [var] + keys_to_keep
         # Keep only rows where the actual variable is not null
         subset_df = df[target_cols].dropna(subset=[var]).copy().reset_index(drop=True)
         split_dfs[var] = subset_df

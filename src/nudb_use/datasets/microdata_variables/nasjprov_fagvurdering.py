@@ -1,4 +1,5 @@
 import duckdb as db
+
 from nudb_use.nudb_logger import logger
 
 
@@ -13,8 +14,7 @@ def _generate_microdata_nasjprov_fagvurdering_view(
     nasjprov = NudbData("nasjprov")
 
     columns = [
-        row[0]
-        for row in connection.execute(f"DESCRIBE {nasjprov.alias}").fetchall()
+        row[0] for row in connection.execute(f"DESCRIBE {nasjprov.alias}").fetchall()
     ]
 
     fagkode_col = "provekode" if "provekode" in columns else "fagkode"

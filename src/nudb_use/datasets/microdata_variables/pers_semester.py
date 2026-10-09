@@ -93,22 +93,36 @@ def _generate_microdata_pers_semester_view(
     """
     from nudb_use.datasets import NudbData
     from nudb_use.datasets.nudb_database import STRING_DTYPE
+    from nudb_use.variables.derive.fullfoert_foerste import (
+        uh_bachelor_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
+        uh_doktorgrad_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
+        uh_hoeyskolekandidat_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
+        uh_master_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import vg_foerste_fullfoert_dato
+    from nudb_use.variables.derive.fullfoert_foerste import (
+        vg_studiespess_foerste_fullfoert_dato,
+    )
+    from nudb_use.variables.derive.fullfoert_foerste import (
+        vg_yrkesfag_foerste_fullfoert_dato,
+    )
     from nudb_use.variables.derive.registrert import PRG_RANGES
     from nudb_use.variables.derive.registrert_foerste import (
         uh_bachelor_foerste_registrert_dato,
-        uh_foerste_registrert_dato,
-        uh_master_foerste_registrert_dato,
-        vg_foerste_registrert_dato,
-        vg_foerste_registrert_erutdprogram_dato,
     )
-    from nudb_use.variables.derive.fullfoert_foerste import (
-        uh_bachelor_foerste_fullfoert_dato,
-        uh_doktorgrad_foerste_fullfoert_dato,
-        uh_hoeyskolekandidat_foerste_fullfoert_dato,
-        uh_master_foerste_fullfoert_dato,
-        vg_foerste_fullfoert_dato,
-        vg_studiespess_foerste_fullfoert_dato,
-        vg_yrkesfag_foerste_fullfoert_dato,
+    from nudb_use.variables.derive.registrert_foerste import uh_foerste_registrert_dato
+    from nudb_use.variables.derive.registrert_foerste import (
+        uh_master_foerste_registrert_dato,
+    )
+    from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_dato
+    from nudb_use.variables.derive.registrert_foerste import (
+        vg_foerste_registrert_erutdprogram_dato,
     )
 
     logger.info("Generating `_microdata_pers_semester` dataset view.")

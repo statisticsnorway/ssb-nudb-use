@@ -3,7 +3,7 @@ import pandas as pd
 
 from nudb_use.nudb_logger import logger
 
-# Mapper fullføringsår til datokolonne. 
+# Mapper fullføringsår til datokolonne.
 _YEAR_COLUMN_MAP: dict[str, str] = {
     "aar_foerste_reg_gr": "gr_foerste_registrert_dato",
     "aar_vg_foerste_registrert_dato": "vg_foerste_registrert_dato",
@@ -15,24 +15,29 @@ _YEAR_COLUMN_MAP: dict[str, str] = {
 
 _REQUIRED_DATE_COLUMNS: list[str] = sorted(set(_YEAR_COLUMN_MAP.values()))
 
+
 def _generate_microdata_registrert_foerste_view(
     alias: str,
     connection: db.DuckDBPyConnection,
 ) -> None:
     """Generate the `reg_foerste` Microdata dataset view.
-    
+
     Only exposes the `aar_forste_reg_*`-year variables.
     """
     from nudb_use.datasets import NudbData
     from nudb_use.datasets.nudb_database import STRING_DTYPE
+    from nudb_use.variables.derive.registrert_foerste import gr_foerste_registrert_dato
     from nudb_use.variables.derive.registrert_foerste import (
-        gr_foerste_registrert_dato,
-        vg_foerste_registrert_dato,
-        vg_foerste_registrert_erutdprogram_dato,
-        uh_foerste_registrert_dato,
         uh_bachelor_foerste_registrert_dato,
+    )
+    from nudb_use.variables.derive.registrert_foerste import uh_foerste_registrert_dato
+    from nudb_use.variables.derive.registrert_foerste import (
         uh_master_foerste_registrert_dato,
-)
+    )
+    from nudb_use.variables.derive.registrert_foerste import vg_foerste_registrert_dato
+    from nudb_use.variables.derive.registrert_foerste import (
+        vg_foerste_registrert_erutdprogram_dato,
+    )
 
     logger.info("Generating `_microdata_reg_foerste` dataset view.")
 
@@ -44,16 +49,16 @@ def _generate_microdata_registrert_foerste_view(
     df = base.copy()
 
     # Hver derive-funksjon bruker en *fresh* snr-katalog kopi, slik at ikke
-    # de forrige brukte utd_aktivitet_start/_slutt blir gjenbrukt. 
+    # de forrige brukte utd_aktivitet_start/_slutt blir gjenbrukt.
     # Forhindrer at koden forventer at en person fyller hele hierarkiet med utdanninger,
-    # og tillater at en person kan ha gjort noen aktiviteter, men ikke alle. 
+    # og tillater at en person kan ha gjort noen aktiviteter, men ikke alle.
     func_to_col: dict[object, str] = {
         gr_foerste_registrert_dato: "gr_foerste_registrert_dato",
         vg_foerste_registrert_dato: "vg_foerste_registrert_dato",
         vg_foerste_registrert_erutdprogram_dato: "vg_foerste_registrert_erutdprogram_dato",
-        uh_foerste_registrert_dato: "uh_foerste_registrert_dato", 
+        uh_foerste_registrert_dato: "uh_foerste_registrert_dato",
         uh_bachelor_foerste_registrert_dato: "uh_bachelor_foerste_registrert_dato",
-        uh_master_foerste_registrert_dato: "uh_master_foerste_registrert_dato"
+        uh_master_foerste_registrert_dato: "uh_master_foerste_registrert_dato",
     }
 
     for func, col_name in func_to_col.items():
