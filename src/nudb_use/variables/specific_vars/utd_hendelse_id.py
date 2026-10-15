@@ -41,6 +41,11 @@ def join_variables_on_hendelse_id(
         )  # it's a bit clunky, since avslutta = 0, so we might not have the first digit...
     )
 
+    if (utd_hendelse_id.str.len() > 17).any():
+        raise ValueError(
+            "Did not expect utd_hendelse_id to be longer than 17 characters!"
+        )
+
     logger.info("Identifying unique datasets in `utd_hendelse_id`...")
     datasets = (
         pd.Series(utd_hendelse_id.str.slice(0, 1).unique(), dtype="string[pyarrow]")
@@ -50,6 +55,12 @@ def join_variables_on_hendelse_id(
     logger.info(f"unique datasets in `utd_hendelse_id`: {', '.join(datasets)}")
     want = set(variables)
     queries = []
+
+    if "utd_hendelse_id" in want:
+        logger.warning(
+            "`utd_hendelse_id` should not be included in `variables`, ignoring it!"
+        )
+        want = want - {"utd_hendelse_id"}
 
     for dataset in datasets:
         nudb_data = NudbData(dataset)
