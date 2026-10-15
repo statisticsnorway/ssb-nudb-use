@@ -28,6 +28,9 @@ from nudb_use.datasets.microdata_variables.first_class_variables import (
     FIRST_CLASS_VARIABLES,
 )
 from nudb_use.datasets.microdata_variables.first_class_variables import (
+    _generate_microdata_variable_rectype_view,
+)
+from nudb_use.datasets.microdata_variables.first_class_variables import (
     _get_generator_first_class_variable,
 )
 from nudb_use.datasets.nuskat import _generate_nuskat_table
@@ -105,6 +108,8 @@ class _NudbDatabase:
             # MicroData()
             MICRODATA_PREFIX
             + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
+            MICRODATA_PREFIX
+            + "utd_record_type": _generate_microdata_variable_rectype_view,
         }
 
         # first class variable (MicroData)
