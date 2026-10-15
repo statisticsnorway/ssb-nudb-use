@@ -13,10 +13,14 @@ FIRST_CLASS_VARIABLES = [
     variable
     for variable in settings.variables.keys()
     if (
-        not settings.variables[variable].derived_from  # not a derived variable
-        and variable not in EXCLUDE_VARS  # not to be excluded
-        and settings.variables[variable].derived_from
-        != "outdated"  # not an outdated variable
+        not (
+            settings.variables[variable].derived_from is not None
+            and len(settings.variables[variable].derived_from) > 0
+        )  # not a derived variable
+        and (variable not in EXCLUDE_VARS)  # not to be excluded
+        and (
+            settings.variables[variable].derived_from != "outdated"
+        )  # not an outdated variable
     )
 ]
 
