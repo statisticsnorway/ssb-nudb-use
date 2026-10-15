@@ -13,14 +13,9 @@ FIRST_CLASS_VARIABLES = [
     variable
     for variable in settings.variables.keys()
     if (
-        not (
-            settings.variables[variable].derived_from is not None
-            and len(settings.variables[variable].derived_from) > 0
-        )  # not a derived variable
-        and (variable not in EXCLUDE_VARS)  # not to be excluded
-        and (
-            settings.variables[variable].derived_from != "outdated"
-        )  # not an outdated variable
+        not settings.variables[variable].derived_from  # not a derived variable
+        and variable not in EXCLUDE_VARS  # not to be excluded
+        and settings.variables[variable].unit != "outdated"  # not an outdated variable
     )
 ]
 
@@ -129,7 +124,7 @@ def _generate_microdata_variable_rectype_view(
             CREATE OR REPLACE VIEW
                 {alias} AS
             SELECT
-                utd_hendelse_id, '1' AS utd_rectype,
+                utd_hendelse_id, 'igang' AS utd_record_type,
                 NULL AS utd_hendelse_dato_start,
                 NULL AS utd_hendelse_dato_slutt
             FROM {igang.alias}
@@ -137,7 +132,7 @@ def _generate_microdata_variable_rectype_view(
             UNION ALL BY NAME
 
             SELECT
-                utd_hendelse_id, '2' AS utd_rectype,
+                utd_hendelse_id, 'avslutta' AS utd_record_type,
                 NULL AS utd_hendelse_dato_start,
                 NULL AS utd_hendelse_dato_slutt
             FROM {avslutta.alias}
@@ -145,7 +140,7 @@ def _generate_microdata_variable_rectype_view(
             UNION ALL BY NAME
 
             SELECT
-                utd_hendelse_id, '3' AS utd_rectype,
+                utd_hendelse_id, 'eksamen' AS utd_record_type,
                 NULL AS utd_hendelse_dato_start,
                 NULL AS utd_hendelse_dato_slutt
             FROM {eksamen.alias}
