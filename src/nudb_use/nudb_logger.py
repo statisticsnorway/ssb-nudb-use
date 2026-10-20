@@ -58,7 +58,7 @@ def add_log_record_to_json(record: logging.LogRecord) -> None:
     stack_label = last(STACK_LABELS)
 
     level = record.levelname
-    msg = record.msg
+    msg = record.getMessage()
 
     CURRENT_ID_COUNTER = ID_COUNTERS.pop()
     name = f"{level}-{stack_label}-{CURRENT_ID_COUNTER}"
@@ -221,9 +221,10 @@ class LoggerStack:
         if self.level < logger.getEffectiveLevel():  # don't register
             return self
 
-        CURRENT_ID_COUNTER = 0
-        FIELD_NAME = f"{self.label}-{CURRENT_ID_COUNTER}"
-        ID_COUNTERS.append(CURRENT_ID_COUNTER + 1)
+        PARENT_ID_COUNTER = ID_COUNTERS.pop()
+        ID_COUNTERS.append(PARENT_ID_COUNTER + 1)
+        FIELD_NAME = f"{self.label}-{PARENT_ID_COUNTER}"
+        ID_COUNTERS.append(0)  # counter for the new child scope
 
         current_json_field = last(JSON_FIELDS)
         if current_json_field is None:
@@ -247,12 +248,13 @@ class LoggerStack:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit the stack scope and clean up state."""
-        global STACK_LEVEL, STACK_LABELS, EXITING_STACK, JSON_FIELDS
+        global STACK_LEVEL, STACK_LABELS, EXITING_STACK, JSON_FIELDS, ID_COUNTERS
 
         if self.level < logger.getEffectiveLevel():  # don't register
             return None
 
         JSON_FIELDS.pop()
+        ID_COUNTERS.pop()
         EXITING_STACK = True
         self.log_msg(f"EXITING STACK [{self.label}]\n")
 
@@ -304,8 +306,10 @@ def _enter_new_logger_stack(label: str | None = None) -> None:
     stack.__enter__()
 
 
-def _exit_current_logger_stack(label: str | None = last(STACK_LABELS)) -> None:
+def _exit_current_logger_stack(label: str | None = None) -> None:
     """Exit the current logger stack context in a safe way."""
+    if label is None:
+        label = last(STACK_LABELS)
     stack = LoggerStack(label)
     stack.__exit__(None, None, None)
 
