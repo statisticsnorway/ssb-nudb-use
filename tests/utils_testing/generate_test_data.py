@@ -148,6 +148,8 @@ def generate_test_variable(
                         codes_final += rletters.reset_index(drop=True)
             case "INTEGER":
                 codes_final = pd.Series(np.arange(n)).astype("Int64")
+            case "UINTEGER":
+                codes_final = pd.Series(np.arange(n)).astype("UInt64")
             case "FLOAT":
                 codes_final = (pd.Series(np.arange(n)) + 0.28372).astype("Float64")
             case "BOOLEAN":
@@ -190,6 +192,10 @@ def generate_test_data(
     if not variables:
         logger.warning(f"No variables configured for dataset '{dataset}'.")
         return pd.DataFrame()
+
+    if "utd_hendelse_id" not in variables:
+        logger.warning(f"utd_hendelse_id is missing from the config for {dataset}!")
+        variables.append("utd_hendelse_id")
 
     cols = {}
     for var in variables:
