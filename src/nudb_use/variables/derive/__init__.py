@@ -45,6 +45,7 @@ from .nus_variants import utd_klassetrinn_lav_nus
 from .person import pers_foedselsdato
 from .person import pers_invkat
 from .person import pers_kjoenn
+from .relevant_variables import get_relevant_variable_names_dataset
 from .relevant_variables import pipe_all_relevant_variables_dataset
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
 from .utd_hoeyeste import utd_hoeyeste_rangering

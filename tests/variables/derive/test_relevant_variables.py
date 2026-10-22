@@ -21,6 +21,31 @@ def set_variables(monkeypatch, variables):
     )
 
 
+@pytest.mark.parametrize(
+    ("dataset_name", "expected"),
+    [
+        ("avslutta", ["first", "second"]),
+        ("igang", ["first", "other_dataset"]),
+        ("unknown", []),
+        ("avslutt", []),
+        ("AVSLUTTA", []),
+    ],
+)
+def test_get_relevant_variable_names_dataset(monkeypatch, dataset_name, expected):
+    set_variables(
+        monkeypatch,
+        {
+            "first": ["igang", "avslutta"],
+            "other_dataset": ["igang"],
+            "unset": None,
+            "empty": [],
+            "second": ["avslutta"],
+        },
+    )
+
+    assert derive.get_relevant_variable_names_dataset(dataset_name) == expected
+
+
 def test_relevant_variables_pipe_in_config_order(monkeypatch):
     set_variables(
         monkeypatch,

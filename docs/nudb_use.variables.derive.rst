@@ -20,6 +20,15 @@ derive function are logged and skipped.
 
 .. autofunction:: nudb_use.variables.derive.pipe_all_relevant_variables_dataset
 
+To inspect the configured variable names before deriving them::
+
+    variable_names = derive.get_relevant_variable_names_dataset("avslutta")
+
+Names are returned in configuration order, including variables without a
+registered derive function.
+
+.. autofunction:: nudb_use.variables.derive.get_relevant_variable_names_dataset
+
 
 nudb\_use.variables.derive.all\_data\_helpers module
 ----------------------------------------------------
