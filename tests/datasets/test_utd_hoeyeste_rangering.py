@@ -7,7 +7,7 @@ def test_60_studiepoeng_videreutdanning_rangeres_som_uh_grad() -> None:
     con = duckdb.connect()
     con.execute(_DUCKDB_MACROS)
 
-    result = con.sql("""
+    result = con.execute("""
         SELECT UTD_HOEYESTE_RANGERING(
             '714197',
             CAST('2006-01-01' AS DATE),
@@ -30,7 +30,7 @@ def test_120_studiepoeng_eksamen_bruker_invertert_utdanningsaar() -> None:
     con = duckdb.connect()
     con.execute(_DUCKDB_MACROS)
 
-    result = con.sql("""
+    result = con.execute("""
         SELECT
             UTD_HOEYESTE_RANGERING(
                 '637199',
@@ -68,7 +68,7 @@ def test_120_studiepoeng_eksamen_bruker_nyeste_dato_i_samme_utdanningsaar() -> N
     con = duckdb.connect()
     con.execute(_DUCKDB_MACROS)
 
-    result = con.sql("""
+    result = con.execute("""
         SELECT
             UTD_HOEYESTE_RANGERING(
                 '637199',
@@ -106,7 +106,7 @@ def test_utd_hoeyeste_aar_bruker_oktober_som_foerste_maaned() -> None:
     con = duckdb.connect()
     con.execute(_DUCKDB_MACROS)
 
-    result = con.sql("""
+    result = con.execute("""
         SELECT
             UTD_HOEYESTE_AAR(CAST('2018-09-01' AS DATE)) AS september,
             UTD_HOEYESTE_AAR(CAST('2018-10-01' AS DATE)) AS oktober

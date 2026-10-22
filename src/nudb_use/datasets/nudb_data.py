@@ -481,7 +481,8 @@ QUERY:
     def df(self) -> pd.DataFrame:
         """Return dataset as a pandas DataFrame."""
         query = self._get_query(check_validity=True)
-        return nudb_database.get_connection().sql(query).df()
+        result: pd.DataFrame = nudb_database.get_connection().sql(query).df()
+        return result
 
     def sql(self, expr: str | None = None) -> Any:
         """Use sql method of database connection."""

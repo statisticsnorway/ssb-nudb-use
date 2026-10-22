@@ -45,6 +45,8 @@ from .nus_variants import utd_klassetrinn_lav_nus
 from .person import pers_foedselsdato
 from .person import pers_invkat
 from .person import pers_kjoenn
+from .relevant_variables import get_relevant_variable_names_dataset
+from .relevant_variables import pipe_all_relevant_variables_dataset
 from .uh_univ_eller_hoegskole import uh_univ_eller_hoegskole
 from .utd_hoeyeste import utd_hoeyeste_rangering
 from .utd_skoleaar import utd_skoleaar_slutt
@@ -54,9 +56,11 @@ __all__ = [
     "bof_naering1_sn2025",
     "bof_naering2_sn2025",
     "bof_naering3_sn2025",
+    "get_relevant_variable_names_dataset",
     "pers_foedselsdato",
     "pers_invkat",
     "pers_kjoenn",
+    "pipe_all_relevant_variables_dataset",  # Be aware how __all__ is used to discover derive variables in derive_decorator.get_derive_function... Dont make it circular...
     "uh_univ_eller_hoegskole",
     "utd_erforeldet_kode_nus",
     "utd_hoeyeste_rangering",
