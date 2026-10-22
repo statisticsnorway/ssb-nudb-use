@@ -36,15 +36,18 @@ def _get_generator_derive_variable(
         from nudb_use.variables import derive
 
         need = settings.variables[variable].derived_from
-        missing = list(
-            set(need) - set(_get_available_variables()) - set(DERIVE_VARIABLES)
-        )
 
         if not need:
             msg = f"'{variable}' doesn't seem to be derived from anything. This is probably a bug!"
             logger.error(msg)
             raise ValueError(msg)
-        elif missing:
+
+        # after we know that need is not None
+        missing = list(
+            set(need) - set(_get_available_variables()) - set(DERIVE_VARIABLES)
+        )
+
+        if missing:
             msg = f"'{variable}' seems to be derived from variables which aren't available! Unavailable variables: {missing}"
             logger.error(msg)
             raise ValueError(msg)
