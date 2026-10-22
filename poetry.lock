@@ -5641,14 +5641,14 @@ typing-extensions = ">=4.12.2"
 
 [[package]]
 name = "ssb-nudb-config"
-version = "2026.10.1"
+version = "2026.10.2"
 description = "The config for NUDB - Nasjonal utdanningsdatabase"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "ssb_nudb_config-2026.10.1-py3-none-any.whl", hash = "sha256:4caf5f227e47adcb4ba315cbd0523b97ae5b24381201ccd8462ca6c9be5c97e6"},
-    {file = "ssb_nudb_config-2026.10.1.tar.gz", hash = "sha256:f535b275024356c68d7fa27db3acaccc21baeb23087b8fd19ed8e160709576e9"},
+    {file = "ssb_nudb_config-2026.10.2-py3-none-any.whl", hash = "sha256:662b06835909f835ef9232cc3b56760821b8901fefdd17db47a262ed2fd8cb92"},
+    {file = "ssb_nudb_config-2026.10.2.tar.gz", hash = "sha256:043162d27efe9a3b31bacf618f66b26de29e5280650ac8640cd9ab432f6f4845"},
 ]
 
 [package.dependencies]
@@ -6648,4 +6648,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "f5acfe90dafaf3b836cd2515bc4a6c0fe7052faaac4a924f16bdde9089f09c84"
+content-hash = "e8d81fe830a903eab6144a7563908ac6f208245e0c4ec5ff83a4f51419b2db27"
