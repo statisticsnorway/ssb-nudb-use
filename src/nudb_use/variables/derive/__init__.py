@@ -67,7 +67,6 @@ __all__ = [
     "utd_klassetrinn_hoey_nus",
     "utd_klassetrinn_lav_nus",
     "utd_skoleaar_slutt",
-    
 ]
 
 

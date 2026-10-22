@@ -3,12 +3,16 @@ from unittest.mock import Mock
 
 import pandas as pd
 import pytest
+from nudb_config import settings
 
+from nudb_use.nudb_logger import logger
 from nudb_use.variables import derive
 from nudb_use.variables.derive import relevant_variables
 
 
-def set_variables(monkeypatch, variables):
+def set_variables(
+    monkeypatch: pytest.MonkeyPatch, variables: dict[str, list[str] | None]
+) -> None:
     monkeypatch.setattr(
         relevant_variables,
         "settings",
@@ -31,7 +35,9 @@ def set_variables(monkeypatch, variables):
         ("AVSLUTTA", []),
     ],
 )
-def test_get_relevant_variable_names_dataset(monkeypatch, dataset_name, expected):
+def test_get_relevant_variable_names_dataset(
+    monkeypatch: pytest.MonkeyPatch, dataset_name: str, expected: list[str]
+) -> None:
     set_variables(
         monkeypatch,
         {
@@ -46,7 +52,9 @@ def test_get_relevant_variable_names_dataset(monkeypatch, dataset_name, expected
     assert derive.get_relevant_variable_names_dataset(dataset_name) == expected
 
 
-def test_relevant_variables_pipe_in_config_order(monkeypatch):
+def test_relevant_variables_pipe_in_config_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     set_variables(
         monkeypatch,
         {
@@ -76,7 +84,9 @@ def test_relevant_variables_pipe_in_config_order(monkeypatch):
 
 
 @pytest.mark.parametrize("dataset_name", ["unknown", "avslutt", "AVSLUTTA"])
-def test_no_exact_dataset_match_returns_unchanged(monkeypatch, dataset_name):
+def test_no_exact_dataset_match_returns_unchanged(
+    monkeypatch: pytest.MonkeyPatch, dataset_name: str
+) -> None:
     set_variables(monkeypatch, {"first": ["avslutta"], "unset": None, "empty": []})
     lookup = Mock()
     monkeypatch.setattr(relevant_variables, "get_derive_function", lookup)
@@ -88,12 +98,12 @@ def test_no_exact_dataset_match_returns_unchanged(monkeypatch, dataset_name):
     lookup.assert_not_called()
 
 
-def test_missing_function_warns_and_continues(monkeypatch):
+def test_missing_function_warns_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
     set_variables(monkeypatch, {"missing": ["avslutta"], "found": ["avslutta"]})
     lookup = Mock(side_effect=[None, lambda df: df.assign(found=True)])
     warning = Mock()
     monkeypatch.setattr(relevant_variables, "get_derive_function", lookup)
-    monkeypatch.setattr(relevant_variables.logger, "warning", warning)
+    monkeypatch.setattr(logger, "warning", warning)
 
     result = pd.DataFrame({"source": [1]}).pipe(
         derive.pipe_all_relevant_variables_dataset, "avslutta"
@@ -105,9 +115,11 @@ def test_missing_function_warns_and_continues(monkeypatch):
     assert "missing" in warning.call_args.args[0]
 
 
-def test_uses_config_metadata_and_existing_derive_wrapper(monkeypatch):
-    metadata = relevant_variables.settings.variables["utd_erutland"]
-    assert "avslutta" in metadata.derived_relevant_datasets
+def test_uses_config_metadata_and_existing_derive_wrapper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = settings.variables["utd_erutland"]
+    assert "avslutta" in (metadata.derived_relevant_datasets or [])
     monkeypatch.setattr(
         relevant_variables,
         "settings",
