@@ -56,6 +56,7 @@ __all__ = [
     "bof_naering1_sn2025",
     "bof_naering2_sn2025",
     "bof_naering3_sn2025",
+    "get_relevant_variable_names_dataset",
     "pers_foedselsdato",
     "pers_invkat",
     "pers_kjoenn",
