@@ -261,7 +261,7 @@ def _find_orgnr_foretak_bof(
         logger.info(
             "Executing targeted join on dates for data and orgnrbed -> orgnr_foretak connections"
         )
-        result_df = con.sql(lookup_sql).df()
+        result_df: pd.DataFrame = con.sql(lookup_sql).df()
 
         result = result_df["orgnr"].astype("string").set_axis(original_index)
         return result
@@ -332,7 +332,7 @@ def _find_orgnrbed_enkelbedforetak_bof(
             return pd.Series(pd.NA, index=original_index, dtype="string")
 
         logger.info("Executing join from orgnr_foretak to orgnrbed")
-        result_df = con.sql(lookup_sql).df()
+        result_df: pd.DataFrame = con.sql(lookup_sql).df()
 
         result = result_df["orgnrbed"].astype("string").set_axis(original_index)
         return result
