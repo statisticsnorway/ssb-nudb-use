@@ -207,3 +207,4 @@ def test_microdata(
     MicroData("utd_hoeyeste_nus2000")
     MicroData("nus2000")
     MicroData("utd_record_type")
+    MicroData("uh_univ_eller_hoegskole")

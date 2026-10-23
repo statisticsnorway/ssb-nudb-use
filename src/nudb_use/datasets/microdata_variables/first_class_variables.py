@@ -60,9 +60,9 @@ def _get_generator_first_class_variable(
         logger.info(f"Creating MicroData dataset for {variable}...")
 
         if variable not in _get_available_variables():
-            logger.error(
-                f"{variable} is not available in either IGANG, AVSLUTTA or EKSAMEN!"
-            )
+            msg = f"{variable} is not available in either IGANG, AVSLUTTA or EKSAMEN!"
+            logger.error(msg)
+            raise ValueError(msg)
 
         igang = NudbData("igang")
         avslutta = NudbData("avslutta")
