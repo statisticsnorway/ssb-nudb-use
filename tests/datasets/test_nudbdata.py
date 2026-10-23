@@ -139,7 +139,12 @@ def test_from_parquet_force_overwrites_unattached_dataset_generator(
         (0.5, True, None),
     ],
 )
-def test_sample(expr, percent, expected_rows, monkeypatch: Any) -> None:
+def test_sample(
+    expr: str | int | float,
+    percent: bool,
+    expected_rows: int | None,
+    monkeypatch: Any,
+) -> None:
     database = nudb_database_module.nudb_database
 
     def generator(alias: str, connection: Any) -> None:
