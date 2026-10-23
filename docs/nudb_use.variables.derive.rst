@@ -1,6 +1,34 @@
 nudb\_use.variables.derive package
 ==================================
 
+Derive the variables configured as relevant for a dataset with a dataframe pipe::
+
+    from nudb_use.datasets import NudbData
+    from nudb_use.variables import derive
+
+    df = (
+        NudbData("avslutta")
+        .select("fnr", "utd_slutt")
+        .df()
+        .pipe(derive.pipe_all_relevant_variables_dataset, "avslutta")
+    )
+
+The helper selects variables whose ``derived_relevant_datasets`` contains the
+dataset name, then applies their derive functions in configuration order.
+Existing derive wrappers handle prerequisites. Variables without a registered
+derive function are logged and skipped.
+
+.. autofunction:: nudb_use.variables.derive.pipe_all_relevant_variables_dataset
+
+To inspect the configured variable names before deriving them::
+
+    variable_names = derive.get_relevant_variable_names_dataset("avslutta")
+
+Names are returned in configuration order, including variables without a
+registered derive function.
+
+.. autofunction:: nudb_use.variables.derive.get_relevant_variable_names_dataset
+
 
 nudb\_use.variables.derive.all\_data\_helpers module
 ----------------------------------------------------

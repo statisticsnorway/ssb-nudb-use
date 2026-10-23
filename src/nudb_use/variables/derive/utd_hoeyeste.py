@@ -34,7 +34,7 @@ def utd_hoeyeste_rangering(df: pd.DataFrame) -> pd.Series:
     con = nudb_database.get_connection()
     con.register("tmp_df_rangering", df)
 
-    result = con.sql("""
+    result: pd.DataFrame = con.sql("""
         SELECT
             UTD_HOEYESTE_RANGERING(
                 nus2000,

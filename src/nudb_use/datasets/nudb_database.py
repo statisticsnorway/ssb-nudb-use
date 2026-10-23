@@ -24,6 +24,10 @@ from nudb_use.datasets.macros import _DUCKDB_MACROS
 from nudb_use.datasets.microdata_variables import (
     _generate_microdata_utd_hoeyeste_nus2000_view,
 )
+from nudb_use.datasets.microdata_variables.derive_variables import DERIVE_VARIABLES
+from nudb_use.datasets.microdata_variables.derive_variables import (
+    _get_generator_derive_variable,
+)
 from nudb_use.datasets.microdata_variables.first_class_variables import (
     FIRST_CLASS_VARIABLES,
 )
@@ -116,6 +120,12 @@ class _NudbDatabase:
         for variable in FIRST_CLASS_VARIABLES:
             self._dataset_generators[MICRODATA_PREFIX + variable] = (
                 _get_generator_first_class_variable(variable)
+            )
+
+        # derive variables (MicroData)
+        for variable in DERIVE_VARIABLES:
+            self._dataset_generators[MICRODATA_PREFIX + variable] = (
+                _get_generator_derive_variable(variable)
             )
 
         self._dataset_paths: dict[str, list[Path]] = {}
