@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import pytest
 
 import nudb_use
 from nudb_use.datasets import NudbData
@@ -123,6 +124,49 @@ def test_from_parquet_force_overwrites_unattached_dataset_generator(
 
     assert data.df().to_dict("list") == {"snr": ["1"], "komm_nr": ["0301"]}
     assert database._dataset_paths[alias] == [parquet_path]
+
+
+@pytest.mark.parametrize(
+    ("expr", "percent", "expected_rows"),
+    [
+        (1, False, 1),
+        ("1", False, 1),
+        (1, True, None),
+        ("1%", False, None),
+        (100, True, 100),
+        ("100%", True, 100),
+        (0, True, 0),
+        (0.5, True, None),
+    ],
+)
+def test_sample(expr, percent, expected_rows, monkeypatch: Any) -> None:
+    database = nudb_database_module.nudb_database
+
+    def generator(alias: str, connection: Any) -> None:
+        connection.execute(
+            f"CREATE OR REPLACE VIEW {alias} AS SELECT range AS id FROM range(100)"
+        )
+
+    monkeypatch.setitem(database._dataset_generators, "sample_test", generator)
+    monkeypatch.delitem(database._datasets, "sample_test", raising=False)
+    data = NudbData("sample_test")
+
+    sampled = data.sample(expr, percent=percent)
+    result = sampled.df()
+
+    assert sampled is not data
+    assert "USING SAMPLE" not in data._get_query()
+    assert len(data.df()) == 100
+    assert result["id"].isin(range(100)).all()
+    if expected_rows is not None:
+        assert len(result) == expected_rows
+
+    monkeypatch.setitem(database._datasets, "sample_test", sampled)
+    assert NudbData("sample_test")._get_query() == sampled._get_query()
+
+    chained = data.sample("100%").where("id >= 50").select("id").limit(3)
+    assert len(chained.df()) == 3
+    assert chained.df()["id"].ge(50).all()
 
 
 def test_fetch_string_column_and_tables() -> None:
