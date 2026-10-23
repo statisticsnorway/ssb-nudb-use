@@ -1,6 +1,20 @@
 nudb\_use.variables.derive package
 ==================================
 
+Derive several variables by column name::
+
+    from nudb_use.variables import derive
+
+    df = df.pipe(
+        derive.derive_variables,
+        ["utd_erutland", "utd_skoleaar_slutt"],
+        priority="old",
+    )
+
+The functions run in the supplied order, deriving missing prerequisites through
+the existing wrappers. Unknown names are logged and skipped; pass
+``raise_errors=True`` to raise errors instead.
+
 Derive the variables configured as relevant for a dataset with a dataframe pipe::
 
     from nudb_use.datasets import NudbData

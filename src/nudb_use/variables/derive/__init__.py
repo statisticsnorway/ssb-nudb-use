@@ -18,6 +18,7 @@ from . import registrert
 from . import registrert_foerste
 from . import utd_foreldres_utdnivaa
 from . import utd_hoeyeste
+from .derive_decorator import derive_variables as derive_variables
 from .derive_decorator import get_derive_function
 
 derive_all_submodules = (
