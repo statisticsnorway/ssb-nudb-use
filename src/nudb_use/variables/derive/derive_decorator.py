@@ -1,5 +1,6 @@
 import inspect
 from collections.abc import Callable
+from typing import Any
 from typing import Concatenate
 from typing import Literal
 from typing import ParamSpec
@@ -52,6 +53,60 @@ def get_derive_function(varname: str) -> Callable[..., pd.DataFrame] | None:
         return found_func
     logger.warning(f"Found no derive function for {varname}")
     return None
+
+
+def derive_variables(
+    df: pd.DataFrame,
+    /,
+    variable_names: list[str],
+    priority: Literal["old", "new"] = "old",
+    temp_col_renames: dict[str, str] | None = None,
+    raise_errors: bool = False,
+    **kwargs: Any,
+) -> pd.DataFrame:
+    """Derive multiple variables in the supplied order.
+
+    Each derive function receives the previous function's dataframe. Existing
+    wrappers derive missing prerequisites recursively. Unknown variable names
+    are logged and skipped unless ``raise_errors`` is enabled. An empty list
+    returns the dataframe unchanged.
+
+    Args:
+        df: Dataframe to derive variables on.
+        variable_names: Column names identifying the derive functions to run.
+        priority: Prefer existing ("old") or newly derived ("new") values.
+        temp_col_renames: Temporary source-to-prerequisite column name mapping.
+        raise_errors: Raise derivation errors instead of logging and continuing.
+        **kwargs: Additional keyword arguments passed to each derive function.
+
+    Returns:
+        pd.DataFrame: Dataframe with the requested variables added or updated.
+
+    Raises:
+        DeriveError: If a derive function is missing and raise_errors is True,
+            or a derive wrapper raises a derivation error.
+
+    Examples:
+        Use with a dataframe pipe::
+
+            df.pipe(derive_variables, ["utd_erutland", "utd_skoleaar_slutt"])
+    """
+    for variable_name in variable_names:
+        function = get_derive_function(variable_name)
+        if function is None:
+            message = f"No derive function found for {variable_name}."
+            if raise_errors:
+                raise DeriveError(message)
+            logger.warning(message)
+            continue
+        df = df.pipe(
+            function,
+            priority=priority,
+            temp_col_renames=temp_col_renames,
+            raise_errors=raise_errors,
+            **kwargs,
+        )
+    return df
 
 
 def wrap_derive(
