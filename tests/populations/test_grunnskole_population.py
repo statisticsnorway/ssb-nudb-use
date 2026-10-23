@@ -2,14 +2,11 @@ import pandas as pd
 import pytest
 
 from nudb_use.populations.grunnskole_population import _add_age_at_school_start
-from nudb_use.populations.grunnskole_population import (
-    _create_boolean_vars_for_exclusion,
-)
+from nudb_use.populations.grunnskole_population import _add_school_name
+from nudb_use.populations.grunnskole_population import _create_boolean_vars_for_exclusion
 from nudb_use.populations.grunnskole_population import _derive_har_grunnskolenaering
 from nudb_use.populations.grunnskole_population import _exclude_to_grunnskole_population
-from nudb_use.populations.grunnskole_population import (
-    _validate_required_cols_for_exclusion,
-)
+from nudb_use.populations.grunnskole_population import _validate_required_cols_for_exclusion
 
 
 def test_validate_required_cols_for_exclusion_passes() -> None:
@@ -130,6 +127,68 @@ def test_add_age_at_school_start_missing_birthdate() -> None:
             df=df,
             start_year=2024,
         )
+
+
+def test_add_school_name_fills_missing_values_from_bof(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "orgnrbed": ["1", "2"],
+            "gro_skolenavn_inn": [
+                None,
+                "Eksisterende skole",
+            ],
+        }
+    )
+
+    bof_df = pd.DataFrame(
+        {
+            "orgnrbed": ["1", "2"],
+            "bof_navn": [
+                "Steinerskolen i Oslo",
+                "BOF skole",
+            ],
+        }
+    )
+
+    class MockNudbData:
+        def select(self, *_args):
+            return self
+
+        def where(self, *_args):
+            return self
+
+        def df(self):
+            return bof_df
+
+    monkeypatch.setattr(
+        "nudb_use.populations.grunnskole_population.NudbData",
+        lambda *_args, **_kwargs: MockNudbData(),
+    )
+
+    result = _add_school_name(df)
+
+    assert result["gro_skolenavn_inn"].tolist() == [
+        "Steinerskolen i Oslo",
+        "Eksisterende skole",
+    ]
+
+
+def test_add_school_name_keeps_existing_values() -> None:
+    df = pd.DataFrame(
+        {
+            "orgnrbed": ["1", "2"],
+            "gro_skolenavn_inn": [
+                "Skole A",
+                "Skole B",
+            ],
+        }
+    )
+
+    result = _add_school_name(df)
+
+    pd.testing.assert_frame_equal(result, df)
 
 
 def test_create_boolean_vars_for_exclusion() -> None:

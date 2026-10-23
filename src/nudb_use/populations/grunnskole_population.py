@@ -140,6 +140,39 @@ def _add_age_at_school_start(
     return df
 
 
+def _add_school_name(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Ensure gro_skolenavn_inn is populated. Filling missing values from BOF.
+
+    Args:
+        df:
+            pd.DataFrame.
+            Input dataframe.
+
+    Returns:
+        pd.DataFrame:
+            Dataframe with column 'gro_skolenavn_inn' populated.
+    """
+    if df["gro_skolenavn_inn"].notna().all():
+        return df
+
+    navn = (
+        NudbData("bof_situttak")
+            .select("orgnrbed, navn")
+            .where("navn is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
+            .df()
+            .rename(columns={"navn": "bof_navn"})
+    )
+
+    df = df.merge(navn, on="orgnrbed", how="left")
+
+    df["gro_skolenavn_inn"] = df["gro_skolenavn_inn"].fillna(
+        df["bof_navn"]
+    )
+    
+    return df.drop(columns="bof_navn")
+
 def _get_required_cols_for_exclusion(
     df: pd.DataFrame,
     start_year: int,
@@ -164,6 +197,8 @@ def _get_required_cols_for_exclusion(
         df=df,
         start_year=start_year,
     )
+
+    df = _add_school_name(df)
 
     return df
 
