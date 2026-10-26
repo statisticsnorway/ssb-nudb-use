@@ -157,13 +157,13 @@ def test_add_school_name_fills_missing_values_from_bof(
     )
 
     class MockNudbData:
-        def select(self, *_args):
+        def select(self, *_args: object) -> "MockNudbData":
             return self
 
-        def where(self, *_args):
+        def where(self, *_args: object) -> "MockNudbData":
             return self
 
-        def df(self):
+        def df(self) -> pd.DataFrame:
             return bof_df
 
     monkeypatch.setattr(
