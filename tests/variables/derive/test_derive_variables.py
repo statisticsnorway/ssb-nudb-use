@@ -76,14 +76,18 @@ def test_derive_variables_unknown_name_warns_and_continues(
 
 
 def test_derive_variables_unknown_name_raises() -> None:
+    source = pd.DataFrame()
+
     with pytest.raises(DeriveError, match="unknown"):
-        derive.derive_variables(pd.DataFrame(), ["unknown"], raise_errors=True)
+        derive.derive_variables(source, ["unknown"], raise_errors=True)
 
 
 def test_derive_variables_missing_prerequisite_raises() -> None:
+    source = pd.DataFrame({"unrelated": [1]})
+
     with pytest.raises(DeriveError, match="utd_skoleaar_slutt"):
         derive.derive_variables(
-            pd.DataFrame({"unrelated": [1]}),
+            source,
             ["utd_skoleaar_slutt"],
             raise_errors=True,
         )
