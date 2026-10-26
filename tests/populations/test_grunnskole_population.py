@@ -3,10 +3,14 @@ import pytest
 
 from nudb_use.populations.grunnskole_population import _add_age_at_school_start
 from nudb_use.populations.grunnskole_population import _add_school_name
-from nudb_use.populations.grunnskole_population import _create_boolean_vars_for_exclusion
+from nudb_use.populations.grunnskole_population import (
+    _create_boolean_vars_for_exclusion,
+)
 from nudb_use.populations.grunnskole_population import _derive_har_grunnskolenaering
 from nudb_use.populations.grunnskole_population import _exclude_to_grunnskole_population
-from nudb_use.populations.grunnskole_population import _validate_required_cols_for_exclusion
+from nudb_use.populations.grunnskole_population import (
+    _validate_required_cols_for_exclusion,
+)
 
 
 def test_validate_required_cols_for_exclusion_passes() -> None:

@@ -159,19 +159,18 @@ def _add_school_name(
 
     navn = (
         NudbData("bof_situttak")
-            .select("orgnrbed, navn")
-            .where("navn is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
-            .df()
-            .rename(columns={"navn": "bof_navn"})
+        .select("orgnrbed, navn")
+        .where("navn is DISTINCT FROM NULL AND orgnrbed is DISTINCT FROM NULL")
+        .df()
+        .rename(columns={"navn": "bof_navn"})
     )
 
     df = df.merge(navn, on="orgnrbed", how="left")
 
-    df["gro_skolenavn_inn"] = df["gro_skolenavn_inn"].fillna(
-        df["bof_navn"]
-    )
-    
+    df["gro_skolenavn_inn"] = df["gro_skolenavn_inn"].fillna(df["bof_navn"])
+
     return df.drop(columns="bof_navn")
+
 
 def _get_required_cols_for_exclusion(
     df: pd.DataFrame,
