@@ -83,6 +83,7 @@ class NudbData:
             self._select = "*"
             self._where = ""
             self._limit = ""
+            self._sample = ""
             self._join = ""
             self._join_type = ""
             self._join_as = ""
@@ -203,6 +204,7 @@ QUERY:
         self._select = other._select
         self._where = other._where
         self._limit = other._limit
+        self._sample = other._sample
         self._join = other._join
         self._join_type = other._join_type
         self._join_as = other._join_as
@@ -254,6 +256,10 @@ QUERY:
         if self._where:
             query += f"\nWHERE\n{_indent(self._where)}"
 
+        # USING SAMPLE ...
+        if self._sample:
+            query += f"\nUSING SAMPLE\n{_indent(self._sample)}"
+
         # LIMIT ...
         if self._limit:
             query += f"\nLIMIT\n{_indent(self._limit)}"
@@ -269,6 +275,7 @@ QUERY:
         # )
         # WHERE
         #   ...
+        # USING SAMPLE ...
         # LIMIT ...;
         return query
 
@@ -299,6 +306,25 @@ QUERY:
         """Specify (inner part) of the LIMIT statement in SQL query."""
         out = copy.copy(self)
         out._limit = str(expr)
+        return out
+
+    def sample(self, expr: str | int | float, percent: bool = False) -> "NudbData":
+        """Specify (inner part) of the USING SAMPLE statement in SQL query.
+
+        Args:
+            expr: Number of rows, or a percentage string such as "1%".
+            percent: Interpret expr as a percentage of rows. Percentage samples
+                use DuckDB's default system sampling and have approximate sizes.
+
+        Returns:
+            NudbData: A copy with the sample applied.
+        """
+        expr = str(expr).strip()
+        if percent and not expr.endswith("%"):
+            expr += "%"
+
+        out = copy.copy(self)
+        out._sample = expr
         return out
 
     def join(
