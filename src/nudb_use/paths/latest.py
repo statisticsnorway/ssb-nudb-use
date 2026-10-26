@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from dapla_metadata.datasets.core import Datadoc
 from dapla_metadata.datasets.dapla_dataset_path_info import DaplaDatasetPathInfo
 from fagfunksjoner.paths.versions import get_latest_fileversions
 from nudb_config import settings
@@ -131,6 +132,42 @@ def _get_available_files(filename: str = "", filetype: str = "parquet") -> list[
     return files
 
 
+def _report_datadoc_version_description(path: Path, language: str = "nb") -> str:
+    meta_path = path.parent / (path.stem + "__DOC.json")
+    try:
+        meta = Datadoc(metadata_document_path=meta_path)
+    except ValueError as e:
+        logger.warning(
+            f"Cant find Datadoc file to look at version description for {path} - we expect to find this for shared files on Dapla... {e}"
+        )
+        return ""
+    version_description = meta.dataset.version_description
+    descriptions = version_description.root if version_description is not None else None
+    if not descriptions:
+        logger.warning(f"Found no descriptions, which is weird, for {meta_path}")
+        return ""
+
+    # Prefer the requested language, then fall back to the first available text.
+    fallback = ""
+    for description in descriptions:
+        text = description.languageText
+        if not text:
+            continue
+        if not fallback:
+            fallback = text
+        if description.languageCode == language:
+            desc = text
+            break
+    else:
+        desc = fallback
+
+    if not desc:
+        logger.warning(f"Found no descriptions, which is weird, for {meta_path}")
+        return ""
+    logger.info(f"\nVersion description from Datadoc: {desc} \nfor file: {path}\n")
+    return desc
+
+
 def get_file_short_name(p: Path) -> str:
     """Get short name of a file, from a path.
 
@@ -174,6 +211,8 @@ def latest_shared_path(dataset_name: str = "") -> tuple[str, Path]:
     last_key = max(paths_dict.keys())
     last_path = paths_dict[last_key]
     logger.info(f"{dataset_name} name: {last_key} at: {last_path}.")
+
+    _report_datadoc_version_description(last_path)
 
     return last_key, last_path
 
