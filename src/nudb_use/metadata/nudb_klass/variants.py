@@ -1,16 +1,31 @@
-import datetime
-
-import dateutil.parser
 import klass
 import pandas as pd
-from klass.requests.klass_types import VersionPartType
+from klass import KlassVersion
 from nudb_config.pydantic.variables import Variable
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import logger
 
 from .klass_utils import _outside_codes_handeling
-from .klass_utils import find_earliest_latest_klass_version_date
+
+
+def _get_klass_version(
+    klass_codelist: int,
+    klass_codelist_from_date: str | None,
+    data_time_start: str | None,
+    data_time_end: str | None,
+    klass_use_relative_time: bool,
+) -> KlassVersion:
+    """Select the latest version, or a version relative to the dataset period."""
+    classification = klass.KlassClassification(klass_codelist)
+    if not klass_use_relative_time:
+        return classification.get_version()
+
+    versions = sorted(classification.versions, key=lambda v: v["validFrom"])
+    refdate = klass_codelist_from_date or data_time_end or data_time_start
+    refdate = max(versions[0]["validFrom"], refdate or versions[-1]["validFrom"])
+    version = next(v for v in reversed(versions) if v["validFrom"] <= refdate)
+    return classification.get_version(version_id=version["version_id"])
 
 
 def klass_variant_search_term_mapping(
@@ -18,6 +33,8 @@ def klass_variant_search_term_mapping(
     key: str = "code",
     value: str = "parentCode",
     select_level: int | None = None,
+    data_time_start: str | None = None,
+    data_time_end: str | None = None,
 ) -> dict[str, str]:
     """Subfunction to get the mapping from klass for the variable.
 
@@ -26,6 +43,8 @@ def klass_variant_search_term_mapping(
         key: key argument passed to 'klass.KlassVariant.to_dict'
         value: value argument passed to 'klass.KlassVariant.to_dict'
         select_level: select_level argument passed to 'klass.KlassVariant.to_dict'
+        data_time_start: Start date of the dataset period.
+        data_time_end: End date of the dataset period.
 
     Returns:
         dict[str, str]: The mapping dict from klass.
@@ -50,9 +69,13 @@ def klass_variant_search_term_mapping(
     else:
         search_term: str = search_term_maybe_none
 
-    version = klass.KlassClassification(
-        klass_codelist
-    ).get_version()  # Future development: Could we support "refdate" in the klass package on this to get the version by date?
+    version = _get_klass_version(
+        klass_codelist,
+        var_meta.klass_codelist_from_date,
+        data_time_start,
+        data_time_end,
+        var_meta.klass_use_relative_time,
+    )
 
     found_variants = {
         k: v
@@ -96,41 +119,15 @@ def _check_klass_variant_column_search_term(
     klass_codelist_from_date: str | None,
     data_time_start: str | None,
     data_time_end: str | None,
+    klass_use_relative_time: bool = False,
 ) -> list[NudbQualityError]:
-
-    # Lets figure out what our refdate for the version should be
-    refdate: str
-    if klass_codelist_from_date:
-        refdate = klass_codelist_from_date
-    elif data_time_end:
-        refdate = data_time_end
-    elif data_time_start:
-        refdate = data_time_start
-    else:
-        _first_date, refdate = find_earliest_latest_klass_version_date(klass_codelist)
-    refdate_datetime = dateutil.parser.parse(refdate)
-
-    # Go backwards from the future until we find an earlier date
-    classification = klass.KlassClassification(klass_codelist)
-    date_keyed: dict[datetime.datetime, VersionPartType] = {
-        dateutil.parser.parse(version_part["validFrom"]): version_part
-        for version_part in classification.versions
-    }
-    date_keyed_sorted_reversed = {k: date_keyed[k] for k in sorted(date_keyed)[::-1]}
-
-    ver_final: VersionPartType | None = None
-    ver_date: datetime.datetime
-    for ver_date, ver in date_keyed_sorted_reversed.items():
-        if ver_date <= refdate_datetime:
-            ver_final = ver
-            break
-
-    if ver_final is None:
-        raise KeyError(
-            f"Couldnt find a version for classification {klass_codelist}, that matches refdate {refdate}."
-        )
-    ver_id: int = ver_final["version_id"]
-    version = klass.KlassVersion(ver_id)
+    version = _get_klass_version(
+        klass_codelist,
+        klass_codelist_from_date,
+        data_time_start,
+        data_time_end,
+        klass_use_relative_time,
+    )
     variant = version.get_variant(search_term=klass_variant_search_term)
     logger.info(
         f"For `{col}` found a klass-variant with id {variant.variant_id}, dated {variant.validFrom}, with variant-name {variant.name}, based on search-term {klass_variant_search_term}."

@@ -75,6 +75,7 @@ def generate_test_variable(
         dtype = metadata.dtype
         renamed_from = metadata.renamed_from or []
         klass_codelist_from_date = metadata.klass_codelist_from_date
+        klass_use_relative_time = metadata.klass_use_relative_time
 
     else:
         logger.warning(f"Unable to find '{name}' in config!")
@@ -83,6 +84,7 @@ def generate_test_variable(
         dtype = "STRING"
         renamed_from = []
         klass_codelist_from_date = None
+        klass_use_relative_time = False
 
     has_codelist = codelist is not None and codelist != 0
     length_list = length or []
@@ -104,6 +106,7 @@ def generate_test_variable(
             klass_codelist_from_date=klass_codelist_from_date,
             data_time_start=None,
             data_time_end=None,
+            klass_use_relative_time=klass_use_relative_time,
         )
         codes_list = get_klass_codes(
             int(codelist),

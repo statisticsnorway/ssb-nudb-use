@@ -62,7 +62,11 @@ class NudbData:
 
             elif name not in nudb_database._dataset_generators.keys():
                 available = ",\n\t".join(
-                    sorted(nudb_database._dataset_generators.keys())
+                    sorted(
+                        dataset
+                        for dataset in nudb_database._dataset_generators
+                        if not dataset.startswith("_")
+                    )
                 )
                 raise ValueError(
                     f"Unrecognized NUDB dataset ({name})!\nAvailable datasets:\n\t{available}"
