@@ -60,8 +60,11 @@ def _resolve_date_range(
     klass_codelist_from_date: object,
     data_time_start: str | None,
     data_time_end: str | None,
+    klass_use_relative_time: bool = False,
 ) -> tuple[str | None, str | None]:
-    """Pick dates from parameters over metadata, validating type."""
+    """Resolve dataset-relative dates, or use the current codelist."""
+    if not klass_use_relative_time:
+        return None, None
     metadata_from_date = _ensure_optional_str(klass_codelist_from_date)
     return _prioritize_dates_from_param_or_config(
         klassid, metadata_from_date, data_time_start, data_time_end
@@ -159,6 +162,7 @@ def _prioritize_dates_from_param_or_config(
     # What do we do if the dates now have passed the available date range?
     from_date = _center_adjust(from_date, last_available_date, how="to")
     to_date = _center_adjust(to_date, first_available_date, how="from")
+    to_date = _center_adjust(to_date, last_available_date, how="to")
 
     logger.info(f"Prioritized dates for klass: {from_date=}, {to_date=}.")
     logger.debug(

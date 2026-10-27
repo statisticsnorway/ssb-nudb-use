@@ -158,6 +158,7 @@ def _check_column_against_klass(
         metadata.loc[col, "klass_variant_search_term"]
     )
     codelist_extras = _type_narrow_dict_meta(metadata.loc[col, "codelist_extras"])
+    klass_use_relative_time = bool(metadata.loc[col, "klass_use_relative_time"])
 
     result: list[NudbQualityError]
     # If variant fields are filled, we want to get the codelits to check from the variant instead
@@ -181,6 +182,7 @@ def _check_column_against_klass(
             klass_codelist_from_date=klass_codelist_from_date,
             data_time_start=data_time_start,
             data_time_end=data_time_end,
+            klass_use_relative_time=klass_use_relative_time,
         )
     elif klass_variant_search_term:
         raise ValueError(
@@ -195,6 +197,7 @@ def _check_column_against_klass(
             data_time_start=data_time_start,
             data_time_end=data_time_end,
             codelist_extras=codelist_extras,
+            klass_use_relative_time=klass_use_relative_time,
         )
     else:
         logger.debug(
@@ -212,6 +215,7 @@ def _check_klass_codelist_codes(
     data_time_start: str | None,
     data_time_end: str | None,
     codelist_extras: dict[str, str] | None,
+    klass_use_relative_time: bool = False,
 ) -> list[NudbQualityError]:
     logger.info(f"Checking `{col}`, found codelist ID: {klass_codelist}!")
     from_date, to_date = _resolve_date_range(
@@ -219,6 +223,7 @@ def _check_klass_codelist_codes(
         klass_codelist_from_date,
         data_time_start,
         data_time_end,
+        klass_use_relative_time=klass_use_relative_time,
     )
     codes = get_klass_codes(
         klass_codelist, data_time_start=from_date, data_time_end=to_date
