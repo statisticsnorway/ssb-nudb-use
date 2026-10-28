@@ -85,11 +85,9 @@ def subcheck_nus2000_outdated(
     if nus_col is None or not dataset_name:
         return None
     dataset = settings_use.datasets.get(dataset_name)
-    if dataset is None or dataset.team not in {
-        "utd-uhfagskole",
-        "utd-vg",
-        "utd-bhgskole",
-    }:
+    # Limit test to datasets delivered to NUDB from delivering teams (we expect other datasets to have historical outdated nuscodes)
+    delivering_teams = settings_use.constants.get("delivering_teams")
+    if dataset is None or dataset.team not in delivering_teams:
         return None
 
     codes = nus_col.dropna().drop_duplicates()
