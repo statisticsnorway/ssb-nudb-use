@@ -17,7 +17,7 @@ DERIVE_VARIABLES = [
     if (
         settings.variables[variable].derived_from  # is a derived variable
         and variable not in EXCLUDE_VARS  # not to be excluded
-        and settings.variables[variable].unit != "outdated"  # not an outdated variable
+        and settings.variables[variable].unit != "utdatert"  # not an outdated variable
     )
 ]
 

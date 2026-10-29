@@ -21,9 +21,6 @@ from nudb_use.datasets.eksamen import _generate_eksamen_hoeyeste_view
 from nudb_use.datasets.eksamen import _generate_eksamen_view
 from nudb_use.datasets.igang import _generate_igang_view
 from nudb_use.datasets.macros import _DUCKDB_MACROS
-from nudb_use.datasets.microdata_variables import (
-    _generate_microdata_utd_hoeyeste_nus2000_view,
-)
 from nudb_use.datasets.microdata_variables.derive_variables import DERIVE_VARIABLES
 from nudb_use.datasets.microdata_variables.derive_variables import (
     _get_generator_derive_variable,
@@ -110,8 +107,6 @@ class _NudbDatabase:
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,
             # MicroData()
-            MICRODATA_PREFIX
-            + "utd_hoeyeste_nus2000": _generate_microdata_utd_hoeyeste_nus2000_view,
             MICRODATA_PREFIX
             + "utd_record_type": _generate_microdata_variable_rectype_view,
         }
