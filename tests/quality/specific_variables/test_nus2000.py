@@ -105,7 +105,7 @@ def test_derivation_failure_is_reported() -> None:
 
 def test_missing_delivery_teams_skip_derivation() -> None:
     with (
-        patch.object(nus2000.settings_use, "constants", {}),
+        patch("nudb_use.quality.specific_variables.nus2000.settings_use.constants", {}),
         patch(MAPPING_TARGET) as mapping,
     ):
         error = subcheck_nus2000_outdated(pd.Series(["211101"]), "avslutta_grunnskole")
