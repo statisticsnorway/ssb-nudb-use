@@ -8,6 +8,8 @@ from nudb_use import settings as settings_use
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+from nudb_use.variables.derive.derive_decorator import DeriveError
+from nudb_use.variables.derive.derive_decorator import get_derive_function
 
 from .utils import add_err2list
 from .utils import get_column
@@ -19,7 +21,9 @@ def check_nus2000(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
 
     Args:
         df: DataFrame that should contain nus2000-relevant columns.
-        **kwargs: Additional keyword arguments forwarded to range validation. Passed in from parent function.
+        **kwargs: Dataset name and optional range override passed in from the
+            parent function. Outdated codes are checked only for datasets owned
+            by the education teams delivering data to NUDB.
 
     Returns:
         list[NudbQualityError]: Validation errors gathered from all sub-checks,
@@ -39,6 +43,7 @@ def check_nus2000(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
         dataset_name_obj = kwargs.get("dataset_name")
         dataset_name = dataset_name_obj if isinstance(dataset_name_obj, str) else None
 
+        add_err2list(errors, subcheck_nus2000_outdated(nus2000, dataset_name))
         add_err2list(
             errors,
             subcheck_nus2000_valid_range(
@@ -57,6 +62,69 @@ def check_nus2000(df: pd.DataFrame, **kwargs: object) -> list[NudbQualityError]:
         )
 
         return errors
+
+
+def subcheck_nus2000_outdated(
+    nus_col: pd.Series | None, dataset_name: str | None = None
+) -> NudbQualityError | None:
+    """Report outdated NUS codes in education teams' NUDB deliverables.
+
+    Historical NUDB datasets and calls without a known delivery dataset are
+    skipped. The latest KLASS variant is used through the existing derivation,
+    regardless of the period covered by the delivery. Only distinct, nonmissing
+    codes are derived, without adding columns to the caller's dataframe.
+
+    Args:
+        nus_col: Series containing nus2000 codes, or None if missing.
+        dataset_name: Configured dataset name used to identify delivery teams.
+
+    Returns:
+        NudbQualityError | None: A summary of outdated codes and affected rows,
+        an error if derivation fails, or None when clean or outside the scope.
+    """
+    if nus_col is None or not dataset_name:
+        return None
+    dataset = settings_use.datasets.get(dataset_name)
+    # Limit test to datasets delivered to NUDB from delivering teams (we expect other datasets to have historical outdated nuscodes)
+    delivering_teams = settings_use.constants.get("delivering_teams")
+    if (
+        dataset is None
+        or delivering_teams is None
+        or dataset.team not in delivering_teams
+    ):
+        return None
+
+    codes = nus_col.dropna().drop_duplicates()
+    if codes.empty:
+        return None
+
+    derive = get_derive_function("utd_foreldet_kode_nus")
+    if derive is None:
+        return NudbQualityError(
+            "Unable to check outdated nus2000 codes: no derivation for utd_foreldet_kode_nus."
+        )
+    try:
+        derived = derive(
+            codes.reset_index(drop=True).to_frame(name="nus2000"), raise_errors=True
+        )
+    except DeriveError as err:
+        return NudbQualityError(f"Unable to check outdated nus2000 codes: {err}")
+
+    outdated = derived.loc[derived["utd_foreldet_kode_nus"].eq("*"), "nus2000"]
+    counts = nus_col[nus_col.isin(outdated)].value_counts().sort_index()
+    if counts.empty:
+        return None
+
+    details = ", ".join(f"{code}: {count}" for code, count in counts.items())
+    message = (
+        f"Found outdated nus2000 codes in {dataset_name}: "
+        f"{int(counts.sum())} of {len(nus_col)} rows. "
+        f"Codes (row counts): {details}. "
+        "These codes are marked '*' in utd_foreldet_kode_nus in KLASS; "
+        "review their use in this delivery to NUDB."
+    )
+    logger.warning(message)
+    return NudbQualityError(message)
 
 
 def subcheck_nus2000_valid_nus(col: pd.Series | None) -> NudbQualityError | None:
