@@ -68,39 +68,56 @@ def _get_generator_first_class_variable(
         avslutta = NudbData("avslutta")
         eksamen = NudbData("eksamen")
 
-        in_igang = variable in igang.get_available_cols()
-        in_avslutta = variable in avslutta.get_available_cols()
-        in_eksamen = variable in eksamen.get_available_cols()
-        null = "NULL"
+        igang_query = f"""
+            SELECT
+                utd_hendelse_id,
+                {variable},
+                make_date(CAST(utd_skoleaar_start AS INTEGER), 8, 1) AS utd_hendelse_dato_start, /* The best we've got for IGANG */
+                NULL AS utd_hendelse_dato_slutt
+            FROM
+                {igang.alias}
+            WHERE
+                {variable} IS NOT NULL
+        """
+
+        avslutta_query = f"""
+            SELECT
+                utd_hendelse_id,
+                {variable},
+                utd_aktivitet_slutt AS utd_hendelse_dato_start,
+                NULL AS utd_hendelse_dato_slutt
+            FROM
+                {avslutta.alias}
+            WHERE
+                {variable} IS NOT NULL
+        """
+
+        eksamen_query = f"""
+            SELECT
+                utd_hendelse_id,
+                {variable},
+                uh_eksamen_dato AS utd_hendelse_dato_start,
+                NULL AS utd_hendelse_dato_slutt
+            FROM
+                {eksamen.alias}
+            WHERE
+                {variable} IS NOT NULL
+        """
+
+        query_list = []
+        if variable in igang.get_available_cols():
+            query_list.append(igang_query)
+        if variable in avslutta.get_available_cols():
+            query_list.append(avslutta_query)
+        if variable in eksamen.get_available_cols():
+            query_list.append(eksamen_query)
 
         query = f"""
             CREATE OR REPLACE VIEW
                 {alias} AS
-            SELECT
-                utd_hendelse_id,
-                {variable if in_igang else null} AS {variable},
-                make_date(CAST(utd_skoleaar_start AS INTEGER), 8, 1) AS utd_hendelse_dato_start, /* The best we've got for IGANG */
-                NULL AS utd_hendelse_dato_slutt
-            FROM {igang.alias}
+        """ + "UNION ALL BY NAME".join(query_list)
 
-            UNION ALL BY NAME
-
-            SELECT
-                utd_hendelse_id,
-                {variable if in_avslutta else null} AS {variable},
-                utd_aktivitet_slutt AS utd_hendelse_dato_start,
-                NULL AS utd_hendelse_dato_slutt
-            FROM {avslutta.alias}
-
-            UNION ALL BY NAME
-
-            SELECT
-                utd_hendelse_id,
-                {variable if in_eksamen else null} AS {variable},
-                uh_eksamen_dato AS utd_hendelse_dato_start,
-                NULL AS utd_hendelse_dato_slutt
-            FROM {eksamen.alias}
-        """
+        logger.debug(f"QUERY:\n{query}")
 
         connection.execute(query)
 
