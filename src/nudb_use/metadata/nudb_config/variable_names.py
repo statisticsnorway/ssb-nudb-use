@@ -7,6 +7,8 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.var_utils.duped_columns import find_duplicated_columns
 
+from ._renames import _rename_candidates
+from ._renames import _resolve_rename
 from .get_variable_info import get_var_metadata
 
 
@@ -136,6 +138,8 @@ def update_colnames(
 ) -> pd.DataFrame:
     """Rename columns in a DataFrame based on metadata mappings.
 
+    Historical names with multiple targets raise ValueError with mapping details.
+
     Args:
         data: Input DataFrame whose column names should be updated.
         dataset_name: Dataset identifier for applying dataset-specific overrides.
@@ -156,37 +160,43 @@ def update_colnames(
             data.columns = data.columns.str.lower()
 
         metadata = get_var_metadata()
-        # Limit metadata to those that are not NA, and not empty lists
-        namepairs = metadata[
-            (metadata["renamed_from"].apply(bool)) & (metadata["renamed_from"].notna())
-        ]["renamed_from"]
+        datasets = getattr(settings_use, "datasets", {})
+        candidates = _rename_candidates(
+            {
+                str(name): variable
+                for name, variable in metadata.to_dict("index").items()
+            },
+            datasets if not dataset_name or dataset_name in datasets else {},
+            dataset_name if dataset_name in datasets else None,
+        )
+        # Resolve before applying overrides so ambiguous inputs always fail.
+        resolved = {
+            col: _resolve_rename(col, candidates)
+            for col in data.columns
+            if col not in metadata.index
+        }
+
+        if dataset_name:
+            data = handle_dataset_specific_renames(data, dataset_name)
 
         renames_completed = {}
-        for newname in namepairs.index:
-            oldnames = namepairs[newname]
-
-            if isinstance(oldnames, int | str):  # scalar
-                oldnames = [oldnames]  # some 'newnames' have multiple oldnames
-
-            for oldname in oldnames:
-                if oldname not in data.columns:
-                    continue
-                if newname in data.columns:
-                    logger.warning(
-                        f"Skipping renaming {oldname} to {newname} in dataset, as {newname} already exists!"
-                    )
-                    continue
-                logger.debug(f"renaming {oldname} to {newname}!")
-                renames_completed[oldname] = newname
-                data = data.rename({oldname: newname}, axis=1)
+        for oldname, newname in resolved.items():
+            if newname is None or oldname not in data.columns:
+                continue
+            if newname in data.columns:
+                logger.warning(
+                    f"Skipping renaming {oldname} to {newname} in dataset, as {newname} already exists!"
+                )
+                continue
+            logger.debug(f"renaming {oldname} to {newname}!")
+            renames_completed[oldname] = newname
+            data = data.rename({oldname: newname}, axis=1)
 
         # There might be overrides for certain variables in the datasets
         if not dataset_name:
             logger.warning(
-                "No dataset_name specified, so no renaming-overrides will be handled, like renaming ftype."
+                "No dataset_name specified; only unambiguous renames will be applied."
             )
-        else:
-            data = handle_dataset_specific_renames(data, dataset_name)
 
         logger.info(f"Renamed {len(renames_completed)} columns to new names.")
 
@@ -242,11 +252,11 @@ def _apply_dataset_specific_rename(
         _warn_fillna(candidates)
         df = _ensure_target_column(df, new_name)
         df = _fill_and_drop_sources(df, new_name, candidates)
-    elif len(candidates) == 1 and old_names_list[0] in df.columns:
+    elif len(candidates) == 1 and candidates[0] != new_name:
         logger.info(
-            f"Single value found for dataset_specific_rename, just renaming: {old_names_list[0]} to {new_name}"
+            f"Single value found for dataset_specific_rename, just renaming: {candidates[0]} to {new_name}"
         )
-        return df.rename(columns={old_names_list[0]: new_name})
+        return df.rename(columns={candidates[0]: new_name})
     else:
         logger.debug(
             "Dont know if anything needs to be done, if the dataset only contains the correct new name?"

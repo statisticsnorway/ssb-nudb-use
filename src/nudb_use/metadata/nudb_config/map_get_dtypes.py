@@ -11,6 +11,10 @@ from nudb_config import settings as SETTINGS
 
 from nudb_use.nudb_logger import logger
 
+from ._renames import RenameCandidates
+from ._renames import _rename_candidates
+from ._renames import _value
+
 DTypeName: TypeAlias = Literal[
     "STRING", "DATETIME", "INTEGER", "FLOAT", "BOOLEAN", "UINTEGER"
 ]
@@ -117,63 +121,92 @@ def map_dtype_datadoc(
 
 
 def get_dtypes(
-    vars_map: list[str], engine: str = "pandas", datetimes_as_string: bool = False
+    vars_map: list[str],
+    engine: str = "pandas",
+    datetimes_as_string: bool = False,
+    dataset_name: str | None = None,
 ) -> dict[str, str | None]:
     """Build a dtype mapping for a set of variables based on config metadata.
+
+    Multiple rename targets are accepted when their configured dtypes agree.
+    Conflicting dtypes raise ValueError with the targets and mapping sources.
 
     Args:
         vars_map: Variable names to map, including historical names.
         engine: Mapping preset to use.
         datetimes_as_string: When True, convert datetime variables to string dtypes.
+        dataset_name: Dataset used to select rename overrides, or None for all mappings.
 
     Returns:
         dict[str, str | None]: Mapping of requested variables to dtype strings.
         Variables not found in config map to None.
     """
-    conf_variables = SETTINGS["variables"]
-    renamed = _build_renamed_lookup(conf_variables)
+    conf_variables = {
+        str(name).lower(): metadata for name, metadata in SETTINGS["variables"].items()
+    }
+    renamed = _rename_candidates(
+        conf_variables, _value(SETTINGS, "datasets") or {}, dataset_name
+    )
 
     return {
         var: _map_single_dtype(
-            var, conf_variables, renamed, engine, datetimes_as_string
+            var, conf_variables, renamed, engine, datetimes_as_string, dataset_name
         )
         for var in vars_map
     }
 
 
-def _build_renamed_lookup(conf_variables: dict[str, Any]) -> dict[str, str]:
-    """Build a lookup from historical names to current names."""
-    renamed: dict[str, str] = {}
-    for new, meta in conf_variables.items():
-        old: list[str] | str | None = meta.renamed_from
-        if old is None or old == []:
-            continue
-        if isinstance(old, str):
-            renamed[old] = new
-        else:
-            for old_elem in old:
-                renamed[old_elem] = new
-    return renamed
-
-
 def _map_single_dtype(
     var: str,
     conf_variables: dict[str, Any],
-    renamed: dict[str, str],
+    renamed: RenameCandidates,
     engine: str,
     datetimes_as_string: bool,
+    dataset_name: str | None,
 ) -> str | None:
-    """Resolve dtype for a single variable, handling missing and renamed cases."""
-    if var not in conf_variables and var not in renamed:
+    """Resolve dtype for a single variable, handling missing and renamed cases.
+
+    Args:
+        var: Requested column name.
+        conf_variables: Current variable definitions keyed by lowercase name.
+        renamed: Historical names mapped to targets and configuration sources.
+        engine: Mapping preset to use.
+        datetimes_as_string: Whether to map datetimes to string dtypes.
+        dataset_name: Dataset used to select rename overrides.
+
+    Returns:
+        str | None: Mapped dtype, or None if the column is unknown.
+
+    Raises:
+        ValueError: If rename targets have different configured dtypes.
+    """
+    # An explicit dataset override takes precedence over an exact variable name.
+    key = var.lower()
+    matches = renamed.get(key, {})
+    if key in conf_variables and not (dataset_name and matches):
+        matches = {key: ["variables"]}
+    if not matches:
         logger.warning(f"Variable {var} not found, returning dtype=None!")
         return None
 
-    target = renamed.get(var, var)
-    if var in renamed:
-        logger.warning(f"Variables has been renamed from {var} to {target}!")
+    dtypes = {
+        target: str(_value(conf_variables[target.lower()], "dtype")).upper()
+        for target in matches
+    }
+    if len(set(dtypes.values())) > 1:
+        details = "; ".join(
+            f"{target!r}: {dtype} ({', '.join(matches[target])})"
+            for target, dtype in dtypes.items()
+        )
+        raise ValueError(
+            f"Cannot determine dtype for {var!r}: rename targets have different dtypes: {details}. "
+            "Specify dataset_name or use a current variable name."
+        )
+    if key in renamed:
+        logger.warning(f"Variable {var} has rename mappings: {matches}")
 
     return map_dtype_datadoc(
-        dtype=conf_variables[target]["dtype"],
+        dtype=next(iter(dtypes.values())),
         engine=engine,
         datetimes_as_string=datetimes_as_string,
     )
