@@ -64,4 +64,5 @@ def test_drop_dataset_rename_warning(
     assert "obsolete" not in warning
     caplog.clear()
     check_drop_cols_for_valid_cols(["ftype"], dataset_name="ongoing")
-    assert "ongoing" in caplog.text and "completed" not in caplog.text
+    assert "ongoing" in caplog.text
+    assert "completed" not in caplog.text

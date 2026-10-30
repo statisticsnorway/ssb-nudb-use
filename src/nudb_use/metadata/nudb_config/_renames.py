@@ -74,18 +74,20 @@ def _rename_candidates(
     return candidates
 
 
+def _source_priority(source: str) -> int:
+    if source.startswith("dataset "):
+        family = _dataset_family(source[8:].strip("'\""))
+        if family in DATASET_PRIORITY:
+            return DATASET_PRIORITY.index(family)
+    return len(DATASET_PRIORITY)
+
+
 def _resolve_rename(name: str, candidates: RenameCandidates) -> str | None:
     matches = candidates.get(name.lower(), {})
     if len(matches) > 1:
         ranks = {
             target: min(
-                (
-                    DATASET_PRIORITY.index(family)
-                    for source in sources
-                    if source.startswith("dataset ")
-                    and (family := _dataset_family(source[8:].strip("'\"")))
-                    in DATASET_PRIORITY
-                ),
+                (_source_priority(source) for source in sources),
                 default=len(DATASET_PRIORITY),
             )
             for target, sources in matches.items()

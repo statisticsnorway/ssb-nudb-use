@@ -90,5 +90,6 @@ def test_outdated_includes_rename_mappings(
     assert "remove" in str(errors[0])
     assert all(text in str(errors[2]) for text in ["ftype", "current", "ongoing"])
     if dataset is None:
-        assert "other" in str(errors[2]) and "completed" in str(errors[2])
+        assert "other" in str(errors[2])
+        assert "completed" in str(errors[2])
     assert variables["current"] == {"unit": "valid", "renamed_from": ["old"]}

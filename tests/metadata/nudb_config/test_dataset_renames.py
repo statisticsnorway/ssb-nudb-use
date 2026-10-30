@@ -1,4 +1,6 @@
 import importlib
+from collections.abc import Callable
+from functools import partial
 from types import SimpleNamespace
 
 import pandas as pd
@@ -52,15 +54,18 @@ def rename_settings(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 def test_ambiguous_rename(
     rename_settings: SimpleNamespace, alias: str, api: str
 ) -> None:
+    operation: Callable[[], object]
+    if api == "update_colnames":
+        data = pd.DataFrame({alias: [1]})
+        operation = partial(update_colnames, data)
+    elif api == "find_vars":
+        operation = partial(find_vars, [alias])
+    elif api == "find_var_renames":
+        operation = partial(find_var_renames, [alias])
+    else:
+        operation = partial(find_var, alias)
     with pytest.raises(ValueError) as error:
-        if api == "update_colnames":
-            update_colnames(pd.DataFrame({alias: [1]}))
-        elif api == "find_vars":
-            find_vars([alias])
-        elif api == "find_var_renames":
-            find_var_renames([alias])
-        else:
-            find_var(alias)
+        operation()
     assert all(
         text in str(error.value).lower()
         for text in [alias.lower(), "contract", "exam", "ongoing", "completed"]
@@ -79,7 +84,8 @@ def test_dataset_rename(
         ] = "contract"
     target = "exam" if dataset == "completed" else "contract"
     result = find_var(alias.upper(), dataset_name=dataset)
-    assert result is not None and result["name"] == target
+    assert result is not None
+    assert result["name"] == target
     assert alias in find_var_renames([alias], dataset_name=dataset)[target]
     data = pd.DataFrame({alias.upper(): [1]})
     renamed = update_colnames(data, dataset_name=dataset or "")
@@ -99,9 +105,11 @@ def test_dataset_renames_combined(rename_settings: SimpleNamespace) -> None:
     rename_settings.variables["exam"]["renamed_from"] = ["ftype"]
     rename_settings.datasets["ongoing"].dataset_specific_renames["exam"] = "contract"
     result = find_var("exam", dataset_name="ongoing")
-    assert result is not None and result["name"] == "contract"
+    assert result is not None
+    assert result["name"] == "contract"
     result = find_var("ftype", dataset_name="ongoing")
-    assert result is not None and result["name"] == "contract"
+    assert result is not None
+    assert result["name"] == "contract"
     assert list(update_colnames(pd.DataFrame({"ftype": [1]}), "ongoing").columns) == [
         "contract"
     ]
@@ -134,8 +142,9 @@ def test_exact_dataset_overrides_family() -> None:
     scoped = _rename_candidates({}, datasets, "igang_special")
     assert _resolve_rename("old", scoped) == "special"
     assert _resolve_rename("inherited", scoped) == "base"
+    candidates = _rename_candidates({}, datasets)
     with pytest.raises(ValueError, match=r"base.*special"):
-        _resolve_rename("old", _rename_candidates({}, datasets))
+        _resolve_rename("old", candidates)
 
 
 @pytest.mark.parametrize(
@@ -172,7 +181,8 @@ def test_installed_config_renames(
         for variable in settings.variables.values()
     )
     result = find_var(alias.upper(), dataset_name=dataset)
-    assert result is not None and result["name"] == target
+    assert result is not None
+    assert result["name"] == target
     assert find_vars([alias], dataset_name=dataset)[alias] == find_var(
         alias, dataset_name=dataset
     )
@@ -238,7 +248,8 @@ def test_installed_config_merge_and_warning(caplog: pytest.LogCaptureFixture) ->
     )
     caplog.clear()
     check_drop_cols_for_valid_cols(["studrett"], dataset_name="igang_hoeyereutdanning")
-    assert "uh_studierett" in caplog.text and "uh_ereksamenrett" not in caplog.text
+    assert "uh_studierett" in caplog.text
+    assert "uh_ereksamenrett" not in caplog.text
     assert set(find_outdated_variables_in_df(data)["ftype"]["renamed_to"]) == {
         "vg_proevekandtype",
         "vg_kontraktstype",
