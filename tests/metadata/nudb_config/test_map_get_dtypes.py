@@ -1,4 +1,5 @@
 import importlib
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -86,3 +87,54 @@ def test_cast_to_preferred_dtypes() -> None:
     assert casted["y"].dtype == "bool[pyarrow]"
     assert casted["w"].dtype == "string[pyarrow]"
     assert casted["g"].dtype == "datetime64[s]"
+
+
+@pytest.mark.parametrize("other_dtype", ["STRING", "INTEGER", "DATETIME"])
+def test_get_dtypes_dataset_rename_targets(
+    monkeypatch: pytest.MonkeyPatch, other_dtype: str
+) -> None:
+    monkeypatch.setattr(
+        get_dtypes_module,
+        "SETTINGS",
+        {
+            "variables": {
+                "current": DummyVar("STRING", ["old"]),
+                "other": DummyVar(other_dtype),
+            },
+            "datasets": {
+                "ongoing": SimpleNamespace(
+                    dataset_specific_renames={
+                        "ftype": "current",
+                        "ftypef": "current",
+                        "old": "current",
+                    }
+                ),
+                "completed": SimpleNamespace(
+                    dataset_specific_renames={"ftype": "other", "ftypef": "other"}
+                ),
+            },
+        },
+    )
+    if other_dtype == "STRING":
+        assert get_dtypes_function(["FTYPE", "ftypef", "old"]) == dict.fromkeys(
+            ["FTYPE", "ftypef", "old"], "string[pyarrow]"
+        )
+    else:
+        with pytest.raises(ValueError) as error:
+            get_dtypes_function(["FTYPE"], datetimes_as_string=True)
+        assert all(
+            text in str(error.value)
+            for text in [
+                "FTYPE",
+                "current",
+                "other",
+                "STRING",
+                other_dtype,
+                "ongoing",
+                "completed",
+            ]
+        )
+    assert get_dtypes_function(["ftype", "ftypef"], dataset_name="ongoing") == {
+        "ftype": "string[pyarrow]",
+        "ftypef": "string[pyarrow]",
+    }

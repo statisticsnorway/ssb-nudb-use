@@ -4,9 +4,11 @@ import math
 from collections.abc import Iterable
 
 import pandas as pd
+from nudb_config import settings
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.metadata.nudb_config import get_var_metadata
+from nudb_use.metadata.nudb_config._renames import _rename_candidates
 from nudb_use.metadata.nudb_config.find_var_missing import VariableMetadata
 from nudb_use.metadata.nudb_config.find_var_missing import find_vars
 from nudb_use.nudb_logger import LoggerStack
@@ -115,6 +117,7 @@ def check_drop_cols_for_valid_cols(
     drop_cols: list[str],
     ignores: list[str] | str | None = None,
     raise_errors: bool = False,
+    dataset_name: str | None = None,
 ) -> NudbQualityError | None:
     """Warn when requested drop columns overlap with defined valid columns.
 
@@ -124,6 +127,7 @@ def check_drop_cols_for_valid_cols(
             when computing the overlap.
         raise_errors: When True, raise a NudbQualityError instead of returning
             it. Defaults to False.
+        dataset_name: Dataset used to select rename overrides, or None for all mappings.
 
     Returns:
         NudbQualityError | None: Error describing the overlapping columns, or
@@ -136,19 +140,30 @@ def check_drop_cols_for_valid_cols(
         var_meta_valid = get_var_metadata().query("unit != 'utdatert'")
         var_meta_valid = _drop_vars_derivable_from_valid(var_meta_valid)
 
-        renamed_list = [
-            x
-            for y in (
-                var_meta_valid[
-                    (var_meta_valid["renamed_from"].notna())
-                    & (var_meta_valid["renamed_from"].apply(bool))
-                ]["renamed_from"].to_list()
+        candidates = _rename_candidates(
+            {
+                str(name): metadata
+                for name, metadata in var_meta_valid.to_dict("index").items()
+            },
+            getattr(settings, "datasets", {}),
+            dataset_name,
+        )
+        drops_old_names = {
+            col: {
+                target: sources
+                for target, sources in candidates.get(col.lower(), {}).items()
+                if target in var_meta_valid.index
+            }
+            for col in drop_cols
+            if any(
+                target in var_meta_valid.index
+                for target in candidates.get(col.lower(), {})
             )
-            for x in y
-        ]
-        drops_old_names = [c for c in drop_cols if c in renamed_list]
+        }
         if drops_old_names:
-            drops_old_names_lines = "\n".join(drops_old_names)
+            drops_old_names_lines = "\n".join(
+                f"{col}: {mappings}" for col, mappings in drops_old_names.items()
+            )
             logger.warning(
                 f"Dropping old names of columns (rename?), these may be handled incorrectly:\n{drops_old_names_lines}"
             )
@@ -171,7 +186,9 @@ def check_drop_cols_for_valid_cols(
 
         if overlap:
             found_vars: dict[str, VariableMetadata] = {
-                k: v for k, v in find_vars(overlap).items() if v is not None
+                k: v
+                for k, v in find_vars(overlap, dataset_name=dataset_name).items()
+                if v is not None
             }
             # Lets be nice and find the mappings to show what the current renaming is.
             overlap_dict = {k: v["name"] for k, v in found_vars.items()}
