@@ -59,12 +59,14 @@ def find_vars(
 def find_var(var_name: str, dataset_name: str | None = None) -> VariableMetadata | None:
     """Retrieve configuration and KLASS metadata for a single variable.
 
-    Historical names with multiple targets raise ValueError with mapping details.
+    Without a dataset, historical names follow avslutta > igang > eksamen priority.
+    Conflicting targets at the same priority raise ValueError with mapping details.
 
     Args:
         var_name: Variable name (current or historical). Comparison is
             case-insensitive.
-        dataset_name: Dataset used to disambiguate historical names.
+        dataset_name: Dataset used to disambiguate historical names, inheriting
+            rename rules from its avslutta, igang, or eksamen family.
 
     Returns:
         VariableMetadata | None:

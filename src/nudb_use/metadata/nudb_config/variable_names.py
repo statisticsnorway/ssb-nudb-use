@@ -138,7 +138,8 @@ def update_colnames(
 ) -> pd.DataFrame:
     """Rename columns in a DataFrame based on metadata mappings.
 
-    Historical names with multiple targets raise ValueError with mapping details.
+    Without a dataset, historical names follow avslutta > igang > eksamen priority.
+    Conflicting targets at the same priority raise ValueError with mapping details.
 
     Args:
         data: Input DataFrame whose column names should be updated.
@@ -166,18 +167,17 @@ def update_colnames(
                 str(name): variable
                 for name, variable in metadata.to_dict("index").items()
             },
-            datasets if not dataset_name or dataset_name in datasets else {},
-            dataset_name if dataset_name in datasets else None,
+            datasets,
+            dataset_name or None,
         )
-        # Resolve before applying overrides so ambiguous inputs always fail.
+        # Resolve before applying overrides so equally ranked conflicts fail first.
         resolved = {
             col: _resolve_rename(col, candidates)
             for col in data.columns
             if col not in metadata.index
         }
 
-        if dataset_name:
-            data = handle_dataset_specific_renames(data, dataset_name)
+        data = handle_dataset_specific_renames(data, dataset_name)
 
         renames_completed = {}
         for oldname, newname in resolved.items():
@@ -195,7 +195,7 @@ def update_colnames(
         # There might be overrides for certain variables in the datasets
         if not dataset_name:
             logger.warning(
-                "No dataset_name specified; only unambiguous renames will be applied."
+                "No dataset_name specified; dataset renames follow avslutta > igang > eksamen priority."
             )
 
         logger.info(f"Renamed {len(renames_completed)} columns to new names.")
@@ -211,28 +211,36 @@ def update_colnames(
 
 def handle_dataset_specific_renames(
     df: pd.DataFrame,
-    dataset_name: str,
+    dataset_name: str = "",
 ) -> pd.DataFrame:
     """Apply dataset-specific rename overrides defined in configuration.
 
     Args:
         df: DataFrame whose columns should be updated in place.
-        dataset_name: Dataset key used to look up override rules.
+        dataset_name: Dataset key, inheriting its family's rules. An empty name
+            selects mappings using avslutta > igang > eksamen priority.
 
     Returns:
         pd.DataFrame: DataFrame with overrides applied if they exist in the config.
     """
-    # Get the overrides from the config
-    dataset_specific_renames = settings_use.datasets[
-        dataset_name
-    ].dataset_specific_renames
-    if dataset_specific_renames is None:
+    candidates = _rename_candidates(
+        {},
+        {str(name): dataset for name, dataset in settings_use.datasets.items()},
+        dataset_name or None,
+    )
+    renames = {
+        old_name: target
+        for old_name in candidates
+        if old_name in df.columns
+        and (dataset_name or old_name not in getattr(settings_use, "variables", {}))
+        and (target := _resolve_rename(old_name, candidates)) is not None
+    }
+    if not renames:
         logger.info(
             "Found specified dataset in config, but the 'dataset_specific_renames' is empty. So no such extra renaming will occur."
         )
         return df
 
-    renames = dict(dataset_specific_renames)
     renames_flip_list = _flip_dict_to_list(renames)
 
     for new_name, old_names in renames_flip_list.items():
@@ -250,7 +258,7 @@ def _apply_dataset_specific_rename(
 
     if len(candidates) > 1:
         _warn_fillna(candidates)
-        df = _ensure_target_column(df, new_name)
+        df = _ensure_target_column(df, new_name, candidates[0])
         df = _fill_and_drop_sources(df, new_name, candidates)
     elif len(candidates) == 1 and candidates[0] != new_name:
         logger.info(
@@ -272,9 +280,11 @@ def _warn_fillna(candidates: list[str]) -> None:
     )
 
 
-def _ensure_target_column(df: pd.DataFrame, new_name: str) -> pd.DataFrame:
+def _ensure_target_column(
+    df: pd.DataFrame, new_name: str, source_name: str
+) -> pd.DataFrame:
     if new_name not in df.columns:
-        df[new_name] = pd.Series(pd.NA, index=df.index).astype("string[pyarrow]")
+        df[new_name] = df[source_name].copy()
     return df
 
 

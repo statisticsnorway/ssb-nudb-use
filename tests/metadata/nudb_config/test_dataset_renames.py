@@ -3,12 +3,19 @@ from types import SimpleNamespace
 
 import pandas as pd
 import pytest
+from nudb_config import settings
 
+from nudb_use.metadata.nudb_config._renames import _rename_candidates
+from nudb_use.metadata.nudb_config._renames import _resolve_rename
 from nudb_use.metadata.nudb_config.find_var_missing import find_var
 from nudb_use.metadata.nudb_config.find_var_missing import find_var_renames
 from nudb_use.metadata.nudb_config.find_var_missing import find_var_renames_for_dataset
 from nudb_use.metadata.nudb_config.find_var_missing import find_vars
+from nudb_use.metadata.nudb_config.map_get_dtypes import get_dtypes
 from nudb_use.metadata.nudb_config.variable_names import update_colnames
+from nudb_use.quality.check_drop_cols import check_drop_cols_for_valid_cols
+from nudb_use.quality.outdated_variables import check_outdated_variables
+from nudb_use.quality.outdated_variables import find_outdated_variables_in_df
 
 
 @pytest.fixture
@@ -98,3 +105,141 @@ def test_dataset_renames_combined(rename_settings: SimpleNamespace) -> None:
     assert list(update_colnames(pd.DataFrame({"ftype": [1]}), "ongoing").columns) == [
         "contract"
     ]
+
+
+@pytest.mark.parametrize(
+    "datasets,expected",
+    [
+        ({"eksamen": "exam", "igang": "contract", "avslutta": "finished"}, "finished"),
+        ({"igang_hoeyereutdanning": "contract", "eksamen": "exam"}, "contract"),
+        ({"eksamen_hoeyereutdanning": "exam"}, "exam"),
+    ],
+)
+def test_default_dataset_priority(datasets: dict[str, str], expected: str) -> None:
+    candidates = _rename_candidates(
+        {},
+        {
+            name: {"dataset_specific_renames": {"old": target}}
+            for name, target in datasets.items()
+        },
+    )
+    assert _resolve_rename("OLD", candidates) == expected
+
+
+def test_exact_dataset_overrides_family() -> None:
+    datasets = {
+        "igang": {"dataset_specific_renames": {"old": "base", "inherited": "base"}},
+        "igang_special": {"dataset_specific_renames": {"old": "special"}},
+    }
+    scoped = _rename_candidates({}, datasets, "igang_special")
+    assert _resolve_rename("old", scoped) == "special"
+    assert _resolve_rename("inherited", scoped) == "base"
+    with pytest.raises(ValueError, match=r"base.*special"):
+        _resolve_rename("old", _rename_candidates({}, datasets))
+
+
+@pytest.mark.parametrize(
+    "alias,dataset,target",
+    [
+        ("ftype", None, "vg_proevekandtype"),
+        ("ftypef", None, "vg_proevekandtype"),
+        ("studrett", None, "uh_studierett"),
+        ("ftype", "igang", "vg_kontraktstype"),
+        ("ftypef", "igang_hoeyereutdanning", "vg_kontraktstype"),
+        ("studrett", "igang_hoeyereutdanning", "uh_studierett"),
+        ("ftypef", "avslutta_grunnskole", "vg_proevekandtype"),
+        ("studrett", "eksamen", "uh_ereksamenrett"),
+        ("studrett", "eksamen_hoeyereutdanning", "uh_ereksamenrett"),
+    ],
+)
+def test_installed_config_renames(
+    monkeypatch: pytest.MonkeyPatch,
+    alias: str,
+    dataset: str | None,
+    target: str,
+) -> None:
+    lookup = importlib.import_module("nudb_use.metadata.nudb_config.find_var_missing")
+    monkeypatch.setattr(
+        lookup,
+        "klass",
+        SimpleNamespace(
+            KlassClassification=lambda value: value,
+            KlassVariant=lambda value: value,
+        ),
+    )
+    assert not any(
+        alias in (variable.renamed_from or [])
+        for variable in settings.variables.values()
+    )
+    result = find_var(alias.upper(), dataset_name=dataset)
+    assert result is not None and result["name"] == target
+    assert find_vars([alias], dataset_name=dataset)[alias] == find_var(
+        alias, dataset_name=dataset
+    )
+    assert alias in find_var_renames([alias], dataset_name=dataset)[target]
+    data = pd.DataFrame({alias.upper(): ["A"]})
+    assert update_colnames(data, dataset_name=dataset or "").to_dict("list") == {
+        target: ["A"]
+    }
+    if dataset:
+        expected_dtype = (
+            "bool[pyarrow]" if target == "uh_ereksamenrett" else "string[pyarrow]"
+        )
+        assert get_dtypes([alias], dataset_name=dataset) == {alias: expected_dtype}
+        if target in (settings.datasets[dataset].variables or []):
+            assert alias in find_var_renames_for_dataset(dataset)[target]
+    elif alias == "studrett":
+        with pytest.raises(
+            ValueError, match=r"different dtypes.*STRING.*BOOLEAN"
+        ) as error:
+            get_dtypes([alias])
+        assert all(
+            text in str(error.value)
+            for text in [
+                "historical name 'studrett'",
+                "uh_studierett",
+                "uh_ereksamenrett",
+                "dataset 'igang'",
+                "dataset 'eksamen'",
+                "Use a current variable name",
+            ]
+        )
+        assert get_dtypes(["uh_studierett", "uh_ereksamenrett"]) == {
+            "uh_studierett": "string[pyarrow]",
+            "uh_ereksamenrett": "bool[pyarrow]",
+        }
+    else:
+        assert get_dtypes([alias]) == {alias: "string[pyarrow]"}
+    found = find_outdated_variables_in_df(data, dataset_name=dataset)
+    assert target in found[alias]["renamed_to"]
+    assert target in str(check_outdated_variables(data, dataset_name=dataset)[0])
+
+
+def test_installed_config_merge_and_warning(caplog: pytest.LogCaptureFixture) -> None:
+    data = pd.DataFrame(
+        {
+            "ftype": pd.Series(["A", None], dtype="string[pyarrow]"),
+            "ftypef": pd.Series([None, "B"], dtype="string[pyarrow]"),
+        }
+    )
+    for dataset, target in [
+        ("", "vg_proevekandtype"),
+        ("igang_hoeyereutdanning", "vg_kontraktstype"),
+    ]:
+        result = update_colnames(data, dataset_name=dataset)
+        assert list(result.columns) == [target]
+        assert result[target].tolist() == ["A", "B"]
+        assert result[target].dtype == data["ftype"].dtype
+    caplog.clear()
+    check_drop_cols_for_valid_cols(["ftype", "studrett"])
+    assert all(
+        name in caplog.text
+        for name in ["ftype", "studrett", "avslutta", "igang", "eksamen"]
+    )
+    caplog.clear()
+    check_drop_cols_for_valid_cols(["studrett"], dataset_name="igang_hoeyereutdanning")
+    assert "uh_studierett" in caplog.text and "uh_ereksamenrett" not in caplog.text
+    assert set(find_outdated_variables_in_df(data)["ftype"]["renamed_to"]) == {
+        "vg_proevekandtype",
+        "vg_kontraktstype",
+    }

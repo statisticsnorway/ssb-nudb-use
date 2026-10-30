@@ -199,8 +199,9 @@ def _map_single_dtype(
             for target, dtype in dtypes.items()
         )
         raise ValueError(
-            f"Cannot determine dtype for {var!r}: rename targets have different dtypes: {details}. "
-            "Specify dataset_name or use a current variable name."
+            f"Cannot determine dtype for historical name {var!r}: rename targets have different dtypes: {details}. "
+            "Use a current variable name instead of this historical name to select the intended dtype. "
+            "Alternatively, specify dataset_name to select that dataset's mapping."
         )
     if key in renamed:
         logger.warning(f"Variable {var} has rename mappings: {matches}")
