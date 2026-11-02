@@ -1,5 +1,6 @@
 """Convenience exports for NUDB configuration metadata helpers."""
 
+from .find_var_missing import explain_rename
 from .find_var_missing import find_var
 from .find_var_missing import find_var_renames
 from .find_var_missing import find_var_renames_for_dataset
@@ -17,6 +18,7 @@ from .variable_names import sort_cols_by_unit
 from .variable_names import update_colnames
 
 __all__ = [
+    "explain_rename",
     "find_var",
     "find_var_missing",
     "find_var_renames",

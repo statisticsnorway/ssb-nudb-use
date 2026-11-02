@@ -12,6 +12,9 @@ from nudb_config import settings as SETTINGS
 from nudb_use.nudb_logger import logger
 
 from ._renames import RenameCandidates
+from ._renames import RenameSource
+from ._renames import _describe_renames
+from ._renames import _has_context_override
 from ._renames import _rename_candidates
 from ._renames import _value
 
@@ -130,6 +133,10 @@ def get_dtypes(
 
     Multiple rename targets are accepted when their configured dtypes agree.
     Conflicting dtypes raise ValueError with the targets and mapping sources.
+    Ranking does not hide dtype conflicts when no dataset is supplied. An
+    explicit dataset tries its exact mapping, then its base family and siblings
+    in config order, then general variable renames. If none applies, all other
+    dataset mappings must agree on dtype. Base family mappings precede children.
 
     Args:
         vars_map: Variable names to map, including historical names.
@@ -183,8 +190,8 @@ def _map_single_dtype(
     # An explicit dataset override takes precedence over an exact variable name.
     key = var.lower()
     matches = renamed.get(key, {})
-    if key in conf_variables and not (dataset_name and matches):
-        matches = {key: ["variables"]}
+    if key in conf_variables and not _has_context_override(matches, dataset_name):
+        matches = {key: [RenameSource()]}
     if not matches:
         logger.warning(f"Variable {var} not found, returning dtype=None!")
         return None
@@ -195,7 +202,7 @@ def _map_single_dtype(
     }
     if len(set(dtypes.values())) > 1:
         details = "; ".join(
-            f"{target!r}: {dtype} ({', '.join(matches[target])})"
+            f"{target!r}: {dtype} ({', '.join(source.label for source in matches[target])})"
             for target, dtype in dtypes.items()
         )
         raise ValueError(
@@ -204,7 +211,9 @@ def _map_single_dtype(
             "Alternatively, specify dataset_name to select that dataset's mapping."
         )
     if key in renamed:
-        logger.warning(f"Variable {var} has rename mappings: {matches}")
+        logger.warning(
+            f"Variable {var} has rename mappings: {_describe_renames(matches)}"
+        )
 
     return map_dtype_datadoc(
         dtype=next(iter(dtypes.values())),

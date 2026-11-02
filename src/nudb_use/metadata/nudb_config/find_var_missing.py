@@ -4,12 +4,15 @@ from collections.abc import Iterable
 from typing import Any
 
 import klass
+import pandas as pd
 from IPython.display import Markdown
 from IPython.display import display
 from nudb_config import settings
 
 from nudb_use.nudb_logger import logger
 
+from ._renames import _has_context_override
+from ._renames import _preferred_matches
 from ._renames import _rename_candidates
 from ._renames import _resolve_rename
 
@@ -36,6 +39,9 @@ def find_vars(
 ) -> dict[str, VariableMetadata | None]:
     """Look up multiple variables and return their configuration metadata.
 
+    Selection follows find_var's dataset-family and config-order ranking.
+    Use explain_rename to inspect a historical name's candidate ranks.
+
     Args:
         var_names: Iterable of variable identifiers to resolve.
         dataset_name: Dataset used to disambiguate historical names.
@@ -59,14 +65,19 @@ def find_vars(
 def find_var(var_name: str, dataset_name: str | None = None) -> VariableMetadata | None:
     """Retrieve configuration and KLASS metadata for a single variable.
 
-    Without a dataset, historical names follow avslutta > igang > eksamen priority.
-    Conflicting targets at the same priority raise ValueError with mapping details.
+    Without a dataset, general variable renames rank first, then avslutta,
+    igang, eksamen and other datasets. Base datasets precede their children;
+    children and other datasets follow their order in the loaded config.
+    With a dataset, try its exact override, then its base family and siblings,
+    then the overall ranking. Reordering config datasets can change the result.
+    Conflicting general renames raise ValueError. Use explain_rename to inspect
+    candidate sources, computed ranks and the selected mapping.
 
     Args:
         var_name: Variable name (current or historical). Comparison is
             case-insensitive.
-        dataset_name: Dataset used to disambiguate historical names, inheriting
-            rename rules from its avslutta, igang, or eksamen family.
+        dataset_name: Dataset whose exact and family mappings take precedence
+            over the overall ranking, separately for each historical name.
 
     Returns:
         VariableMetadata | None:
@@ -84,7 +95,9 @@ def find_var(var_name: str, dataset_name: str | None = None) -> VariableMetadata
         dataset_name,
     )
     target = key
-    if key not in variable_keys or (dataset_name and key in candidates):
+    if key not in variable_keys or _has_context_override(
+        candidates.get(key, {}), dataset_name
+    ):
         target = _resolve_rename(var_name, candidates) or key
     variable_name = variable_keys.get(target.lower())
     if variable_name is not None:
@@ -109,6 +122,89 @@ def find_var(var_name: str, dataset_name: str | None = None) -> VariableMetadata
     # Get metadata from datadoc?
 
     return var_data
+
+
+def explain_rename(var_name: str, dataset_name: str | None = None) -> pd.DataFrame:
+    """Explain the ranking and selection of historical rename candidates.
+
+    Ranks are computed per lookup without changing settings. Their first value
+    is 1 for variable renames, 2 for avslutta, 3 for igang, 4 for eksamen and
+    5 for other datasets. The second value is the config position within that
+    tier, with a family's base dataset always at position 0. Child datasets
+    and other datasets follow the loaded config order.
+
+    An explicit dataset selects its exact mapping first, then its base family
+    and siblings in rank order, then the overall ranking. Eligibility shows
+    which candidates remain after this contextual selection. Equally ranked
+    conflicting targets have no selected row. Current variable names are used
+    directly unless their dataset family overrides them; these rows have no rank.
+
+    Args:
+        var_name: Historical name to explain, compared case-insensitively.
+        dataset_name: Dataset whose exact and family mappings take precedence.
+
+    Returns:
+        pd.DataFrame: Candidate targets, sources, ranks, eligibility and selection.
+    """
+    variables = {str(name): variable for name, variable in settings.variables.items()}
+    datasets = getattr(settings, "datasets", {})
+    candidates = _rename_candidates(variables, datasets).get(var_name.lower(), {})
+    scoped = _rename_candidates(variables, datasets, dataset_name).get(
+        var_name.lower(), {}
+    )
+    preferred = _preferred_matches(scoped)
+    current_name = next(
+        (name for name in variables if name.lower() == var_name.lower()), None
+    )
+    use_current = current_name is not None and not _has_context_override(
+        scoped, dataset_name
+    )
+    selected = next(iter(preferred)) if len(preferred) == 1 else None
+    best_rank = min(
+        (source.rank for sources in preferred.values() for source in sources),
+        default=None,
+    )
+    rows = [
+        {
+            "old_name": var_name.lower(),
+            "new_name": target,
+            "source_kind": "variable" if source.dataset_name is None else "dataset",
+            "dataset_name": source.dataset_name,
+            "rank": source.rank,
+            "eligible": not use_current and source in scoped.get(target, []),
+            "selected": not use_current
+            and target == selected
+            and source in scoped.get(target, [])
+            and source.rank == best_rank,
+        }
+        for target, sources in candidates.items()
+        for source in sources
+    ]
+    if use_current:
+        rows.insert(
+            0,
+            {
+                "old_name": var_name.lower(),
+                "new_name": current_name,
+                "source_kind": "current_variable",
+                "dataset_name": None,
+                "rank": None,
+                "eligible": True,
+                "selected": True,
+            },
+        )
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "old_name",
+            "new_name",
+            "source_kind",
+            "dataset_name",
+            "rank",
+            "eligible",
+            "selected",
+        ],
+    )
 
 
 def get_list_of_columns_for_dataset(dataset_name: str) -> list[str]:
@@ -203,6 +299,8 @@ def find_var_renames(
     var_names: list[str], dataset_name: str | None = None
 ) -> dict[str, list[str]]:
     """Find only the renames of variables from the config, filtering away other info.
+
+    Selection follows find_var's dataset-family and config-order ranking.
 
     Args:
         var_names: List of string-names of columns, can be the old or new names...

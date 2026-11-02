@@ -7,6 +7,7 @@ from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.variables.var_utils.duped_columns import find_duplicated_columns
 
+from ._renames import _has_context_override
 from ._renames import _rename_candidates
 from ._renames import _resolve_rename
 from .get_variable_info import get_var_metadata
@@ -138,8 +139,12 @@ def update_colnames(
 ) -> pd.DataFrame:
     """Rename columns in a DataFrame based on metadata mappings.
 
-    Without a dataset, historical names follow avslutta > igang > eksamen priority.
-    Conflicting targets at the same priority raise ValueError with mapping details.
+    Without a dataset, general variable renames rank first, then avslutta,
+    igang, eksamen and other datasets. Base datasets precede their children;
+    children and other datasets follow their order in the loaded config.
+    With a dataset, exact overrides come first, then its base family and siblings
+    in config order, then the overall ranking. Conflicting general renames raise
+    ValueError. Reordering config datasets can change the selected rename.
 
     Args:
         data: Input DataFrame whose column names should be updated.
@@ -195,7 +200,7 @@ def update_colnames(
         # There might be overrides for certain variables in the datasets
         if not dataset_name:
             logger.warning(
-                "No dataset_name specified; dataset renames follow avslutta > igang > eksamen priority."
+                "No dataset_name specified; general variable renames take precedence, then dataset family and config order."
             )
 
         logger.info(f"Renamed {len(renames_completed)} columns to new names.")
@@ -217,14 +222,15 @@ def handle_dataset_specific_renames(
 
     Args:
         df: DataFrame whose columns should be updated in place.
-        dataset_name: Dataset key, inheriting its family's rules. An empty name
-            selects mappings using avslutta > igang > eksamen priority.
+        dataset_name: Dataset key. Try its exact override, then its base family
+            and siblings in config order, then the overall ranking: general
+            variable renames, avslutta, igang, eksamen and other datasets.
 
     Returns:
         pd.DataFrame: DataFrame with overrides applied if they exist in the config.
     """
     candidates = _rename_candidates(
-        {},
+        {str(name): variable for name, variable in settings_use.variables.items()},
         {str(name): dataset for name, dataset in settings_use.datasets.items()},
         dataset_name or None,
     )
@@ -232,12 +238,18 @@ def handle_dataset_specific_renames(
         old_name: target
         for old_name in candidates
         if old_name in df.columns
-        and (dataset_name or old_name not in getattr(settings_use, "variables", {}))
+        and (
+            old_name not in getattr(settings_use, "variables", {})
+            or _has_context_override(candidates[old_name], dataset_name)
+        )
         and (target := _resolve_rename(old_name, candidates)) is not None
+        and any(
+            source.dataset_name is not None for source in candidates[old_name][target]
+        )
     }
     if not renames:
         logger.info(
-            "Found specified dataset in config, but the 'dataset_specific_renames' is empty. So no such extra renaming will occur."
+            "No applicable dataset rename mappings were found for these columns."
         )
         return df
 

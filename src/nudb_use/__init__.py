@@ -6,6 +6,7 @@ from nudb_config import settings
 
 from nudb_use.datasets.microdata import MicroData
 from nudb_use.datasets.nudb_data import NudbData
+from nudb_use.metadata import explain_rename
 from nudb_use.metadata import find_var
 from nudb_use.metadata import find_var_renames
 from nudb_use.metadata import find_var_renames_for_dataset
@@ -28,6 +29,7 @@ __all__ = [
     "MicroData",
     "NudbData",
     "derive",
+    "explain_rename",
     "find_var",
     "find_var_renames",
     "find_var_renames_for_dataset",

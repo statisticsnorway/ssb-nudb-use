@@ -4,6 +4,8 @@ import pandas as pd
 
 from nudb_use import settings as settings_use
 from nudb_use.exceptions.exception_classes import NudbQualityError
+from nudb_use.metadata.nudb_config._renames import _describe_renames
+from nudb_use.metadata.nudb_config._renames import _has_context_override
 from nudb_use.metadata.nudb_config._renames import _rename_candidates
 from nudb_use.metadata.nudb_config._renames import _value
 from nudb_use.metadata.nudb_config.find_var_missing import VariableMetadata
@@ -68,6 +70,10 @@ def find_outdated_variables_in_df(
             for target, sources in candidates.get(name, {}).items()
             if target.lower() != name
         }
+        if variable is not None and not _has_context_override(
+            candidates.get(name, {}), dataset_name
+        ):
+            mappings = {}
         if _value(variable, "unit") != "utdatert" and not mappings:
             continue
         metadata: VariableMetadata = (
@@ -76,6 +82,6 @@ def find_outdated_variables_in_df(
             else {"name": name}
         )
         if mappings:
-            metadata["renamed_to"] = mappings
+            metadata["renamed_to"] = _describe_renames(mappings)
         result[name] = metadata
     return result

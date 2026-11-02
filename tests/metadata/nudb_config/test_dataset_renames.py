@@ -9,6 +9,7 @@ from nudb_config import settings
 
 from nudb_use.metadata.nudb_config._renames import _rename_candidates
 from nudb_use.metadata.nudb_config._renames import _resolve_rename
+from nudb_use.metadata.nudb_config.find_var_missing import explain_rename
 from nudb_use.metadata.nudb_config.find_var_missing import find_var
 from nudb_use.metadata.nudb_config.find_var_missing import find_var_renames
 from nudb_use.metadata.nudb_config.find_var_missing import find_var_renames_for_dataset
@@ -54,6 +55,9 @@ def rename_settings(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 def test_ambiguous_rename(
     rename_settings: SimpleNamespace, alias: str, api: str
 ) -> None:
+    # Equally ranked general renames remain ambiguous; dataset order breaks dataset ties.
+    for variable in rename_settings.variables.values():
+        variable["renamed_from"] = ["ftype", "ftypef"]
     operation: Callable[[], object]
     if api == "update_colnames":
         data = pd.DataFrame({alias: [1]})
@@ -142,9 +146,7 @@ def test_exact_dataset_overrides_family() -> None:
     scoped = _rename_candidates({}, datasets, "igang_special")
     assert _resolve_rename("old", scoped) == "special"
     assert _resolve_rename("inherited", scoped) == "base"
-    candidates = _rename_candidates({}, datasets)
-    with pytest.raises(ValueError, match=r"base.*special"):
-        _resolve_rename("old", candidates)
+    assert _resolve_rename("old", _rename_candidates({}, datasets)) == "base"
 
 
 @pytest.mark.parametrize(
@@ -254,3 +256,167 @@ def test_installed_config_merge_and_warning(caplog: pytest.LogCaptureFixture) ->
         "vg_proevekandtype",
         "vg_kontraktstype",
     }
+
+
+@pytest.fixture
+def ranked_settings(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    variables = {
+        name: {"dtype": "STRING", "unit": "valid", "renamed_from": []}
+        for name in [
+            "general",
+            "base",
+            "sibling",
+            "second",
+            "exact",
+            "finished",
+            "exam",
+            "external",
+        ]
+    }
+    variables["general"]["renamed_from"] = ["alias", "family_alias", "general_only"]
+    datasets = {
+        "external": {"dataset_specific_renames": {"alias": "external"}},
+        "eksamen": {"dataset_specific_renames": {"alias": "exam"}},
+        "igang_videregaaende": {
+            "dataset_specific_renames": {"alias": "sibling", "family_alias": "sibling"}
+        },
+        "avslutta": {
+            "dataset_specific_renames": {
+                "alias": "finished",
+                "foreign_only": "finished",
+            }
+        },
+        "igang": {"dataset_specific_renames": {"alias": "base"}},
+        "igang_other": {"dataset_specific_renames": {"family_alias": "second"}},
+        "igang_hoeyereutdanning": {
+            "dataset_specific_renames": {"exact_alias": "exact"}
+        },
+    }
+    config = SimpleNamespace(variables=variables, datasets=datasets)
+    for path, attribute in [
+        ("find_var_missing", "settings"),
+        ("variable_names", "settings_use"),
+        ("map_get_dtypes", "SETTINGS"),
+    ]:
+        module = importlib.import_module(f"nudb_use.metadata.nudb_config.{path}")
+        monkeypatch.setattr(
+            module, attribute, config if attribute != "SETTINGS" else vars(config)
+        )
+    module = importlib.import_module("nudb_use.metadata.nudb_config.variable_names")
+    monkeypatch.setattr(
+        module,
+        "get_var_metadata",
+        lambda: pd.DataFrame.from_dict(config.variables, orient="index"),
+    )
+    return config
+
+
+@pytest.mark.parametrize(
+    "alias,dataset,target",
+    [
+        ("alias", None, "general"),
+        ("alias", "igang_hoeyereutdanning", "base"),
+        ("family_alias", "igang_hoeyereutdanning", "sibling"),
+        ("exact_alias", "igang_hoeyereutdanning", "exact"),
+        ("general_only", "igang_hoeyereutdanning", "general"),
+        ("foreign_only", "igang_hoeyereutdanning", "finished"),
+    ],
+)
+def test_ranked_lookup_fallbacks(
+    ranked_settings: SimpleNamespace, alias: str, dataset: str | None, target: str
+) -> None:
+    result = find_var(alias, dataset_name=dataset)
+    assert result is not None
+    assert result["name"] == target
+    assert list(
+        update_colnames(
+            pd.DataFrame({alias: ["value"]}), dataset_name=dataset or ""
+        ).columns
+    ) == [target]
+    assert get_dtypes([alias], dataset_name=dataset) == {alias: "string[pyarrow]"}
+    explanation = explain_rename(alias, dataset_name=dataset)
+    assert explanation.loc[explanation["selected"], "new_name"].tolist() == [target]
+
+
+def test_rank_introspection_and_config_reordering(
+    ranked_settings: SimpleNamespace,
+) -> None:
+    explanation = explain_rename("alias")
+    ranks = explanation.set_index("new_name")["rank"].to_dict()
+    assert ranks == {
+        "general": (1, 0),
+        "external": (5, 0),
+        "exam": (4, 0),
+        "sibling": (3, 1),
+        "finished": (2, 0),
+        "base": (3, 0),
+    }
+    # Ranking is derived again after the config order changes, without adding settings fields.
+    ranked_settings.datasets = dict(reversed(list(ranked_settings.datasets.items())))
+    result = find_var("family_alias", dataset_name="igang_hoeyereutdanning")
+    assert result is not None
+    assert result["name"] == "second"
+    assert set(vars(ranked_settings)) == {"variables", "datasets"}
+    assert all(
+        set(dataset) == {"dataset_specific_renames"}
+        for dataset in ranked_settings.datasets.values()
+    )
+
+
+def test_other_dataset_order_and_ambiguous_general_renames() -> None:
+    datasets = {
+        "first": {"dataset_specific_renames": {"old": "one"}},
+        "second": {"dataset_specific_renames": {"old": "two"}},
+    }
+    assert _resolve_rename("old", _rename_candidates({}, datasets)) == "one"
+    assert (
+        _resolve_rename(
+            "old", _rename_candidates({}, dict(reversed(list(datasets.items()))))
+        )
+        == "two"
+    )
+    candidates = _rename_candidates(
+        {"one": {"renamed_from": ["old"]}, "two": {"renamed_from": ["old"]}}, datasets
+    )
+    with pytest.raises(ValueError, match=r"one.*two"):
+        _resolve_rename("old", candidates)
+
+
+@pytest.mark.parametrize(
+    "dataset", [None, "igang", "igang_hoeyereutdanning", "eksamen"]
+)
+def test_current_variable_context(
+    monkeypatch: pytest.MonkeyPatch, dataset: str | None
+) -> None:
+    lookup = importlib.import_module("nudb_use.metadata.nudb_config.find_var_missing")
+    monkeypatch.setattr(
+        lookup, "klass", SimpleNamespace(KlassClassification=lambda value: value)
+    )
+    target = "uh_ereksamenrett" if dataset == "eksamen" else "uh_studierett"
+    dtype = "bool[pyarrow]" if dataset == "eksamen" else "string[pyarrow]"
+    result = find_var("uh_studierett", dataset_name=dataset)
+    assert result is not None
+    assert result["name"] == target
+    data = pd.DataFrame({"uh_studierett": ["A"]})
+    assert list(update_colnames(data, dataset_name=dataset or "").columns) == [target]
+    assert get_dtypes(["uh_studierett"], dataset_name=dataset) == {
+        "uh_studierett": dtype
+    }
+    explanation = explain_rename("uh_studierett", dataset_name=dataset)
+    assert explanation.loc[explanation["selected"], "new_name"].tolist() == [target]
+    found = find_outdated_variables_in_df(data, dataset_name=dataset)
+    assert ("uh_studierett" in found) == (dataset == "eksamen")
+
+
+def test_family_dtype_selection_and_ambiguous_explanation(
+    ranked_settings: SimpleNamespace,
+) -> None:
+    ranked_settings.variables["sibling"]["dtype"] = "INTEGER"
+    assert get_dtypes(["family_alias"], dataset_name="igang_hoeyereutdanning") == {
+        "family_alias": "Int64"
+    }
+    with pytest.raises(ValueError, match=r"different dtypes.*STRING.*INTEGER"):
+        get_dtypes(["family_alias"])
+    ranked_settings.variables["second"]["renamed_from"] = ["alias"]
+    explanation = explain_rename("alias")
+    assert not explanation["selected"].any()

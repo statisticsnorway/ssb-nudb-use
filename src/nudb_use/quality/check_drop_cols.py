@@ -8,6 +8,7 @@ from nudb_config import settings
 
 from nudb_use.exceptions.exception_classes import NudbQualityError
 from nudb_use.metadata.nudb_config import get_var_metadata
+from nudb_use.metadata.nudb_config._renames import _describe_renames
 from nudb_use.metadata.nudb_config._renames import _rename_candidates
 from nudb_use.metadata.nudb_config.find_var_missing import VariableMetadata
 from nudb_use.metadata.nudb_config.find_var_missing import find_vars
@@ -162,7 +163,8 @@ def check_drop_cols_for_valid_cols(
         }
         if drops_old_names:
             drops_old_names_lines = "\n".join(
-                f"{col}: {mappings}" for col, mappings in drops_old_names.items()
+                f"{col}: {_describe_renames(mappings)}"
+                for col, mappings in drops_old_names.items()
             )
             logger.warning(
                 f"Dropping old names of columns (rename?), these may be handled incorrectly:\n{drops_old_names_lines}"
