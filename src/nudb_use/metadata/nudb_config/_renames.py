@@ -122,11 +122,7 @@ def _value(source: Any, key: str) -> Any:
     )
 
 
-def _rename_candidates(
-    variables: Mapping[str, Any],
-    datasets: Mapping[str, Any],
-    dataset_name: str | None = None,
-) -> RenameCandidates:
+def _variable_rename_candidates(variables: Mapping[str, Any]) -> RenameCandidates:
     candidates: RenameCandidates = {}
     for name, variable in variables.items():
         aliases = _value(variable, "renamed_from") or []
@@ -138,7 +134,12 @@ def _rename_candidates(
             candidates.setdefault(str(alias).lower(), {}).setdefault(name, []).append(
                 RenameSource()
             )
+    return candidates
 
+
+def _add_dataset_renames(
+    candidates: RenameCandidates, datasets: Mapping[str, Any]
+) -> None:
     # Positions are rebuilt on every lookup from the loaded config's insertion order.
     positions = {2: 1, 3: 1, 4: 1, 5: 0}
     for dataset, metadata in datasets.items():
@@ -153,6 +154,15 @@ def _rename_candidates(
             candidates.setdefault(key, {}).setdefault(str(target), []).append(
                 RenameSource(dataset, position)
             )
+
+
+def _rename_candidates(
+    variables: Mapping[str, Any],
+    datasets: Mapping[str, Any],
+    dataset_name: str | None = None,
+) -> RenameCandidates:
+    candidates = _variable_rename_candidates(variables)
+    _add_dataset_renames(candidates, datasets)
     if dataset_name:
         family = _dataset_family(dataset_name)
         if dataset_name not in datasets and not any(
