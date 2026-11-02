@@ -52,7 +52,7 @@ def run_quality_suite(
 
     errors = []
     errors += check_column_presence(df, dataset_name=dataset_name, raise_errors=False)
-    errors += check_outdated_variables(df)
+    errors += check_outdated_variables(df, dataset_name=dataset_name)
     errors += check_duplicated_columns(df)
     errors += check_dtypes(df, raise_errors=False)
     errors += check_column_widths(df, raise_errors=False)

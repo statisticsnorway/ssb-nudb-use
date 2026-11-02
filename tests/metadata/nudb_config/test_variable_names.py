@@ -114,6 +114,11 @@ def test_update_colnames_calls_overrides_and_lowercases(
 ) -> None:
     monkeypatch.setattr(
         variable_names_module,
+        "settings_use",
+        FakeSettings(datasets={"ds": SimpleNamespace(dataset_specific_renames=None)}),
+    )
+    monkeypatch.setattr(
+        variable_names_module,
         "get_var_metadata",
         lambda: pd.DataFrame({"renamed_from": ["old"]}, index=["new"]),
     )
