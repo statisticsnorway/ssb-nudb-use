@@ -40,7 +40,8 @@ def _generate_eksamen_aggregated_view(
             uh_eksamen_karakter,
             uh_eksamen_studpoeng,
             utd_datakilde,
-            CONCAT(nudb_dataset_id, '>eksamen_aggregated') AS nudb_dataset_id
+            CONCAT(nudb_dataset_id, '>eksamen_aggregated') AS nudb_dataset_id,
+            utd_hendelse_id
         FROM
             {nudb_eksamen.alias}
         WHERE
@@ -65,7 +66,8 @@ def _generate_eksamen_aggregated_view(
             FIRST(utd_datakilde) as utd_datakilde,
             FIRST(uh_eksamen_karakter) AS uh_eksamen_karakter,     -- Think we used to just pick random before. Carl: 'Using `MAX(uh_eksamen_karakter)` is too correct'
             SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
-            CONCAT(FIRST(nudb_dataset_id), '>eksamen_aggregated') AS nudb_dataset_id
+            CONCAT(FIRST(nudb_dataset_id), '>eksamen_aggregated') AS nudb_dataset_id,
+            FIRST(utd_hendelse_id) AS utd_hendelse_id
         FROM
             {nudb_eksamen.alias}
         WHERE
@@ -109,6 +111,7 @@ def _generate_eksamen_hoeyeste_view(
             T1.uh_eksamen_studpoeng,
             T1.utd_datakilde,
             T1.nudb_dataset_id,
+            T1.utd_hendelse_id,
             T2.utd_klassetrinn_lav_nus AS utd_klassetrinn,
             T2.uh_gruppering_nus,
             uh_gruppering_nus IN {VIDEREUTDANNING_UHGRUPPE} AS is_vidutd,
@@ -143,6 +146,7 @@ def _generate_eksamen_hoeyeste_view(
             SUBSTR(_sp_nus2000, 7) AS nus2000,
             uh_eksamen_studpoeng,
             nudb_dataset_id,
+            utd_hendelse_id,
             uh_eksamen_dato,
             utd_skoleaar_start,
             uh_gruppering_nus,
@@ -169,6 +173,7 @@ def _generate_eksamen_hoeyeste_view(
                 ) AS uh_eksamen_studpoeng,
 
                 CONCAT(nudb_dataset_id, '>eksamen_hoeyeste') AS nudb_dataset_id,
+                utd_hendelse_id,
 
                 snr,
                 uh_eksamen_dato,
@@ -192,7 +197,8 @@ def _generate_eksamen_hoeyeste_view(
                     SUM(uh_eksamen_studpoeng) AS uh_eksamen_studpoeng,
                     MAX(uh_eksamen_dato) AS uh_eksamen_dato,
                     FIRST(uh_gruppering_nus ORDER BY uh_eksamen_studpoeng DESC) AS uh_gruppering_nus,
-                    FIRST(nudb_dataset_id) AS nudb_dataset_id
+                    FIRST(nudb_dataset_id) AS nudb_dataset_id,
+                    FIRST(utd_hendelse_id) AS utd_hendelse_id
 
                 FROM (
                     {query_1}
@@ -231,7 +237,8 @@ def _generate_eksamen_avslutta_hoeyeste_view(
                 utd_klassetrinn,
                 NULL AS utd_studieland,
                 '3' AS utd_rectype,
-                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
+                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id,
+                utd_hendelse_id
             FROM
                 {NudbData("eksamen_hoeyeste").alias}
         ) UNION ALL BY NAME (
@@ -245,7 +252,8 @@ def _generate_eksamen_avslutta_hoeyeste_view(
                 utd_datakilde,
                 utd_studieland,
                 '4' AS utd_rectype,
-                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id
+                CONCAT(nudb_dataset_id, '>eksamen_avslutta_hoeyeste') AS nudb_dataset_id,
+                utd_hendelse_id
             FROM
                 {NudbData("avslutta_fullfoert").alias}
             WHERE
