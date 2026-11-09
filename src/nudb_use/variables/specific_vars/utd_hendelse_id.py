@@ -1,6 +1,9 @@
 import pandas as pd
 
 from nudb_use.datasets import NudbData
+from nudb_use.datasets.macros import (
+    _WIDTH_UTD_HENDELSE_ID,  # defining it here gives us a circular import...
+)
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.nudb_logger import function_logger_context
 from nudb_use.nudb_logger import logger
@@ -37,13 +40,13 @@ def join_variables_on_hendelse_id(
         df["utd_hendelse_id"]
         .astype("string[pyarrow]")
         .str.zfill(
-            17
+            _WIDTH_UTD_HENDELSE_ID
         )  # it's a bit clunky, since avslutta = 0, so we might not have the first digit...
     )
 
-    if (utd_hendelse_id.str.len() > 17).any():
+    if (utd_hendelse_id.str.len() > _WIDTH_UTD_HENDELSE_ID).any():
         raise ValueError(
-            "Did not expect utd_hendelse_id to be longer than 17 characters!"
+            f"Did not expect utd_hendelse_id to be longer than {_WIDTH_UTD_HENDELSE_ID} characters!"
         )
 
     logger.info("Identifying unique datasets in `utd_hendelse_id`...")

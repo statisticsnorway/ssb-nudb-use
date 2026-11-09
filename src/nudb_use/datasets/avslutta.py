@@ -47,7 +47,8 @@ def _generate_avslutta_fullfoert_view(
                 utd_fullfoertkode,
                 utd_datakilde,
                 utd_studieland,
-                CONCAT(nudb_dataset_id, '>avslutta_fullfoert') AS nudb_dataset_id
+                CONCAT(nudb_dataset_id, '>avslutta_fullfoert') AS nudb_dataset_id,
+                utd_hendelse_id
             FROM
                 {NudbData("avslutta").alias}
             WHERE

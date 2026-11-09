@@ -12,6 +12,7 @@ _MIN_DATE = "0" * _DATE_WIDTH
 # hope we always only have one (allowed) width/length per variable
 _WIDTH_UH_INSTITUSJON_ID = settings.variables.uh_institusjon_id.length[0]  # type: ignore
 _WIDTH_UTD_UTDANNINGSTYPE = settings.variables.utd_utdanningstype.length[0]  # type: ignore
+_WIDTH_UTD_HENDELSE_ID = 17  # defined here to avoid circular import
 
 _DUCKDB_MACROS = f"""
 
@@ -307,5 +308,8 @@ _DUCKDB_MACROS = f"""
         PREP_NUS2000(nus2000),
         PREP_UH_INSTITUSJON_ID(uh_institusjon_id),
         PREP_UTD_UTDANNINGSTYPE(utd_utdanningstype)
-    )
+    );
+
+{_MACRO} UTD_HENDELSE_ID_2STR(utd_hendelse_id) AS
+    LPAD(CAST(utd_hendelse_id AS VARCHAR), {_WIDTH_UTD_HENDELSE_ID}, '0');
 """

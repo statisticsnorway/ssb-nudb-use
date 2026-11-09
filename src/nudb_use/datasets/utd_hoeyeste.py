@@ -58,7 +58,7 @@ def _generate_utd_hoeyeste_view(
         CREATE VIEW {alias} AS
 
         WITH T0 AS (
-            SELECT DISTINCT
+            SELECT
                 snr,
                 PREP_NUS2000(nus2000) AS nus2000,
                 COALESCE(utd_aktivitet_slutt, uh_eksamen_dato) AS utd_hoeyeste_dato,
@@ -77,7 +77,8 @@ def _generate_utd_hoeyeste_view(
                 PREP_UTD_DATAKILDE(utd_datakilde) AS utd_datakilde,
                 PREP_UTD_KLASSETRINN(utd_klassetrinn) AS utd_klassetrinn,
                 utd_studieland,
-                UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar
+                UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar,
+                utd_hendelse_id
             FROM
                 {eksamen_avslutta_hoeyeste.alias}
         ),
@@ -85,15 +86,17 @@ def _generate_utd_hoeyeste_view(
         T1 AS (
             SELECT
                 T0.*,
-                MAX(utd_hoeyeste_rangering) OVER (
+                /* Combine ranking with identifier to make it unique */
+                CONCAT(utd_hoeyeste_rangering, UTD_HENDELSE_ID_2STR(utd_hendelse_id)) AS uid_rangering,
+                MAX(uid_rangering) OVER (
                     PARTITION BY snr
                     ORDER BY utd_hoeyeste_aar
                     RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS cummax_between_max_within_rangering
+                ) AS cummax_between_max_within_uid_rangering
             FROM T0
         )
 
-        SELECT
+        SELECT DISTINCT
             /*=== PERSON ====================================================================================*/
             snr,
 
@@ -108,6 +111,7 @@ def _generate_utd_hoeyeste_view(
             utd_hoeyeste_dato,
             utd_hoeyeste_aar,
             utd_hoeyeste_rangering,
+            utd_hendelse_id,
 
             /*=== NUS2000 ===================================================================================*/
             nus2000                                                         AS utd_hoeyeste_nus2000_ujustert,
@@ -115,7 +119,7 @@ def _generate_utd_hoeyeste_view(
         FROM
             T1
         WHERE
-            utd_hoeyeste_rangering==cummax_between_max_within_rangering;
+            uid_rangering==cummax_between_max_within_uid_rangering;
     """
 
     connection.execute(query)
