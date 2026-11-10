@@ -100,9 +100,6 @@ def uh_erbachelor_fullfoert(  # noqa:DOC201
     df: pd.DataFrame,
 ) -> pd.Series:
     """Derive uh_erbachelor_fullfoert from uh_gradmerke_nus."""
-    from nudb_use.nudb_logger import logger
-
-    logger.critical(df)
     return (
         (df["uh_gradmerke_nus"] == "B") & (df["utd_fullfoertkode"] == FULLFOERTKODE)
     ).astype(BOOL_DTYPE)

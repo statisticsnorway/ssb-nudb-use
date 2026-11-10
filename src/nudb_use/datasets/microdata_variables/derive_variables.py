@@ -99,18 +99,47 @@ def _get_generator_derive_variable(
                 "Found missing values in `utd_hendelse_id` column. This should not be possible, and is likely a bug!"
             )
 
+        ident_column = "utd_hendelse_id"
+        source = "tmp_df_basequery"
+        if need == ["snr"]:
+            from nudb_use.datasets.nudb_data import NudbData
+
+            snrkat = NudbData("_snrkat_fnr2snr")
+            ident_column = "fnr"
+            source += f" LEFT JOIN {snrkat.alias} USING (snr)"
+
         query = f"""
-            CREATE OR REPLACE TABLE
-                {alias} AS
-            SELECT
-                utd_hendelse_id,
+            SELECT {"DISTINCT" if need == ["snr"] else ""}
+                {ident_column},
                 {variable},
                 utd_hendelse_dato_start,
                 utd_hendelse_dato_slutt
             FROM
-                tmp_df_basequery
+                {source}
         """
 
-        connection.execute(query)
+        if need == ["snr"]:
+            # Identical STATUS observations may come from different events.
+            # After DISTINCT, multiple rows per person/date are conflicts.
+            conflicts = connection.execute(
+                f"""
+                SELECT COUNT(*) FROM (
+                    SELECT fnr, utd_hendelse_dato_start
+                    FROM ({query}) AS observations
+                    WHERE fnr IS NOT NULL
+                    GROUP BY fnr, utd_hendelse_dato_start
+                    HAVING COUNT(*) > 1
+                ) AS conflicts
+                """
+            ).fetchone()
+            if conflicts is not None and conflicts[0]:
+                raise ValueError(
+                    f"Conflicting STATUS observations for '{variable}': "
+                    f"{conflicts[0]} (fnr, start date) groups have multiple values "
+                    "or stop dates. Identical rows were deduplicated; "
+                    "no winning value was selected and no dataset was created."
+                )
+
+        connection.execute(f"CREATE OR REPLACE TABLE {alias} AS {query}")
 
     return _generate_variable_view

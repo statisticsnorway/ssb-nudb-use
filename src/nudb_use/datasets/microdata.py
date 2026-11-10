@@ -38,7 +38,7 @@ class MicroData(NudbData):
 
         if name not in available:
             raise ValueError(
-                f"Unrecognized Microdata Variable!\nAvailable variables:\n\t{available}"
+                f"Unrecognized Microdata Variable: {name}!\nAvailable variables:\n\t{available}"
             )
 
         microdata_name = MICRODATA_PREFIX + name
