@@ -5,7 +5,8 @@ from nudb_config import settings
 
 from nudb_use.nudb_logger import logger
 
-EXCLUDE_VARS = ["utd_hendelse_id", "utd_aktivitet_slutt", "uh_eksamen_dato"]
+# Dates are also needed as values when deriving other MicroData variables.
+EXCLUDE_VARS = ["utd_hendelse_id"]
 
 # Get all first class variable. I.e., variables which aren't
 # derived, but are stored on the data
@@ -72,8 +73,8 @@ def _get_generator_first_class_variable(
             SELECT
                 utd_hendelse_id,
                 {variable},
-                make_date(CAST(utd_skoleaar_start AS INTEGER), 8, 1) AS utd_hendelse_dato_start, /* The best we've got for IGANG */
-                NULL AS utd_hendelse_dato_slutt
+                make_date(CAST(utd_skoleaar_start AS INTEGER), 10, 1) AS utd_hendelse_dato_start, /* The best we've got for IGANG */
+                make_date(CAST(utd_skoleaar_start AS INTEGER), 10, 1) AS utd_hendelse_dato_slutt
             FROM
                 {igang.alias}
             WHERE
@@ -85,11 +86,12 @@ def _get_generator_first_class_variable(
                 utd_hendelse_id,
                 {variable},
                 utd_aktivitet_slutt AS utd_hendelse_dato_start,
-                NULL AS utd_hendelse_dato_slutt
+                utd_aktivitet_slutt AS utd_hendelse_dato_slutt
             FROM
                 {avslutta.alias}
             WHERE
-                {variable} IS NOT NULL
+                {variable} IS NOT NULL AND
+                utd_aktivitet_slutt IS NOT NULL
         """
 
         eksamen_query = f"""
@@ -97,11 +99,12 @@ def _get_generator_first_class_variable(
                 utd_hendelse_id,
                 {variable},
                 uh_eksamen_dato AS utd_hendelse_dato_start,
-                NULL AS utd_hendelse_dato_slutt
+                uh_eksamen_dato AS utd_hendelse_dato_slutt
             FROM
                 {eksamen.alias}
             WHERE
-                {variable} IS NOT NULL
+                {variable} IS NOT NULL AND
+                uh_eksamen_dato IS NOT NULL
         """
 
         query_list = []
