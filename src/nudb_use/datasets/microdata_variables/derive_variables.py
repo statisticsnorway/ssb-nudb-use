@@ -104,7 +104,7 @@ def _get_generator_derive_variable(
         if need == ["snr"]:
             from nudb_use.datasets.nudb_data import NudbData
 
-            snrkat = NudbData("_snrkat_fnr2snr")
+            snrkat = NudbData("_snrkat_snr2fnr")
             ident_column = "fnr"
             source += f" LEFT JOIN {snrkat.alias} USING (snr)"
 

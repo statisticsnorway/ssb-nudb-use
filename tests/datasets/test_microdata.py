@@ -3,6 +3,7 @@ import datetime
 import duckdb as db
 import pytest
 
+from nudb_use.datasets import NudbData
 from nudb_use.datasets import nudb_database as database_module
 from nudb_use.datasets.microdata import MicroData
 from nudb_use.datasets.microdata import show_available_microdata_variables
@@ -31,8 +32,9 @@ def microdata_sources(monkeypatch):
                 ) AS data(utd_hendelse_id, uh_eksamen_dato, snr)
             """,
             "snrkat": """
-                SELECT * FROM (VALUES ('a', '111'), ('a', '111'), ('b', '222'))
-                AS data(snr, fnr)
+                SELECT * FROM (VALUES
+                    ('a', '100', '111'), ('a', '101', '111'), ('b', '202', '222')
+                ) AS data(snr, fnr, fnr_naa)
             """,
         }.items():
             alias = _default_alias_from_name(name)
@@ -41,6 +43,21 @@ def microdata_sources(monkeypatch):
                 database._dataset_generators, name, lambda alias, connection: None
             )
         yield connection
+
+
+def test_snrkat_mapping_directions(microdata_sources):
+    current = NudbData("_snrkat_snr2fnr").df()
+    historical = NudbData("_snrkat_fnr2snr").df()
+
+    assert sorted(current.itertuples(index=False, name=None)) == [
+        ("a", "111"),
+        ("b", "222"),
+    ]
+    assert sorted(historical.itertuples(index=False, name=None)) == [
+        ("100", "a"),
+        ("101", "a"),
+        ("202", "b"),
+    ]
 
 
 @pytest.mark.parametrize(

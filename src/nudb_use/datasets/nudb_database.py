@@ -45,6 +45,7 @@ from nudb_use.datasets.person import _generate_slekt_snr_view
 from nudb_use.datasets.person import _generate_snr2alder16_view
 from nudb_use.datasets.person import _generate_utd_person_view
 from nudb_use.datasets.snrkat import _generate_snrkat_fnr2snr_view
+from nudb_use.datasets.snrkat import _generate_snrkat_snr2fnr_view
 from nudb_use.datasets.utd_foreldres_utdnivaa import (
     _generate_utd_foreldres_utdnivaa_view,
 )
@@ -103,6 +104,7 @@ class _NudbDatabase:
             # NudbData() - Private
             "_snr2alder16": _generate_snr2alder16_view,
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
+            "_snrkat_snr2fnr": _generate_snrkat_snr2fnr_view,
             "_bof_unique_orgnrbed": _generate_bof_unique_orgnrbed_view,
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,
