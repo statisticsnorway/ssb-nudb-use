@@ -60,7 +60,7 @@ def _get_generator_first_class_variable(
 
         logger.info(f"Creating MicroData dataset for {variable}...")
 
-        if variable not in _get_available_variables():
+        if variable != "fnr" and variable not in _get_available_variables():
             msg = f"{variable} is not available in either IGANG, AVSLUTTA or EKSAMEN!"
             logger.error(msg)
             raise ValueError(msg)
@@ -69,56 +69,87 @@ def _get_generator_first_class_variable(
         avslutta = NudbData("avslutta")
         eksamen = NudbData("eksamen")
 
+        def value_filter(dataset: NudbData) -> str:
+            # Keep original-FNR observations in the SNR input for simple derives.
+            if variable == "snr" and "fnr" in dataset.get_available_cols():
+                return "(snr IS NOT NULL OR fnr IS NOT NULL)"
+            if variable == "fnr":
+                columns = dataset.get_available_cols()
+                conditions = [
+                    f"{column} IS NOT NULL"
+                    for column in ("fnr", "snr")
+                    if column in columns
+                ]
+                return "(" + (" OR ".join(conditions) or "FALSE") + ")"
+            return f"{variable} IS NOT NULL"
+
+        def value_select(dataset: NudbData) -> str:
+            if variable == "fnr" and "fnr" not in dataset.get_available_cols():
+                return "NULL::VARCHAR AS fnr"
+            return variable
+
         igang_query = f"""
             SELECT
                 utd_hendelse_id,
-                {variable},
+                {value_select(igang)},
                 make_date(CAST(utd_skoleaar_start AS INTEGER), 10, 1) AS utd_hendelse_dato_start, /* The best we've got for IGANG */
                 make_date(CAST(utd_skoleaar_start AS INTEGER), 10, 1) AS utd_hendelse_dato_slutt
             FROM
                 {igang.alias}
             WHERE
-                {variable} IS NOT NULL
+                {value_filter(igang)}
         """
 
         avslutta_query = f"""
             SELECT
                 utd_hendelse_id,
-                {variable},
+                {value_select(avslutta)},
                 utd_aktivitet_slutt AS utd_hendelse_dato_start,
                 utd_aktivitet_slutt AS utd_hendelse_dato_slutt
             FROM
                 {avslutta.alias}
             WHERE
-                {variable} IS NOT NULL AND
+                {value_filter(avslutta)} AND
                 utd_aktivitet_slutt IS NOT NULL
         """
 
         eksamen_query = f"""
             SELECT
                 utd_hendelse_id,
-                {variable},
+                {value_select(eksamen)},
                 uh_eksamen_dato AS utd_hendelse_dato_start,
                 uh_eksamen_dato AS utd_hendelse_dato_slutt
             FROM
                 {eksamen.alias}
             WHERE
-                {variable} IS NOT NULL AND
+                {value_filter(eksamen)} AND
                 uh_eksamen_dato IS NOT NULL
         """
 
         query_list = []
-        if variable in igang.get_available_cols():
-            query_list.append(igang_query)
-        if variable in avslutta.get_available_cols():
-            query_list.append(avslutta_query)
-        if variable in eksamen.get_available_cols():
-            query_list.append(eksamen_query)
+        for dataset, dataset_query in (
+            (igang, igang_query),
+            (avslutta, avslutta_query),
+            (eksamen, eksamen_query),
+        ):
+            columns = dataset.get_available_cols()
+            if variable in columns or (variable == "fnr" and "snr" in columns):
+                query_list.append(dataset_query)
 
-        query = f"""
-            CREATE OR REPLACE VIEW
-                {alias} AS
-        """ + "UNION ALL BY NAME".join(query_list)
+        values = " UNION ALL BY NAME ".join(query_list)
+        query = f"CREATE OR REPLACE VIEW {alias} AS {values}"
+        if variable == "fnr":
+            identifiers = NudbData("_utd_hendelse_idents")
+            query = f"""
+                CREATE OR REPLACE VIEW {alias} AS
+                SELECT
+                    observations.utd_hendelse_id,
+                    COALESCE(identifiers.mapped_fnr, identifiers.original_fnr) AS fnr,
+                    observations.utd_hendelse_dato_start,
+                    observations.utd_hendelse_dato_slutt
+                FROM ({values}) AS observations
+                LEFT JOIN {identifiers.alias} AS identifiers USING (utd_hendelse_id)
+            """
 
         logger.debug(f"QUERY:\n{query}")
 

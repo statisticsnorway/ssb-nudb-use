@@ -23,6 +23,13 @@ def show_available_microdata_variables() -> list[str]:
 class MicroData(NudbData):
     """Lazy representation of a Microdata variable as an NUDB dataset.
 
+    Event datasets use ``utd_hendelse_id``; ``MicroData("fnr")`` maps events to
+    ``snrkat.fnr_naa``, falling back to reported FNR. Derives depending only
+    on SNR use FNR as their identifier. These allow reported-FNR fallback
+    only when their dependencies have no join/dataset metadata and the
+    derive preserves input event rows. Otherwise they keep mapped FNRs only
+    and log a warning.
+
     Args:
         name: Name of the microdata variable.
         *args: Unnamed arguments passed on to the dataset generator.

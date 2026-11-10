@@ -6,6 +6,7 @@ from nudb_config import settings
 from nudb_use.datasets.microdata_variables.first_class_variables import (
     _get_available_variables,
 )
+from nudb_use.datasets.microdata_variables.identifiers import _can_use_original_fnr
 from nudb_use.nudb_logger import logger
 
 EXCLUDE_VARS = ["utd_hendelse_id"]
@@ -33,6 +34,7 @@ def _get_generator_derive_variable(
     ) -> None:
 
         from nudb_use.datasets.microdata import MicroData  # avoid circular import
+        from nudb_use.datasets.nudb_data import NudbData
         from nudb_use.variables import derive
 
         need = settings.variables[variable].derived_from
@@ -63,7 +65,23 @@ def _get_generator_derive_variable(
             mdat = MicroData(
                 dvar
             )  # the call to MicroData() doesn't only retrieve the alias, but also initializes the dataset (if needed)
-            aliases.append(mdat.alias)
+            source = mdat.alias
+            if "utd_hendelse_id" not in mdat.get_available_cols():
+                # Person dependencies have FNR as their key; recover event rows
+                # by matching the person and the observation's STATUS date.
+                events = MicroData("snr")
+                identifiers = NudbData("_utd_hendelse_idents")
+                source = f"""(
+                    SELECT events.utd_hendelse_id, person.{dvar},
+                        events.utd_hendelse_dato_start, events.utd_hendelse_dato_slutt
+                    FROM {events.alias} AS events
+                    LEFT JOIN {identifiers.alias} AS identifiers USING (utd_hendelse_id)
+                    LEFT JOIN {mdat.alias} AS person
+                    ON person.fnr = COALESCE(identifiers.mapped_fnr, identifiers.original_fnr)
+                    AND person.utd_hendelse_dato_start IS NOT DISTINCT FROM events.utd_hendelse_dato_start
+                    AND person.utd_hendelse_dato_slutt IS NOT DISTINCT FROM events.utd_hendelse_dato_slutt
+                )"""
+            aliases.append(source)
 
         # we should have no missing values in the keys, and all keys should be present in all microdata variable datasets.
         # so INNER, LEFT, RIGHT and FULL JOIN should all yield the same results. Here we use a FULL JOIN just in case...
@@ -81,8 +99,8 @@ def _get_generator_derive_variable(
             "SELECT * FROM (\n"
             + f"\n{join_type} JOIN\n".join(
                 [
-                    f"(SELECT {get_select(i)} FROM {alias} AS {alias}) {get_using(i)}"
-                    for i, alias in enumerate(aliases)
+                    f"(SELECT {get_select(i)} FROM {source}) {get_using(i)}"
+                    for i, source in enumerate(aliases)
                 ]
             )
             + "\n)"
@@ -91,7 +109,9 @@ def _get_generator_derive_variable(
         logger.debug(f"Base query:\n{basequery}")
 
         # derive
-        df = getattr(derive, variable)(connection.sql(basequery).df())
+        input_df = connection.sql(basequery).df()
+        input_event_ids = input_df["utd_hendelse_id"].copy()
+        df = getattr(derive, variable)(input_df)
         connection.register("tmp_df_basequery", df)
 
         if df.utd_hendelse_id.isna().any():
@@ -99,21 +119,36 @@ def _get_generator_derive_variable(
                 "Found missing values in `utd_hendelse_id` column. This should not be possible, and is likely a bug!"
             )
 
-        ident_column = "utd_hendelse_id"
-        source = "tmp_df_basequery"
+        ident_columns = "observations.utd_hendelse_id"
+        source = "tmp_df_basequery AS observations"
         if need == ["snr"]:
-            from nudb_use.datasets.nudb_data import NudbData
-
-            snrkat = NudbData("_snrkat_snr2fnr")
-            ident_column = "fnr"
-            source += f" LEFT JOIN {snrkat.alias} USING (snr)"
+            use_original = _can_use_original_fnr(variable) and df[
+                "utd_hendelse_id"
+            ].equals(input_event_ids)
+            identifiers = NudbData("_utd_hendelse_idents")
+            fnr = "identifiers.mapped_fnr"
+            if use_original:
+                fnr = f"COALESCE({fnr}, identifiers.original_fnr)"
+            else:
+                logger.warning(
+                    f"MicroData '{variable}': original FNR fallback is disabled because "
+                    "the derive logic or its dependencies use joins/lookups across rows, "
+                    "or did not preserve the input event rows. Only keeping FNRs that "
+                    "map back from SNR through snrkat.fnr_naa."
+                )
+            ident_columns = f"{fnr} AS fnr"
+            source += (
+                f" LEFT JOIN {identifiers.alias} AS identifiers USING (utd_hendelse_id)"
+            )
+            if not use_original:
+                source += " WHERE identifiers.mapped_fnr IS NOT NULL"
 
         query = f"""
             SELECT {"DISTINCT" if need == ["snr"] else ""}
-                {ident_column},
-                {variable},
-                utd_hendelse_dato_start,
-                utd_hendelse_dato_slutt
+                {ident_columns},
+                observations.{variable},
+                observations.utd_hendelse_dato_start,
+                observations.utd_hendelse_dato_slutt
             FROM
                 {source}
         """
@@ -121,8 +156,7 @@ def _get_generator_derive_variable(
         if need == ["snr"]:
             # Identical STATUS observations may come from different events.
             # After DISTINCT, multiple rows per person/date are conflicts.
-            conflicts = connection.execute(
-                f"""
+            conflicts = connection.execute(f"""
                 SELECT COUNT(*) FROM (
                     SELECT fnr, utd_hendelse_dato_start
                     FROM ({query}) AS observations
@@ -130,8 +164,7 @@ def _get_generator_derive_variable(
                     GROUP BY fnr, utd_hendelse_dato_start
                     HAVING COUNT(*) > 1
                 ) AS conflicts
-                """
-            ).fetchone()
+                """).fetchone()
             if conflicts is not None and conflicts[0]:
                 raise ValueError(
                     f"Conflicting STATUS observations for '{variable}': "

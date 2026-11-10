@@ -34,6 +34,9 @@ from nudb_use.datasets.microdata_variables.first_class_variables import (
 from nudb_use.datasets.microdata_variables.first_class_variables import (
     _get_generator_first_class_variable,
 )
+from nudb_use.datasets.microdata_variables.identifiers import (
+    _generate_utd_hendelse_idents_view,
+)
 from nudb_use.datasets.nuskat import _generate_nuskat_table
 from nudb_use.datasets.old_nudb_data import _generate_f_utd_demografi_view
 from nudb_use.datasets.old_nudb_data import _generate_f_utd_kurs_view
@@ -105,6 +108,7 @@ class _NudbDatabase:
             "_snr2alder16": _generate_snr2alder16_view,
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "_snrkat_snr2fnr": _generate_snrkat_snr2fnr_view,
+            "_utd_hendelse_idents": _generate_utd_hendelse_idents_view,
             "_bof_unique_orgnrbed": _generate_bof_unique_orgnrbed_view,
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,
