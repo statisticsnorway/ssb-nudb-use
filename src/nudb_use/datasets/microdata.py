@@ -24,11 +24,16 @@ class MicroData(NudbData):
     """Lazy representation of a Microdata variable as an NUDB dataset.
 
     Event datasets use ``utd_hendelse_id``; ``MicroData("fnr")`` maps events to
-    ``snrkat.fnr_naa``, falling back to reported FNR. Derives depending only
-    on SNR use FNR as their identifier. These allow reported-FNR fallback
+    ``snrkat.fnr_naa``, falling back to reported FNR. Derives with join keys
+    ``["snr"]`` use FNR as their identifier; without explicit join keys,
+    depending only on SNR also selects FNR. These allow reported-FNR fallback
     only when their dependencies have no join/dataset metadata and the
     derive preserves input event rows. Otherwise they keep mapped FNRs only
     and log a warning.
+
+    For person-level DATETIME measures named ``*fullfoert_dato`` or
+    ``*registrert*_dato``, start and stop equal the measure date. Other
+    measures retain their existing observation dates.
 
     Rows with a null measure are omitted; empty strings, zero, and False are
     retained.

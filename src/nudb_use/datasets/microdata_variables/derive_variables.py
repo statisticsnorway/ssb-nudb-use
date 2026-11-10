@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from fnmatch import fnmatchcase
 
 import duckdb as db
 from nudb_config import settings
@@ -40,12 +41,27 @@ def _get_generator_derive_variable(
         from nudb_use.datasets.nudb_data import NudbData
         from nudb_use.variables import derive
 
-        need = settings.variables[variable].derived_from
+        metadata = settings.variables[variable]
+        need = metadata.derived_from
 
         if not need:
             msg = f"'{variable}' doesn't seem to be derived from anything. This is probably a bug!"
             logger.error(msg)
             raise ValueError(msg)
+
+        person_level = (
+            metadata.derived_join_keys == ["snr"]
+            if metadata.derived_join_keys is not None
+            else need == ["snr"]
+        )
+        milestone_date = (
+            person_level
+            and metadata.dtype == "DATETIME"
+            and (
+                fnmatchcase(variable, "*fullfoert_dato")
+                or fnmatchcase(variable, "*registrert*_dato")
+            )
+        )
 
         # after we know that need is not None
         missing = list(
@@ -129,7 +145,7 @@ def _get_generator_derive_variable(
             f"(SELECT * FROM tmp_df_basequery WHERE {_nonmissing_measure_filter(variable)}) "
             "AS observations"
         )
-        if need == ["snr"]:
+        if person_level:
             use_original = _can_use_original_fnr(variable) and df[
                 "utd_hendelse_id"
             ].equals(input_event_ids)
@@ -151,17 +167,27 @@ def _get_generator_derive_variable(
             if not use_original:
                 source += " WHERE identifiers.mapped_fnr IS NOT NULL"
 
+        start_column = (
+            f"observations.{variable}"
+            if milestone_date
+            else "observations.utd_hendelse_dato_start"
+        )
+        stop_column = (
+            f"observations.{variable}"
+            if milestone_date
+            else "observations.utd_hendelse_dato_slutt"
+        )
         query = f"""
-            SELECT {"DISTINCT" if need == ["snr"] else ""}
+            SELECT {"DISTINCT" if person_level else ""}
                 {ident_columns},
                 observations.{variable},
-                observations.utd_hendelse_dato_start,
-                observations.utd_hendelse_dato_slutt
+                {start_column} AS utd_hendelse_dato_start,
+                {stop_column} AS utd_hendelse_dato_slutt
             FROM
                 {source}
         """
 
-        if need == ["snr"]:
+        if person_level:
             # Identical STATUS observations may come from different events.
             # After DISTINCT, multiple rows per person/date are conflicts.
             conflicts = connection.execute(f"""

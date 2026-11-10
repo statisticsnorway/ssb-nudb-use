@@ -352,3 +352,87 @@ def test_microdata_physical_float_nan_is_omitted(microdata_sources):
     result = MicroData(variable).df()
 
     assert sorted(result[variable].tolist()) == [0.0, 1.0]
+
+
+@pytest.mark.parametrize(
+    "variable",
+    [
+        "uh_bachelor_foerste_fullfoert_dato",
+        "uh_bachelor_foerste_registrert_dato",
+        "vg_foerste_registrert_erutdprogram_dato",
+    ],
+)
+def test_microdata_person_milestone_dates(microdata_sources, monkeypatch, variable):
+    from nudb_config import settings
+
+    # Multiple dependencies still describe one value per person. The same
+    # 2004 milestone must not be exported against the person's 1986 event.
+    monkeypatch.setattr(
+        settings.variables[variable], "derived_from", ["snr", "utd_aktivitet_slutt"]
+    )
+    alias = _default_alias_from_name("igang")
+    microdata_sources.execute(f"UPDATE {alias} SET utd_skoleaar_start = '1986'")
+    milestone = pd.Timestamp("2004-06-01")
+    monkeypatch.setattr(derive, variable, lambda df: df.assign(**{variable: milestone}))
+
+    result = MicroData(variable).df()
+
+    assert list(result.columns) == [
+        "fnr",
+        variable,
+        "utd_hendelse_dato_start",
+        "utd_hendelse_dato_slutt",
+    ]
+    assert len(result) == 1
+    assert result.iloc[0].tolist() == ["111", milestone, milestone, milestone]
+
+
+@pytest.mark.parametrize(
+    "variable",
+    [
+        "utd_foreldres_utdnivaa_16aar",
+        "utd_hoeyeste_nus2000",
+        "pers_bokommune_16aar",
+        "utd_foreldres_utdnivaa_16aar_nus2000",
+        "utd_hoeyeste_mor_nus2000",
+        "utd_hoeyeste_far_nus2000",
+    ],
+)
+def test_microdata_other_person_variables_keep_event_dates(
+    microdata_sources, monkeypatch, variable
+):
+    from nudb_config import settings
+
+    monkeypatch.setattr(
+        settings.variables[variable], "derived_from", ["snr", "utd_aktivitet_slutt"]
+    )
+    monkeypatch.setattr(derive, variable, lambda df: df.assign(**{variable: "value"}))
+
+    result = MicroData(variable).df().sort_values("utd_hendelse_dato_start")
+
+    assert list(result.columns) == [
+        "fnr",
+        variable,
+        "utd_hendelse_dato_start",
+        "utd_hendelse_dato_slutt",
+    ]
+    expected_dates = [pd.Timestamp("2020-10-01"), pd.Timestamp("2021-06-01")]
+    assert result["fnr"].tolist() == ["111", "111"]
+    assert result["utd_hendelse_dato_start"].tolist() == expected_dates
+    assert result["utd_hendelse_dato_slutt"].tolist() == expected_dates
+
+
+def test_microdata_explicit_event_keys_override_snr_dependency(
+    microdata_sources, monkeypatch
+):
+    from nudb_config import settings
+
+    monkeypatch.setattr(
+        settings.variables["snr_mrk"], "derived_join_keys", ["utd_hendelse_id"]
+    )
+
+    result = MicroData("snr_mrk").df()
+
+    assert result.columns[0] == "utd_hendelse_id"
+    assert "fnr" not in result.columns
+    assert set(result["utd_hendelse_id"]) == {1, 2, 4}
