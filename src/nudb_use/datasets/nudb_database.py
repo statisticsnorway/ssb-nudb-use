@@ -109,6 +109,9 @@ class _NudbDatabase:
             "_snrkat_fnr2snr": _generate_snrkat_fnr2snr_view,
             "_snrkat_snr2fnr": _generate_snrkat_snr2fnr_view,
             "_utd_hendelse_idents": _generate_utd_hendelse_idents_view,
+            "_utd_hendelse_snr": _get_generator_first_class_variable(
+                "snr", keep_original_fnr=True
+            ),
             "_bof_unique_orgnrbed": _generate_bof_unique_orgnrbed_view,
             "_bof_unique_orgnr_foretak": _generate_bof_unique_orgnr_foretak_view,
             "_bof_eierforhold": _generate_bof_eierforhold_view,

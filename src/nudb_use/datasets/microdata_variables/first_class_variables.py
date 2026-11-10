@@ -25,6 +25,15 @@ FIRST_CLASS_VARIABLES = [
 AVAILABLE_VARIABLES: list[str] | None = None  # this has to be checked at runtime
 
 
+def _nonmissing_measure_filter(variable: str) -> str:
+    # Pandas missing values scan as SQL NULL. Parquet/SQL floating NaN may
+    # remain a non-null NaN; do not mistake the literal string "NaN" for NA.
+    return f"""{variable} IS NOT NULL AND CASE
+        WHEN typeof({variable}) IN ('FLOAT', 'DOUBLE')
+        THEN NOT isnan(TRY_CAST({variable} AS DOUBLE))
+        ELSE TRUE END"""
+
+
 def _get_available_variables() -> list[str]:
     global AVAILABLE_VARIABLES
 
@@ -48,6 +57,7 @@ def _get_available_variables() -> list[str]:
 
 def _get_generator_first_class_variable(
     variable: str,
+    keep_original_fnr: bool = False,
 ) -> Callable[[str, db.DuckDBPyConnection], None]:
     logger.debug(f"Creating generator for {variable}")
 
@@ -71,7 +81,11 @@ def _get_generator_first_class_variable(
 
         def value_filter(dataset: NudbData) -> str:
             # Keep original-FNR observations in the SNR input for simple derives.
-            if variable == "snr" and "fnr" in dataset.get_available_cols():
+            if (
+                keep_original_fnr
+                and variable == "snr"
+                and "fnr" in dataset.get_available_cols()
+            ):
                 return "(snr IS NOT NULL OR fnr IS NOT NULL)"
             if variable == "fnr":
                 columns = dataset.get_available_cols()
@@ -81,7 +95,7 @@ def _get_generator_first_class_variable(
                     if column in columns
                 ]
                 return "(" + (" OR ".join(conditions) or "FALSE") + ")"
-            return f"{variable} IS NOT NULL"
+            return _nonmissing_measure_filter(variable)
 
         def value_select(dataset: NudbData) -> str:
             if variable == "fnr" and "fnr" not in dataset.get_available_cols():
@@ -149,6 +163,7 @@ def _get_generator_first_class_variable(
                     observations.utd_hendelse_dato_slutt
                 FROM ({values}) AS observations
                 LEFT JOIN {identifiers.alias} AS identifiers USING (utd_hendelse_id)
+                WHERE COALESCE(identifiers.mapped_fnr, identifiers.original_fnr) IS NOT NULL
             """
 
         logger.debug(f"QUERY:\n{query}")

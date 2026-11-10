@@ -6,6 +6,9 @@ from nudb_config import settings
 from nudb_use.datasets.microdata_variables.first_class_variables import (
     _get_available_variables,
 )
+from nudb_use.datasets.microdata_variables.first_class_variables import (
+    _nonmissing_measure_filter,
+)
 from nudb_use.datasets.microdata_variables.identifiers import _can_use_original_fnr
 from nudb_use.nudb_logger import logger
 
@@ -62,14 +65,14 @@ def _get_generator_derive_variable(
 
         aliases = []
         for dvar in need:
-            mdat = MicroData(
-                dvar
-            )  # the call to MicroData() doesn't only retrieve the alias, but also initializes the dataset (if needed)
+            # The private SNR input retains original-FNR rows with missing SNR;
+            # exported MicroData measures themselves never contain null values.
+            mdat = NudbData("_utd_hendelse_snr") if dvar == "snr" else MicroData(dvar)
             source = mdat.alias
             if "utd_hendelse_id" not in mdat.get_available_cols():
                 # Person dependencies have FNR as their key; recover event rows
                 # by matching the person and the observation's STATUS date.
-                events = MicroData("snr")
+                events = NudbData("_utd_hendelse_snr")
                 identifiers = NudbData("_utd_hendelse_idents")
                 source = f"""(
                     SELECT events.utd_hendelse_id, person.{dvar},
@@ -120,7 +123,12 @@ def _get_generator_derive_variable(
             )
 
         ident_columns = "observations.utd_hendelse_id"
-        source = "tmp_df_basequery AS observations"
+        # Filter while DuckDB scans the derived dataframe, before identifier
+        # joins, DISTINCT, conflict checks, and materializing the final table.
+        source = (
+            f"(SELECT * FROM tmp_df_basequery WHERE {_nonmissing_measure_filter(variable)}) "
+            "AS observations"
+        )
         if need == ["snr"]:
             use_original = _can_use_original_fnr(variable) and df[
                 "utd_hendelse_id"

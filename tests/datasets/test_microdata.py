@@ -1,6 +1,7 @@
 import datetime
 
 import duckdb as db
+import pandas as pd
 import pytest
 
 from nudb_use.datasets import NudbData
@@ -258,3 +259,96 @@ def test_microdata_record_type_keeps_event_identifier(microdata_sources):
 
     assert "fnr" not in result.columns
     assert set(result.index) == {1, 2, 3, 4, 5}
+
+
+@pytest.mark.parametrize("person_variable", [False, True])
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.Series([None, "", "NaN"], dtype=object),
+        pd.Series([pd.NA, "", "NaN"], dtype="string"),
+        pd.Series([pd.NA, 0, 1], dtype="Int64"),
+        pd.Series([float("nan"), 0.0, 1.0]),
+        pd.Series([pd.NA, False, True], dtype="boolean"),
+        pd.Series([pd.NaT, pd.Timestamp("2020-01-01"), pd.Timestamp("2021-01-01")]),
+    ],
+    ids=["None", "pd.NA-string", "pd.NA-integer", "NaN", "pd.NA-boolean", "NaT"],
+)
+def test_microdata_null_measures_not_stored(
+    microdata_sources, monkeypatch, person_variable, values
+):
+    from nudb_config import settings
+
+    variable = "snr_mrk"
+    monkeypatch.setattr(
+        settings.variables[variable],
+        "derived_from",
+        ["snr"] if person_variable else ["snr", "utd_aktivitet_slutt"],
+    )
+
+    def derive_with_missing(df):
+        df = df.sort_values("utd_hendelse_id").reset_index(drop=True)
+        return df.assign(snr_mrk=values)
+
+    monkeypatch.setattr(derive, variable, derive_with_missing)
+    data = MicroData(variable)
+    stored = microdata_sources.execute(
+        f"SELECT {variable} FROM {data.alias} ORDER BY utd_hendelse_dato_start"
+    ).fetchall()
+
+    assert [value for (value,) in stored] == values.iloc[1:].tolist()
+    assert len(data.df()) == 2
+
+
+def test_microdata_missing_measure_does_not_conflict(microdata_sources, monkeypatch):
+    alias = _default_alias_from_name("igang")
+    microdata_sources.execute(f"INSERT INTO {alias} VALUES (6, '2020', 'a', '100')")
+    monkeypatch.setattr(
+        derive,
+        "snr_mrk",
+        lambda df: df.assign(
+            snr_mrk=df["utd_hendelse_id"].eq(1).where(df["utd_hendelse_id"].ne(6))
+        ),
+    )
+
+    result = MicroData("snr_mrk").df()
+
+    assert len(result) == 3
+    assert not result["snr_mrk"].isna().any()
+
+
+def test_microdata_snr_nulls_filtered_but_original_fnr_input_kept(microdata_sources):
+    alias = _default_alias_from_name("igang")
+    microdata_sources.execute(f"INSERT INTO {alias} VALUES (6, '2020', NULL, '404')")
+
+    assert not MicroData("snr").df()["snr"].isna().any()
+    assert "404" in MicroData("snr_mrk").df()["fnr"].tolist()
+
+
+def test_microdata_fnr_without_mapping_or_original_is_omitted(microdata_sources):
+    alias = _default_alias_from_name("igang")
+    microdata_sources.execute(
+        f"INSERT INTO {alias} VALUES (6, '2020', 'unknown', NULL)"
+    )
+
+    result = MicroData("fnr").df()
+
+    assert 6 not in result["utd_hendelse_id"].tolist()
+    assert not result["fnr"].isna().any()
+
+
+def test_microdata_physical_float_nan_is_omitted(microdata_sources):
+    alias = _default_alias_from_name("igang")
+    variable = "uh_eksamen_studpoeng"
+    microdata_sources.execute(f"ALTER TABLE {alias} ADD COLUMN {variable} DOUBLE")
+    microdata_sources.execute(f"UPDATE {alias} SET {variable} = 'NaN'::DOUBLE")
+    microdata_sources.execute(f"""
+        INSERT INTO {alias} VALUES
+            (6, '2020', 'a', '100', NULL),
+            (7, '2020', 'a', '100', 0.0),
+            (8, '2020', 'a', '100', 1.0)
+    """)
+
+    result = MicroData(variable).df()
+
+    assert sorted(result[variable].tolist()) == [0.0, 1.0]

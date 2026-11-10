@@ -30,6 +30,9 @@ class MicroData(NudbData):
     derive preserves input event rows. Otherwise they keep mapped FNRs only
     and log a warning.
 
+    Rows with a null measure are omitted; empty strings, zero, and False are
+    retained.
+
     Args:
         name: Name of the microdata variable.
         *args: Unnamed arguments passed on to the dataset generator.
