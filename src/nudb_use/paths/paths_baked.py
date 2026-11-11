@@ -5,7 +5,6 @@ from fagfunksjoner.paths.versions import get_latest_fileversions
 
 from nudb_use.nudb_logger import logger
 
-USE_BAKT_DATASETS = True
 AVAILABLE_BAKT_DATASETS: list[str] | None = None
 
 # HARD CODED VARIABLES WHICH SHOULD BE REPLACED BY THE CONFIG...
@@ -17,21 +16,6 @@ ALL_BAKT_PATHS = [
 
 BAKT_DATASETS_WANT = ["utd_hoeyeste", "utd_foreldres_utdnivaa"]
 BAKT_PATHS = [path for path in ALL_BAKT_PATHS if path.is_dir()]
-
-
-def _set_use_bakt_datasets() -> None:
-    global USE_BAKT_DATASETS
-    USE_BAKT_DATASETS = True
-
-
-def _set_ignore_bakt_datasets() -> None:
-    global USE_BAKT_DATASETS
-    USE_BAKT_DATASETS = False
-
-
-def _use_bakt_datasets() -> bool:
-    global USE_BAKT_DATASETS
-    return USE_BAKT_DATASETS
 
 
 def _add_bakt_path(path: str | Path) -> None:
@@ -63,6 +47,10 @@ def _get_available_bakt_datasets() -> list[str]:
             info = DaplaDatasetPathInfo(data)
             available.add(info.dataset_short_name)
 
+    if not available:
+        logger.warning("There are no available baked datasets!")
+        return []
+
     # When initializing we should also check if the results
     # match our expectations
     want = set(BAKT_DATASETS_WANT)
@@ -88,7 +76,7 @@ def _get_latest_path_bakt_data(name: str) -> Path:
     # because we don't want these baked datasets to be mixed
     # with other datasets, where we by accident end up returning
     # a bakt dataset path, for a dataset which is not a bakt dataset
-    if name not in AVAILABLE_BAKT_DATASETS:
+    if name not in _get_available_bakt_datasets():
         raise ValueError(f"{name} is not avaiable as a baked dataset!")
 
     paths = []

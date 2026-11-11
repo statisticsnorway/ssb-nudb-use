@@ -10,15 +10,15 @@ import duckdb as db
 import pandas as pd
 from fagfunksjoner.paths.versions import next_version_path
 
-from nudb_use.datasets.bakt_data import _generate_bakt_dataset_view
+from nudb_use.datasets.baked import _generate_baked_dataset_view
+from nudb_use.datasets.baked import _use_baked_datasets
 from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
-from nudb_use.paths.paths_bakt import _get_available_bakt_datasets
-from nudb_use.paths.paths_bakt import _use_bakt_datasets
+from nudb_use.paths.paths_baked import _get_available_baked_datasets
 
 JOIN_TYPES = {"left", "right", "inner", "cross", "full", "outer", "self"}
 
@@ -86,18 +86,18 @@ class NudbData:
             self.exists: bool = False
             self.is_view: bool = False
 
-            if _use_bakt_datasets() and name in _get_available_bakt_datasets():
+            if _use_baked_datasets() and name in _get_available_baked_datasets():
                 logger.debug("Using baked version of dataset...")
                 self.generator: Callable[..., None] = partial(
-                    _generate_bakt_dataset_view, name, *args, **kwargs
+                    _generate_baked_dataset_view, name, *args, **kwargs
                 )
-                self._is_baked = True
+                self.is_baked = True
 
             else:
-                self.generator: Callable[..., None] = partial(
+                self.generator = partial(
                     nudb_database._dataset_generators[name], *args, **kwargs
                 )
-                self._is_baked = False
+                self.is_baked = False
 
             self._select = "*"
             self._where = ""
@@ -231,7 +231,7 @@ QUERY:
         self._using = other._using
         self._as = other._as
         self._on = other._on
-        self._is_baked = other._is_baked
+        self.is_baked = other.is_baked
 
     def _check_query_validity(self) -> None:
         if self._join and not self._using and not self._on:
