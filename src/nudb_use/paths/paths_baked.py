@@ -39,13 +39,20 @@ def _get_available_baked_datasets() -> list[str]:
     if AVAILABLE_BAKED_DATASETS is not None:
         return AVAILABLE_BAKED_DATASETS
 
-    available = set()
+    available: set[str] = set()
     for path in BAKED_PATHS:
         datasets = list(path.glob("*.parquet"))
 
         for data in datasets:
-            info = DaplaDatasetPathInfo(data)
-            available.add(info.dataset_short_name)
+            try:
+                info = DaplaDatasetPathInfo(data)
+                if isinstance(info.dataset_short_name, str):
+                    available.add(info.dataset_short_name)
+                else:
+                    # could also just raise an error, sending us to except Expection: ...
+                    logger.warning(f"Unable to parse name of parquet file: {data}")
+            except Exception:
+                logger.warning(f"Unable to parse name of parquet file: {data}")
 
     if not available:
         logger.warning("There are no available baked datasets!")
