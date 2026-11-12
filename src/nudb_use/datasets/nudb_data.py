@@ -7,6 +7,7 @@ from typing import cast
 
 import duckdb as db
 import pandas as pd
+from requests.exceptions import RequestException
 
 from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
@@ -349,6 +350,7 @@ QUERY:
             NudbData: An NudbData object.
 
         Raises:
+            RequestException: If a request fails while initializing a named dataset.
             ValueError: If `how` is not a supported join type.
         """
         if isinstance(data, str):
@@ -363,6 +365,9 @@ QUERY:
                 expr = _indent(nudb_data.alias)
                 _as = nudb_data._as
 
+            except RequestException:
+                # A failed KLASS request is not a raw SQL expression.
+                raise
             except Exception:
                 logger.debug("Using raw string...")
                 expr = _indent(data)
