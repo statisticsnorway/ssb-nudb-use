@@ -68,7 +68,9 @@ def test_derive_variables_unknown_name_warns_and_continues(
     monkeypatch.setattr(logger, "warning", warning)
 
     result = derive.derive_variables(
-        pd.DataFrame({"utd_skolekom": ["0025"]}), ["unknown", "utd_erutland"]
+        pd.DataFrame({"utd_skolekom": ["0025"]}),
+        ["unknown", "utd_erutland"],
+        raise_errors=False,
     )
 
     assert result["utd_erutland"].tolist() == [True]
@@ -79,7 +81,7 @@ def test_derive_variables_unknown_name_raises() -> None:
     source = pd.DataFrame()
 
     with pytest.raises(DeriveError, match="unknown"):
-        derive.derive_variables(source, ["unknown"], raise_errors=True)
+        derive.derive_variables(source, ["unknown"])
 
 
 def test_derive_variables_missing_prerequisite_raises() -> None:
