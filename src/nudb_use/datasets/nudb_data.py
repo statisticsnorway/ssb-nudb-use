@@ -350,6 +350,7 @@ QUERY:
             NudbData: An NudbData object.
 
         Raises:
+            RequestException: If a request fails while initializing a named dataset.
             ValueError: If `how` is not a supported join type.
         """
         if isinstance(data, str):

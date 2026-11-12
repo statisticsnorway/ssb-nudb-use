@@ -1,5 +1,6 @@
 """KLASS failures raise by default and support explicit permissive derivation."""
 
+from typing import TypedDict
 from unittest.mock import Mock
 
 import pandas as pd
@@ -8,9 +9,15 @@ import requests
 
 from nudb_use.datasets.nudb_data import NudbData
 from nudb_use.datasets.nudb_database import nudb_database
+from nudb_use.nudb_logger import logger
 from nudb_use.variables import derive
 from nudb_use.variables.derive import derive_decorator
 from nudb_use.variables.derive.derive_decorator import DeriveError
+from nudb_use.variables.derive.derive_decorator import get_derive_function
+
+
+class DeriveOptions(TypedDict, total=False):
+    raise_errors: bool
 
 
 @pytest.fixture(params=[400, 404, 429, 500, 503, "connection", "timeout", "json"])
@@ -46,12 +53,14 @@ def test_klass_failure_aborts_direct_and_recursive_derivations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     source = pd.DataFrame({"nus2000": ["611101"]})
-    function = derive.get_derive_function(variable)
+    function = get_derive_function(variable)
     assert function is not None
-    options = {} if raise_errors is None else {"raise_errors": raise_errors}
+    options: DeriveOptions = (
+        {} if raise_errors is None else {"raise_errors": raise_errors}
+    )
     if raise_errors is False:
         warning = Mock()
-        monkeypatch.setattr(derive_decorator.logger, "warning", warning)
+        monkeypatch.setattr(logger, "warning", warning)
         result = derive.derive_variables(source, [variable], **options)
         pd.testing.assert_frame_equal(result, source)
         assert any(
@@ -107,11 +116,13 @@ def test_whole_dataset_join_preserves_request_failure(
     error = requests.exceptions.ConnectionError("KLASS unavailable")
     monkeypatch.setattr(derive_decorator, "join_variable_data", Mock(side_effect=error))
 
-    def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.Series:
-        return df["utd_skoleaar_start"]
+    def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.DataFrame:
+        return df.assign(utd_skoleaar_slutt=df["utd_skoleaar_start"])
 
     wrapped = derive_decorator.wrap_derive_join_all_data(utd_skoleaar_slutt)
-    options = {} if raise_errors is None else {"raise_errors": raise_errors}
+    options: DeriveOptions = (
+        {} if raise_errors is None else {"raise_errors": raise_errors}
+    )
     if raise_errors is False:
         pd.testing.assert_frame_equal(wrapped(source, **options), source)
     else:
@@ -133,7 +144,7 @@ def test_whole_dataset_wrapper_forwards_raise_errors(
     )
     error = ValueError("Original derivation detail")
 
-    def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.Series:
+    def utd_skoleaar_slutt(df: pd.DataFrame) -> pd.DataFrame:
         raise error
 
     wrapped = derive_decorator.wrap_derive_join_all_data(utd_skoleaar_slutt)
