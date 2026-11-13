@@ -35,6 +35,8 @@ def _generate_utd_foreldres_utdnivaa_view(
 
             -- Follow the same winning education row as the value above.
             CASE
+                WHEN far_utd_hoeyeste_rangering IS NULL AND mor_utd_hoeyeste_rangering IS NULL
+                    THEN 'no-parent-education-hoeyeste'
                 WHEN far_utd_hoeyeste_rangering IS NULL THEN T4.nudb_dataset_id
                 WHEN mor_utd_hoeyeste_rangering IS NULL THEN T3.nudb_dataset_id
                 WHEN far_utd_hoeyeste_rangering > mor_utd_hoeyeste_rangering THEN T3.nudb_dataset_id

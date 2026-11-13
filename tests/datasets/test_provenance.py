@@ -124,7 +124,9 @@ def test_parent_provenance_follows_winning_education(
     result = NudbData("utd_foreldres_utdnivaa").df()
     if winner is None:
         assert result["utd_foreldres_utdnivaa_16aar_nus2000"].isna().all()
-        assert result["nudb_dataset_id"].isna().all()
+        assert result["nudb_dataset_id"].tolist() == [
+            "no-parent-education-hoeyeste>utd_foreldres_utdnivaa"
+        ]
     else:
         assert result["utd_foreldres_utdnivaa_16aar_nus2000"].tolist() == [
             f"{winner}_code"
