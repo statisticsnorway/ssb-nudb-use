@@ -13,6 +13,7 @@ from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 
@@ -127,7 +128,7 @@ QUERY:
         force: bool = False,
         **kwargs: Any,
     ) -> "NudbData":
-        """Create NudbData object from a path of a parquet file."""
+        """Create NudbData from parquet, adding its name to dataset provenance."""
         if isinstance(path, str):
             path = Path(path)
         elif not isinstance(path, Path):
@@ -163,7 +164,9 @@ QUERY:
             query = f"""
             CREATE OR REPLACE VIEW
                 {alias} AS
-            SELECT * FROM
+            SELECT
+                {_nudb_data_select_all(path, connection, dataset=name)}
+            FROM
                 {_nudb_read_parquet(path, alias)}
             """
 

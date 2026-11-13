@@ -101,7 +101,7 @@ def _generate_slekt_snr_view(alias: str, connection: db.DuckDBPyConnection) -> N
             T2.snr                                           AS snr,
             ANY_VALUE(T3.snr)                                AS far_snr,
             ANY_VALUE(T4.snr)                                AS mor_snr,
-            ANY_VALUE(CONCAT(nudb_dataset_id, '>slekt_snr')) AS nudb_dataset_id
+            ANY_VALUE(CONCAT(T1.nudb_dataset_id, '>slekt_snr')) AS nudb_dataset_id
         FROM
             {slekt.alias} AS T1
 
