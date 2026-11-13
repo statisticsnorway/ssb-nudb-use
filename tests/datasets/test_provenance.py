@@ -44,7 +44,9 @@ def test_hoeyeste_retains_provenance_of_selected_event(database: _NudbDatabase) 
                 "snr": ["1000001", "1000001"],
                 "nus2000": ["411101", "711101"],
                 "utd_aktivitet_slutt": pd.to_datetime(["2010-06-01", "2010-06-01"]),
-                "uh_eksamen_dato": pd.Series(pd.NaT, index=range(2), dtype="datetime64[ns]"),
+                "uh_eksamen_dato": pd.Series(
+                    pd.NaT, index=range(2), dtype="datetime64[ns]"
+                ),
                 "uh_eksamen_studpoeng": [0, 0],
                 "uh_gruppering_nus": ["99", "99"],
                 "utd_klassetrinn": ["13", "18"],
