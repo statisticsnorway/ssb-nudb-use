@@ -17,7 +17,9 @@ def _generate_nuskat_table(alias: str, connection: db.DuckDBPyConnection) -> Non
     )
 
     query = f"""
-        CREATE TABLE {alias} AS SELECT DISTINCT * FROM _nuskat
+        CREATE TABLE {alias} AS
+        SELECT DISTINCT *, 'nus2000-from-klass>nuskat' AS nudb_dataset_id
+        FROM _nuskat
     """
 
     connection.execute(query)

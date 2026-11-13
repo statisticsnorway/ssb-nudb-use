@@ -122,8 +122,61 @@ def test_from_parquet_force_overwrites_unattached_dataset_generator(
 
     data = NudbData.from_parquet(parquet_path, name=dataset_name, force=True)
 
-    assert data.df().to_dict("list") == {"snr": ["1"], "komm_nr": ["0301"]}
+    assert data.df().to_dict("list") == {
+        "snr": ["1"],
+        "komm_nr": ["0301"],
+        "nudb_dataset_id": [dataset_name],
+    }
     assert database._dataset_paths[alias] == [parquet_path]
+
+
+@pytest.mark.parametrize("existing_provenance", [None, "original_source"])
+def test_from_parquet_adds_dataset_provenance(
+    tmp_path: Path, existing_provenance: str | None
+) -> None:
+    dataset_name = "local_provenance"
+    parquet_path = tmp_path / "provenance.parquet"
+    frame = pd.DataFrame({"snr": ["1"]}, index=pd.Index([7]))
+    if existing_provenance is not None:
+        frame["nudb_dataset_id"] = existing_provenance
+    frame.to_parquet(parquet_path)
+
+    data = NudbData.from_parquet(parquet_path, name=dataset_name, force=True)
+
+    expected_provenance = (
+        f"{existing_provenance}>{dataset_name}"
+        if existing_provenance is not None
+        else dataset_name
+    )
+    assert data.df().to_dict("list") == {
+        "snr": ["1"],
+        "nudb_dataset_id": [expected_provenance],
+    }
+
+
+def test_slekt_snr_from_parquet_without_physical_provenance(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    database = nudb_database_module._NudbDatabase()
+    monkeypatch.setattr("nudb_use.datasets.nudb_data.nudb_database", database)
+    slekt_path = tmp_path / "slekt.parquet"
+    snrkat_path = tmp_path / "snrkat.parquet"
+    pd.DataFrame(
+        {"fnr": ["child"], "far_fnr": ["father"], "mor_fnr": ["mother"]}
+    ).to_parquet(slekt_path, index=False)
+    pd.DataFrame(
+        {"fnr": ["child", "father", "mother"], "snr": ["1", "2", "3"]}
+    ).to_parquet(snrkat_path, index=False)
+
+    NudbData.from_parquet(slekt_path, name="slekt", force=True)
+    NudbData.from_parquet(snrkat_path, name="snrkat", force=True)
+
+    assert NudbData("slekt_snr").df().to_dict("list") == {
+        "snr": ["1"],
+        "far_snr": ["2"],
+        "mor_snr": ["3"],
+        "nudb_dataset_id": ["slekt>slekt_snr"],
+    }
 
 
 @pytest.mark.parametrize(
