@@ -13,7 +13,10 @@ def _generate_utd_hoeyeste_last_view(
     logger.info("Deriving `utd_hoyeste_last` as view - latest, highest education.")
     query = f"""
     CREATE VIEW {alias} AS
-    SELECT * FROM (
+    SELECT
+        * EXCLUDE (nudb_dataset_id),
+        nudb_dataset_id || '>utd_hoeyeste_last' AS nudb_dataset_id
+    FROM (
         SELECT
             *,
             MAX(utd_hoeyeste_aar) OVER (PARTITION BY SNR) AS last_utd_hoeyeste_aar
@@ -78,7 +81,8 @@ def _generate_utd_hoeyeste_view(
                 PREP_UTD_KLASSETRINN(utd_klassetrinn) AS utd_klassetrinn,
                 utd_studieland,
                 UTD_HOEYESTE_AAR(utd_hoeyeste_dato) AS utd_hoeyeste_aar,
-                utd_hendelse_id
+                utd_hendelse_id,
+                nudb_dataset_id
             FROM
                 {eksamen_avslutta_hoeyeste.alias}
         ),
@@ -112,6 +116,7 @@ def _generate_utd_hoeyeste_view(
             utd_hoeyeste_aar,
             utd_hoeyeste_rangering,
             utd_hendelse_id,
+            nudb_dataset_id || '>utd_hoeyeste' AS nudb_dataset_id,
 
             /*=== NUS2000 ===================================================================================*/
             nus2000                                                         AS utd_hoeyeste_nus2000_ujustert,

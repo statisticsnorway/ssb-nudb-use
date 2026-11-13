@@ -31,12 +31,14 @@ def _bof_latest_orgnr_placement_ctes_sql(
     for path in paths:
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+        source_id = path.stem.replace("'", "''")
 
         union_parts.append(f"""
             SELECT DISTINCT
                 CAST(orgnrbed AS VARCHAR) AS orgnr,
                 'orgnrbed' AS orgnr_type,
-                CAST('{path_period}' AS DATE) AS bof_period_date
+                CAST('{path_period}' AS DATE) AS bof_period_date,
+                '{source_id}' AS nudb_dataset_id
             FROM {_nudb_read_parquet(path_str, alias)}
 
             UNION ALL
@@ -44,7 +46,8 @@ def _bof_latest_orgnr_placement_ctes_sql(
             SELECT DISTINCT
                 CAST(org_nr AS VARCHAR) AS orgnr,
                 'foretak' AS orgnr_type,
-                CAST('{path_period}' AS DATE) AS bof_period_date
+                CAST('{path_period}' AS DATE) AS bof_period_date,
+                '{source_id}' AS nudb_dataset_id
             FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
@@ -65,11 +68,13 @@ def _bof_latest_orgnr_placement_ctes_sql(
         latest_placement AS (
             SELECT
                 orgnr,
-                orgnr_type
+                orgnr_type,
+                nudb_dataset_id
             FROM (
                 SELECT
                     orgnr,
                     orgnr_type,
+                    nudb_dataset_id,
                     ROW_NUMBER() OVER (
                         PARTITION BY orgnr
                         ORDER BY
@@ -126,6 +131,7 @@ def _generate_bof_eierforhold_view(
     for path in paths_pre2014:
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+        source_id = path.stem.replace("'", "''")
 
         union_parts.append(f"""
             SELECT
@@ -135,13 +141,15 @@ def _generate_bof_eierforhold_view(
                 NULL as sektor_2014,
                 NULL as undersektor_2014,
                 sektor,
-                CAST('{path_period}' as DATE) as bof_period_date
+                CAST('{path_period}' as DATE) as bof_period_date,
+                '{source_id}' AS nudb_dataset_id
             FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
     for path in paths_post2014:
         path_str = str(path).replace("'", "''")
         path_period = _first_date_from_path_period(path).strftime(r"%Y-%m-%d")
+        source_id = path.stem.replace("'", "''")
 
         union_parts.append(f"""
             SELECT
@@ -151,7 +159,8 @@ def _generate_bof_eierforhold_view(
                 sektor_2014,
                 undersektor_2014,
                 NULL as sektor,
-                CAST('{path_period}' as DATE) as bof_period_date
+                CAST('{path_period}' as DATE) as bof_period_date,
+                '{source_id}' AS nudb_dataset_id
             FROM {_nudb_read_parquet(path_str, alias)}
             """)
 
@@ -167,6 +176,7 @@ def _generate_bof_eierforhold_view(
                 "orgnrbed": "VARCHAR",
                 "bof_period_date": "DATE",
                 "bof_eierforhold": "VARCHAR",
+                "nudb_dataset_id": "VARCHAR",
             },
         )
         return
@@ -219,7 +229,8 @@ def _generate_bof_eierforhold_view(
 
                 -- Dont make a guess when we lack information that matches
                 ELSE NULL
-            END AS bof_eierforhold
+            END AS bof_eierforhold,
+            nudb_dataset_id || '>_bof_eierforhold' AS nudb_dataset_id
         FROM ({union_sql})
         WHERE
             orgnr_foretak IS NOT NULL AND TRIM(CAST(orgnr_foretak AS VARCHAR)) != '' AND orgnr_foretak != '000000000'
@@ -241,14 +252,17 @@ def _generate_bof_unique_orgnrbed_view(
         logger.warning(
             "Found no BOF files with orgnrbed to build the unique orgnrbed view. Creating an empty view."
         )
-        _create_empty_view(alias, connection, {"orgnrbed": "VARCHAR"})
+        _create_empty_view(
+            alias, connection, {"orgnrbed": "VARCHAR", "nudb_dataset_id": "VARCHAR"}
+        )
         return
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
         WITH {latest_placement_ctes_sql}
         SELECT DISTINCT
-            orgnr AS orgnrbed
+            orgnr AS orgnrbed,
+            nudb_dataset_id || '>_bof_unique_orgnrbed' AS nudb_dataset_id
         FROM latest_placement
         WHERE orgnr_type = 'orgnrbed'
         ;
@@ -268,13 +282,17 @@ def _generate_bof_unique_orgnr_foretak_view(
         logger.warning(
             "Found no BOF files with orgnr to build the unique orgnr_foretak view. Creating an empty view."
         )
-        _create_empty_view(alias, connection, {"orgnr": "VARCHAR"})
+        _create_empty_view(
+            alias, connection, {"orgnr": "VARCHAR", "nudb_dataset_id": "VARCHAR"}
+        )
         return
 
     query = f"""
         CREATE OR REPLACE VIEW {alias} AS
         WITH {latest_placement_ctes_sql}
-        SELECT DISTINCT orgnr
+        SELECT DISTINCT
+            orgnr,
+            nudb_dataset_id || '>_bof_unique_orgnr_foretak' AS nudb_dataset_id
         FROM latest_placement
         WHERE orgnr_type = 'foretak'
         ;

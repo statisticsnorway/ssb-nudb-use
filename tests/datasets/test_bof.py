@@ -27,9 +27,11 @@ def test_generate_bof_unique_orgnr_foretak_view_uses_latest_placement_cte(
         "nudb_use.datasets.bof._bof_latest_orgnr_placement_ctes_sql",
         lambda relevant_orgnr_cte=None, alias="": """
             latest_placement AS (
-                SELECT '111111111' AS orgnr, 'foretak' AS orgnr_type
+                SELECT '111111111' AS orgnr, 'foretak' AS orgnr_type,
+                       'bof_p2025-10_v1' AS nudb_dataset_id
                 UNION ALL
-                SELECT '222222222' AS orgnr, 'orgnrbed' AS orgnr_type
+                SELECT '222222222' AS orgnr, 'orgnrbed' AS orgnr_type,
+                       'bof_p2025-10_v1' AS nudb_dataset_id
             )
         """,
     )
@@ -42,6 +44,9 @@ def test_generate_bof_unique_orgnr_foretak_view_uses_latest_placement_cte(
     result = connection.sql("SELECT * FROM TEST_BOF_UNIQUE_FORETAK").df()
 
     assert result["orgnr"].tolist() == ["111111111"]
+    assert result["nudb_dataset_id"].tolist() == [
+        "bof_p2025-10_v1>_bof_unique_orgnr_foretak"
+    ]
 
     del database
 
@@ -69,7 +74,7 @@ def test_generate_bof_unique_orgnr_foretak_view_creates_empty_view_when_no_paths
     )
     rows = connection.sql("SELECT * FROM TEST_EMPTY_BOF_UNIQUE_FORETAK").df()
 
-    assert columns == ["orgnr"]
+    assert columns == ["orgnr", "nudb_dataset_id"]
     assert rows.empty
 
     del database

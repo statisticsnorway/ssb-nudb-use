@@ -151,7 +151,8 @@ def _generate_snr2alder16_view(alias: str, connection: db.DuckDBPyConnection) ->
                 WHEN pers_foedselsaar + 16 >  {last_year}  THEN {last_year}
                 WHEN pers_foedselsaar + 16 <  {VSENSUR_P1} THEN {VSENSUR_P1} /* Venstrejustering */
                 WHEN pers_foedselsaar + 16 <= {last_year}  THEN pers_foedselsaar + 16
-            END AS pers_aar_16
+            END AS pers_aar_16,
+            nudb_dataset_id || '>_snr2alder16' AS nudb_dataset_id
         FROM
             {freg.alias};
     """
@@ -165,7 +166,7 @@ def _generate_bokommune_16aar_snr(
     from nudb_use.datasets.nudb_data import NudbData
 
     bokomm = NudbData("bokommune_16aar_fnr").select(
-        "fnr, komm_nr, innflyttingsdato, alderu_ved_innflytting"
+        "fnr, komm_nr, innflyttingsdato, alderu_ved_innflytting, nudb_dataset_id"
     )
     fnr2snr = NudbData("_snrkat_fnr2snr")
 
@@ -184,7 +185,8 @@ def _generate_bokommune_16aar_snr(
                 s.snr,
                 b.komm_nr,
                 b.innflyttingsdato,
-                b.alderu_ved_innflytting
+                b.alderu_ved_innflytting,
+                b.nudb_dataset_id
             FROM
                 {bokomm.alias} AS b
             LEFT JOIN
@@ -210,7 +212,8 @@ def _generate_bokommune_16aar_snr(
         SELECT
             snr,
             komm_nr,
-            innflyttingsdato
+            innflyttingsdato,
+            nudb_dataset_id || '>bokommune_16aar_snr' AS nudb_dataset_id
         FROM
             dedup_snr
         WHERE
