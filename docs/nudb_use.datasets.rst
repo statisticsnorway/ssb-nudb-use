@@ -1,6 +1,34 @@
 nudb\_use.datasets package
 ==========================
 
+Dataset provenance
+------------------
+
+``nudb_dataset_id`` records the origin of a row, followed by derived dataset
+names separated by ``>``. ``NudbData.from_parquet()`` adds the registered dataset
+name to existing provenance, or starts a new value when the file has no such
+column. External source loaders also supply the column.
+
+``utd_hoeyeste`` retains the provenance of the selected education event.
+``utd_foreldres_utdnivaa`` retains the winning parent's education provenance,
+using the same ranking and tie rules as the education value. When neither parent
+has an eligible education record, its provenance is
+``no-parent-education-hoeyeste>utd_foreldres_utdnivaa``. This describes the
+selected education's origin rather than every input used by the view.
+
+``bu_igang`` starts fresh with
+``cross-row-aggregate-igang-avslutta-eksamen-utd_hoeyeste>bu_igang`` because its
+rows combine multiple sources and years. ``nuskat`` starts with
+``nus2000-from-klass>nuskat``. BOF views start with the source filename stem,
+including its period and version, and append the derived view's name.
+
+Microdata keeps its variable-specific output format. Provenance is available
+as ``MicroData("nudb_dataset_id")``, exposing the original event values from
+``igang``, ``avslutta`` and ``eksamen`` without appending microdata dataset names.
+The legacy loaders ``f_utd_kurs``, ``f_utd_demografi``, ``tab_utd_person``,
+``f_utd_person`` and ``tab_alle_snr`` expose their files' columns unchanged and do
+not inject provenance when their source files lack it.
+
 Subpackages
 -----------
 

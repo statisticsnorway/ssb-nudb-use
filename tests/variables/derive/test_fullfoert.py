@@ -3,6 +3,7 @@ import datetime
 import pandas as pd
 import pytest
 
+from nudb_use.variables.derive.derive_decorator import DeriveError
 from nudb_use.variables.derive.fullfoert import gr_ergrunnskole_fullfoert
 from nudb_use.variables.derive.fullfoert import uh_erbachelor_fullfoert
 from nudb_use.variables.derive.fullfoert import uh_erdoktorgrad_fullfoert
@@ -90,8 +91,10 @@ def test_vg_erstudiespess_fullfoert_and_vg_eryrkesfag_fullfoert() -> None:
     assert yrkesfag["vg_eryrkesfag_fullfoert"].tolist() == [False, True, False]
 
 
-def test_vg_fullfoert_logs_warning_on_invalid_program(
+@pytest.mark.parametrize("raise_errors", [None, False])
+def test_vg_fullfoert_invalid_program_respects_raise_errors(
     caplog: pytest.LogCaptureFixture,
+    raise_errors: bool | None,
 ) -> None:
     df = pd.DataFrame(
         {
@@ -102,10 +105,18 @@ def test_vg_fullfoert_logs_warning_on_invalid_program(
             "vg_utdprogram": ["101"],
         }
     )
-    # Because of the try in the decorator, this only causes a logged warning
-    vg_erstudiespess_fullfoert(df)
-    assert "values outside valid codelist" in caplog.text
-    assert "WARNING" in [rec.levelname for rec in caplog.records]
+    if raise_errors is False:
+        result = vg_erstudiespess_fullfoert(df, raise_errors=False)
+        pd.testing.assert_frame_equal(result, df)
+        assert "values outside valid codelist" in caplog.text
+        assert "WARNING" in [rec.levelname for rec in caplog.records]
+    else:
+        with pytest.raises(
+            DeriveError, match="values outside valid codelist"
+        ) as caught:
+            vg_erstudiespess_fullfoert(df)
+        assert isinstance(caught.value.__cause__, ValueError)
+        assert "101" in str(caught.value)
 
 
 def test_uh_erhoeyskolekandidat_fullfoert() -> None:

@@ -12,6 +12,7 @@ def test_utd_erutland_flags_kommuner() -> None:
                 "2025",
                 "2400",
                 "2580",
+                "2599",
                 "9999",
                 None,
             ]
@@ -21,6 +22,7 @@ def test_utd_erutland_flags_kommuner() -> None:
     result = utd_erutland(df)
 
     assert result["utd_erutland"].tolist() == [
+        True,
         True,
         True,
         True,

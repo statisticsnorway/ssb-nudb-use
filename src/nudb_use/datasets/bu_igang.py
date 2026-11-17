@@ -105,7 +105,11 @@ def _generate_bu_igang_table(
     bu_igang = bu_igang.astype("string[pyarrow]")
 
     query = f"""
-        CREATE TABLE {alias} AS SELECT * FROM bu_igang
+        CREATE TABLE {alias} AS
+        SELECT
+            *,
+            'cross-row-aggregate-igang-avslutta-eksamen-utd_hoeyeste>bu_igang' AS nudb_dataset_id
+        FROM bu_igang
     """
 
     connection.execute(query)

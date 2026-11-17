@@ -61,14 +61,14 @@ def derive_variables(
     variable_names: list[str],
     priority: Literal["old", "new"] = "old",
     temp_col_renames: dict[str, str] | None = None,
-    raise_errors: bool = False,
+    raise_errors: bool = True,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """Derive multiple variables in the supplied order.
 
     Each derive function receives the previous function's dataframe. Existing
     wrappers derive missing prerequisites recursively. Unknown variable names
-    are logged and skipped unless ``raise_errors`` is enabled. An empty list
+    raise by default, or are logged and skipped when ``raise_errors=False``. An empty list
     returns the dataframe unchanged.
 
     Args:
@@ -77,6 +77,7 @@ def derive_variables(
         priority: Prefer existing ("old") or newly derived ("new") values.
         temp_col_renames: Temporary source-to-prerequisite column name mapping.
         raise_errors: Raise derivation errors instead of logging and continuing.
+            Defaults to True, including for request failures.
         **kwargs: Additional keyword arguments passed to each derive function.
 
     Returns:
@@ -145,7 +146,7 @@ def wrap_derive(
         df: pd.DataFrame,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
-        raise_errors: bool = False,
+        raise_errors: bool = True,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -198,6 +199,7 @@ def wrap_derive(
                             *args,
                             priority=priority_literal,
                             temp_col_renames=temp_col_renames,
+                            raise_errors=raise_errors,
                             **kwargs,
                         )
 
@@ -205,7 +207,7 @@ def wrap_derive(
                         missing -= {missing_var}
 
                 if missing:
-                    msg = f"Unable to derive {name}, missing: {', '.join(list(need))}! You might want to rename columns you have with the temp_col_renames parameter."
+                    msg = f"Unable to derive {name}, missing: {', '.join(sorted(missing))}! You might want to rename columns you have with the temp_col_renames parameter."
                     if raise_errors:
                         raise KeyError(msg)
                     logger.warning(msg)
@@ -272,7 +274,9 @@ def wrap_derive(
 
             except Exception as err:
                 if raise_errors:
-                    raise DeriveError(err) from err
+                    raise DeriveError(
+                        f"Derivation of {name} failed: {type(err).__name__}: {err}"
+                    ) from err
                 logger.warning(
                     f"Derivation of {name} failed, returning data as is!\n{type(err).__name__}: {err}"
                 )
@@ -288,6 +292,7 @@ def wrap_derive(
             Args:
                 df: Dataframe that should contain prerequisites listed in {derived_from}.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
+                raise_errors: Raise errors by default; False logs failures and continues, including for prerequisites.
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated when all prerequisites are available.
@@ -318,6 +323,7 @@ def wrap_derive_join_all_data(
         df: pd.DataFrame | None = None,
         priority: Literal["old", "new"] = "old",
         temp_col_renames: dict[str, str] | None = None,
+        raise_errors: bool = True,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> pd.DataFrame:
@@ -330,6 +336,7 @@ def wrap_derive_join_all_data(
                 *args,
                 priority=priority,
                 temp_col_renames=temp_col_renames,
+                raise_errors=raise_errors,
                 **kwargs,
             )
 
@@ -339,8 +346,13 @@ def wrap_derive_join_all_data(
 
             try:
                 return join_variable_data(name, derived_source, df)
-            except Exception:
-                logger.warning(f"Unable to join {name} onto data! Returning as is...")
+            except Exception as err:
+                message = (
+                    f"Unable to join {name} onto data: {type(err).__name__}: {err}"
+                )
+                if raise_errors:
+                    raise DeriveError(message) from err
+                logger.warning(f"{message}\nReturning as is...")
                 return df
 
     subfunc.__name__ = basefunc.__name__
@@ -350,6 +362,7 @@ def wrap_derive_join_all_data(
                 df: Dataframe that we should merge the variable data onto.
                 priority: 'old' keeps existing {name} values when present, 'new' prefers freshly derived values.
                 temp_col_renames: Temporary source-to-prerequisite rename mapping passed through to `wrap_derive`.
+                raise_errors: Raise errors by default; False logs derivation and join failures and continues.
 
             Returns:
                 pd.DataFrame: The dataframe with {name} added/updated.

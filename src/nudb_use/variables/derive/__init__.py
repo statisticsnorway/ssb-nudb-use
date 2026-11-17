@@ -4,6 +4,8 @@ module = __import__(__name__, fromlist=[""])  # pass nonempty fromlist
 from collections.abc import Callable
 from types import ModuleType
 
+from requests.exceptions import RequestException
+
 from nudb_use.nudb_logger import logger
 
 from . import bof
@@ -91,6 +93,8 @@ def add_function(name: str, submodule: ModuleType) -> None:
     try:
         setattr(module, name, getattr(submodule, name))
         __all__.append(name)
+    except RequestException:
+        raise
     except Exception as err:
         logger.warning(
             f"Unable to attach '{name}' function to 'derive' module!\nMessage: {err}"
