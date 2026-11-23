@@ -8,6 +8,8 @@ import nudb_use
 from nudb_use.datasets import NudbData
 from nudb_use.datasets import nudb_database as nudb_database_module
 from nudb_use.datasets import reset_nudb_database
+from nudb_use.datasets.baked import _set_ignore_baked_datasets
+from nudb_use.datasets.baked import _set_use_baked_datasets
 from nudb_use.datasets.external import _generate_view
 from nudb_use.datasets.microdata import MicroData
 from nudb_use.datasets.nudb_data import _fetch_string_column
@@ -33,6 +35,7 @@ def patch_nudb_database(
 
     basepath = tmp_path / "local" / "nudb-data"
     nudbpath = basepath / "klargjorte-data"
+    bakedpath = nudbpath / "baked"
 
     shared_root = tmp_path / "shared"
     bef_statistikk = shared_root / "bef-statistikk"
@@ -44,6 +47,7 @@ def patch_nudb_database(
     slekt_dir.mkdir(parents=True)
     freg_dir.mkdir(parents=True)
     nudbpath.mkdir(parents=True)
+    bakedpath.mkdir(parents=True)
 
     igang = update_colnames(igang)
     avslutta = update_colnames(avslutta)
@@ -55,13 +59,21 @@ def patch_nudb_database(
     snrkat.to_parquet(snrkat_dir / "snrkat_p2026-01-31_v1.parquet")
     slekt.to_parquet(slekt_dir / "slekt_p2025-01-01_v1.parquet")
 
-    igang.to_parquet(nudbpath / "igang_p1970_p1971_v1.parquet")
+    igang.to_parquet(nudbpath / "igang_p1970-01-01_v1.parquet")
     avslutta.to_parquet(nudbpath / "avslutta_p1970_p1971_v1.parquet")
     eksamen.to_parquet(nudbpath / "eksamen_p1970_p1971_v1.parquet")
+    igang.to_parquet(bakedpath / "igang_p1970_p1971_v1.parquet")
 
     # legg inn i config at alle registreringer trenger flere (potensielt) dato-kolonner
     monkeypatch.setattr(nudb_use.paths.latest, "POSSIBLE_PATHS", [basepath])
     monkeypatch.setattr(nudb_use.paths.latest, "SHARED_ROOT_EXTERNAL", shared_root)
+    monkeypatch.setattr(nudb_use.paths.paths_baked, "ALL_BAKED_PATHS", [bakedpath])
+    monkeypatch.setattr(nudb_use.paths.paths_baked, "BAKED_DATASETS_WANT", ["igang"])
+    monkeypatch.setattr(nudb_use.paths.paths_baked, "BAKED_INTERNAL_PATH", bakedpath)
+    monkeypatch.setattr(nudb_use.datasets.nudb_data, "BAKED_INTERNAL_PATH", bakedpath)
+
+    # set (default) to false for tests
+    _set_ignore_baked_datasets()
 
 
 def test_nudbdata(
@@ -310,3 +322,22 @@ def test_microdata(
     MicroData("nus2000")
     MicroData("utd_record_type")
     MicroData("uh_univ_eller_hoegskole")
+
+
+def test_baking(
+    igang: pd.DataFrame,
+    avslutta: pd.DataFrame,
+    eksamen: pd.DataFrame,
+    freg_situttak: pd.DataFrame,
+    snrkat: pd.DataFrame,
+    slekt: pd.DataFrame,
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    patch_nudb_database(
+        igang, avslutta, eksamen, freg_situttak, snrkat, slekt, tmp_path, monkeypatch
+    )
+
+    _set_use_baked_datasets()
+    NudbData("igang").limit(100)._bake()
+    _set_ignore_baked_datasets()

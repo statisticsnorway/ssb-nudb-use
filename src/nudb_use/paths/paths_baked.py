@@ -8,10 +8,13 @@ from nudb_use.nudb_logger import logger
 AVAILABLE_BAKED_DATASETS: list[str] | None = None
 
 # HARD CODED VARIABLES WHICH SHOULD BE REPLACED BY THE CONFIG...
-ALL_BAKED_PATHS = [
-    Path("/buckets/shared/utd-nudb/utdanning/nudb-data/klargjorte-data/baked/"),
-    Path("/buckets/delt-utdanning/nudb-data/klargjorte-data/baked/"),
-]
+BAKED_INTERNAL_PATH = Path(
+    "/buckets/shared/utd-nudb/utdanning/nudb-data/klargjorte-data/baked/"
+)
+BAKED_EXTERNAL_PATH = Path("/buckets/delt-utdanning/nudb-data/klargjorte-data/baked/")
+
+
+ALL_BAKED_PATHS = [BAKED_INTERNAL_PATH, BAKED_EXTERNAL_PATH]
 
 
 BAKED_DATASETS_WANT = ["utd_hoeyeste", "utd_foreldres_utdnivaa"]

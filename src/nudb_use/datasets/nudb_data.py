@@ -23,6 +23,7 @@ from nudb_use.metadata.nudb_config.datadoc_from_config import (
 )
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+from nudb_use.paths.paths_baked import BAKED_INTERNAL_PATH
 from nudb_use.paths.paths_baked import _get_available_baked_datasets
 
 JOIN_TYPES = {"left", "right", "inner", "cross", "full", "outer", "self"}
@@ -563,7 +564,10 @@ QUERY:
 
     def _bake(self, v0: bool = False, copy_metadata: bool = False) -> None:
         """Bake NUDB dataset. For team members only!"""
-        path_v0 = f"{self.name}_{datetime.date.today()}_v0.parquet"
+        path_v0 = (
+            BAKED_INTERNAL_PATH / f"{self.name}_p{datetime.date.today()}_v0.parquet"
+        )
+
         if not v0:
             path = next_version_path(path_v0)
         else:
