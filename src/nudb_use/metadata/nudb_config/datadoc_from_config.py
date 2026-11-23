@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dapla_metadata.datadoc_model.all_optional import model
+from dapla_metadata import datadoc_model as model  # type: ignore[attr-defined]
 from dapla_metadata.datasets.core import Datadoc
 from dapla_metadata.datasets.dapla_dataset_path_info import DaplaDatasetPathInfo
 from nudb_config import settings
@@ -64,7 +64,7 @@ def initial_datadoc_from_nudb_config(path: str | Path) -> Datadoc:
                 )
 
             if var_settings.klass_codelist:
-                meta.variables_lookup[variable].classification_uri = model.AnyUrl(
+                meta.variables_lookup[variable].classification_uri = model.AnyUrl(  # type: ignore[attr-defined]
                     f"urn:ssb:classification:klass:{var_settings.klass_codelist}"
                 )
 
