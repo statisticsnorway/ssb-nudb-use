@@ -1,4 +1,5 @@
 import copy
+import datetime
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -7,15 +8,23 @@ from typing import cast
 
 import duckdb as db
 import pandas as pd
+from fagfunksjoner.paths.versions import next_version_path
 from requests.exceptions import RequestException
 
+from nudb_use.datasets.baked import _generate_baked_dataset_view
+from nudb_use.datasets.baked import _use_baked_datasets
 from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.datasets.utils import _nudb_data_select_all
+from nudb_use.metadata.nudb_config.datadoc_from_config import (
+    initial_datadoc_from_nudb_config,
+)
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
+from nudb_use.paths.paths_baked import BAKED_INTERNAL_PATH
+from nudb_use.paths.paths_baked import _get_available_baked_datasets
 
 JOIN_TYPES = {"left", "right", "inner", "cross", "full", "outer", "self"}
 
@@ -75,6 +84,7 @@ class NudbData:
                 )
 
             self.name: str = name
+
             if "alias" in kwargs:
                 self.alias: str = kwargs["alias"]
             else:
@@ -82,9 +92,18 @@ class NudbData:
             self.exists: bool = False
             self.is_view: bool = False
 
-            self.generator: Callable[..., None] = partial(
-                nudb_database._dataset_generators[name], *args, **kwargs
-            )
+            if _use_baked_datasets() and name in _get_available_baked_datasets():
+                logger.debug("Using baked version of dataset...")
+                self.generator: Callable[..., None] = partial(
+                    _generate_baked_dataset_view, name, *args, **kwargs
+                )
+                self.is_baked = True
+
+            else:
+                self.generator = partial(
+                    nudb_database._dataset_generators[name], *args, **kwargs
+                )
+                self.is_baked = False
 
             self._select = "*"
             self._where = ""
@@ -111,6 +130,7 @@ NUDB DATASET:
     alias:    {self.alias}
     exists:   {self.exists}
     is_view:  {self.is_view}
+    is_baked: {self.is_baked}
 
 QUERY:
     {_indent(query, indent_first = False)};
@@ -219,6 +239,7 @@ QUERY:
         self._using = other._using
         self._as = other._as
         self._on = other._on
+        self.is_baked = other.is_baked
 
     def _check_query_validity(self) -> None:
         if self._join and not self._using and not self._on:
@@ -540,6 +561,28 @@ QUERY:
             return nudb_database._dataset_paths[self.alias]
         else:
             return None
+
+    def _bake(self, v0: bool = False, copy_metadata: bool = False) -> None:
+        """Bake NUDB dataset. For team members only!"""
+        path_v0 = (
+            BAKED_INTERNAL_PATH / f"{self.name}_p{datetime.date.today()}_v0.parquet"
+        )
+
+        if not v0:
+            path = next_version_path(path_v0)
+        else:
+            path = path_v0
+
+        logger.info(f"writing data to: {path}")
+        self.df().to_parquet(path)
+
+        if copy_metadata:
+            # copy metadata from exisitng json
+            raise NotImplementedError("copy_metadata argument is not implemented yet!")
+        else:
+            logger.info("writing metadata from config...")
+            meta = initial_datadoc_from_nudb_config(path)
+            meta.write_metadata_document()
 
 
 def _is_view(alias: str) -> bool:
