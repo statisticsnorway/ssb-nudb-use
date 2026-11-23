@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dapla_metadata import datadoc_model as model
-from dapla_metadata.datasets import Datadoc
+from dapla_metadata.datadoc_model.all_optional import model
+from dapla_metadata.datasets.core import Datadoc
 from dapla_metadata.datasets.dapla_dataset_path_info import DaplaDatasetPathInfo
 from nudb_config import settings
 
