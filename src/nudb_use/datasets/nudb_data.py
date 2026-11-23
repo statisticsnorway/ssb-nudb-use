@@ -9,6 +9,7 @@ from typing import cast
 import duckdb as db
 import pandas as pd
 from fagfunksjoner.paths.versions import next_version_path
+from requests.exceptions import RequestException
 
 from nudb_use.datasets.baked import _generate_baked_dataset_view
 from nudb_use.datasets.baked import _use_baked_datasets
@@ -16,6 +17,7 @@ from nudb_use.datasets.nudb_database import STRING_DTYPE
 from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
+from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.paths_baked import _get_available_baked_datasets
@@ -142,7 +144,7 @@ QUERY:
         force: bool = False,
         **kwargs: Any,
     ) -> "NudbData":
-        """Create NudbData object from a path of a parquet file."""
+        """Create NudbData from parquet, adding its name to dataset provenance."""
         if isinstance(path, str):
             path = Path(path)
         elif not isinstance(path, Path):
@@ -178,7 +180,9 @@ QUERY:
             query = f"""
             CREATE OR REPLACE VIEW
                 {alias} AS
-            SELECT * FROM
+            SELECT
+                {_nudb_data_select_all(path, connection, dataset=name)}
+            FROM
                 {_nudb_read_parquet(path, alias)}
             """
 
@@ -366,6 +370,7 @@ QUERY:
             NudbData: An NudbData object.
 
         Raises:
+            RequestException: If a request fails while initializing a named dataset.
             ValueError: If `how` is not a supported join type.
         """
         if isinstance(data, str):
@@ -380,6 +385,9 @@ QUERY:
                 expr = _indent(nudb_data.alias)
                 _as = nudb_data._as
 
+            except RequestException:
+                # A failed KLASS request is not a raw SQL expression.
+                raise
             except Exception:
                 logger.debug("Using raw string...")
                 expr = _indent(data)

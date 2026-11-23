@@ -12,7 +12,7 @@ def utd_erutland(  # noqa:DOC201
     """Derive utd_erutland from utd_skolekom."""
     utd_erutland: pd.Series = (
         df["utd_skolekom"]
-        .isin(["0025", "1025", "2025", "2400", "2580"])
+        .isin(["0025", "1025", "2025", "2400", "2580", "2599"])
         .astype("bool[pyarrow]")
     )
     return utd_erutland
