@@ -1,11 +1,13 @@
 import duckdb as db
+from nudb_config import settings
 
 from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.datasets.utils import _nudb_data_select_all
 from nudb_use.paths.paths_baked import _get_latest_path_baked_data
 
-USE_BAKED_DATASETS = True
+USE_BAKED_DATASETS = settings.options.baked_data_use
+USE_BAKED_DATASETS_V0 = settings.options.baked_data_use_v0
 
 
 def _set_use_baked_datasets() -> None:
@@ -21,6 +23,21 @@ def _set_ignore_baked_datasets() -> None:
 def _use_baked_datasets() -> bool:
     global USE_BAKED_DATASETS
     return USE_BAKED_DATASETS
+
+
+def _set_use_baked_datasets_v0() -> None:
+    global USE_BAKED_DATASETS_V0
+    USE_BAKED_DATASETS_V0 = True
+
+
+def _set_ignore_baked_datasets_v0() -> None:
+    global USE_BAKED_DATASETS_V0
+    USE_BAKED_DATASETS_V0 = False
+
+
+def _use_baked_datasets_v0() -> bool:
+    global USE_BAKED_DATASETS_V0
+    return USE_BAKED_DATASETS_V0
 
 
 def _generate_baked_dataset_view(

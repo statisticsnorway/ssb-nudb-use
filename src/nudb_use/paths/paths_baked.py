@@ -79,6 +79,8 @@ def _get_available_baked_datasets() -> list[str]:
 
 
 def _get_latest_path_baked_data(name: str) -> Path:
+    from nudb_use.datasets.baked import _use_baked_datasets_v0
+
     # We do implement this as a part of get_latest_shared_path,
     # because we don't want these baked datasets to be mixed
     # with other datasets, where we by accident end up returning
@@ -93,6 +95,14 @@ def _get_latest_path_baked_data(name: str) -> Path:
                 f"{name}_p[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_v*[0-9].parquet"
             )
         )
+
+    if not _use_baked_datasets_v0():
+        # remove v0 paths
+        paths = [
+            path
+            for path in paths
+            if int(DaplaDatasetPathInfo(path).dataset_version) != 0
+        ]
 
     if not paths:
         raise ValueError(f"Unable to find a path for {name}!")

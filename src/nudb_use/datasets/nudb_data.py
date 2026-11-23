@@ -18,6 +18,9 @@ from nudb_use.datasets.nudb_database import nudb_database
 from nudb_use.datasets.nudb_read_parquet import _nudb_read_parquet
 from nudb_use.datasets.utils import _default_alias_from_name
 from nudb_use.datasets.utils import _nudb_data_select_all
+from nudb_use.metadata.nudb_config.datadoc_from_config import (
+    initial_datadoc_from_nudb_config,
+)
 from nudb_use.nudb_logger import LoggerStack
 from nudb_use.nudb_logger import logger
 from nudb_use.paths.paths_baked import _get_available_baked_datasets
@@ -558,11 +561,24 @@ QUERY:
         else:
             return None
 
-    def _bake(self) -> None:
+    def _bake(self, v0: bool = False, copy_metadata: bool = False) -> None:
         """Bake NUDB dataset. For team members only!"""
-        path = next_version_path(f"{self.name}_{datetime.date.today()}_v0.parquet")
+        path_v0 = f"{self.name}_{datetime.date.today()}_v0.parquet"
+        if not v0:
+            path = next_version_path(path_v0)
+        else:
+            path = path_v0
 
+        logger.info(f"writing data to: {path}")
         self.df().to_parquet(path)
+
+        if copy_metadata:
+            # copy metadata from exisitng json
+            raise NotImplementedError("copy_metadata argument is not implemented yet!")
+        else:
+            logger.info("writing metadata from config...")
+            meta = initial_datadoc_from_nudb_config(path)
+            meta.write_metadata_document()
 
 
 def _is_view(alias: str) -> bool:
