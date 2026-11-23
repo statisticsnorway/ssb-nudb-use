@@ -81,6 +81,14 @@ def _get_available_baked_datasets() -> list[str]:
     return AVAILABLE_BAKED_DATASETS
 
 
+def _is_v0_path(path: Path) -> bool:
+    try:
+        v = DaplaDatasetPathInfo(path).dataset_version
+        return v is not None and int(v) == 0
+    except Exception:
+        return False
+
+
 def _get_latest_path_baked_data(name: str) -> Path:
     from nudb_use.datasets.baked import _use_baked_datasets_v0
 
@@ -101,11 +109,7 @@ def _get_latest_path_baked_data(name: str) -> Path:
 
     if not _use_baked_datasets_v0():
         # remove v0 paths
-        paths = [
-            path
-            for path in paths
-            if int(DaplaDatasetPathInfo(path).dataset_version) != 0
-        ]
+        paths = [path for path in paths if not _is_v0_path(path)]
 
     if not paths:
         raise ValueError(f"Unable to find a path for {name}!")
